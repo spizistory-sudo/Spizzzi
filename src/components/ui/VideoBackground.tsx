@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 
 const VIDEOS = [
-  '/videos/bg-video-1.mp4',
-  '/videos/bg-video-2.mp4',
-  '/videos/Enchanted_Garden_Video_Generation.mp4',
-  '/videos/Crystal_Valley_Animation_Ready.mp4',
-  '/videos/Clockwork_Village_Video_Generation.mp4',
+  'https://jhwzjrclptwclyewehff.supabase.co/storage/v1/object/public/videos/bg-video-1.mp4',
+  'https://jhwzjrclptwclyewehff.supabase.co/storage/v1/object/public/videos/bg-video-2.mp4',
+  'https://jhwzjrclptwclyewehff.supabase.co/storage/v1/object/public/videos/Enchanted_Garden_Video_Generation.mp4',
+  'https://jhwzjrclptwclyewehff.supabase.co/storage/v1/object/public/videos/Crystal_Valley_Animation_Ready.mp4',
+  'https://jhwzjrclptwclyewehff.supabase.co/storage/v1/object/public/videos/Clockwork_Village_Video_Generation.mp4',
+  'https://jhwzjrclptwclyewehff.supabase.co/storage/v1/object/public/videos/New_Video_Different_Scenery.mp4',
+  'https://jhwzjrclptwclyewehff.supabase.co/storage/v1/object/public/videos/Whimsical_Magical_World_Video_Generation.mp4',
 ];
 
 const FADE_DURATION = 2000;
@@ -65,6 +67,7 @@ export default function VideoBackground() {
             muted
             loop
             playsInline
+            onError={(e) => (e.currentTarget.style.display = 'none')}
             style={{
               position: 'absolute',
               inset: 0,
