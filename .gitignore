@@ -42,3 +42,4 @@ public/videos/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+node_modules_old/

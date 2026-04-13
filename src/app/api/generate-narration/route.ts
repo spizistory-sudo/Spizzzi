@@ -42,8 +42,9 @@ export async function POST(req: Request) {
       );
     }
 
+    const isHebrewRequest = body.language === 'he';
     const voice = getVoiceById(voiceId);
-    if (!voice) {
+    if (!voice && !isHebrewRequest) {
       return NextResponse.json({ error: 'Invalid voice' }, { status: 400 });
     }
 
@@ -88,10 +89,12 @@ export async function POST(req: Request) {
     const elevenlabs = useRealTts ? getElevenLabsClient() : null;
     const results = [];
 
-    // Hebrew voice override — Sarah has the best multilingual performance
+    // Hebrew: Liam voice + eleven_v3 model (proper Hebrew support)
     const effectiveVoiceId = isHebrew
-      ? 'EXAVITQu4vr4xnSDxMaL' // Sarah
-      : voice.voiceId;
+      ? 'TX3LPaxmHKxFdv7VOQHJ' // Liam
+      : voice?.voiceId || voiceId;
+
+    const model = isHebrew ? 'eleven_v3' : 'eleven_multilingual_v2';
 
     const voiceSettings = isHebrew
       ? { stability: 0.80, similarityBoost: 0.75, style: 0.30, useSpeakerBoost: true }
@@ -106,7 +109,7 @@ export async function POST(req: Request) {
     };
 
     if (isHebrew) {
-      console.log('[narration] Hebrew book detected — using Sarah voice override');
+      console.log('[narration] Hebrew book detected — using Liam voice + eleven_v3 model');
     }
 
     for (const page of pages) {
@@ -127,14 +130,21 @@ export async function POST(req: Request) {
             console.log('[narration] Hebrew text sample:', textToNarrate.substring(0, 150));
           }
 
-          const audioStream = await elevenlabs!.textToSpeech.convert(
-            effectiveVoiceId,
-            {
-              text: textToNarrate,
-              modelId: 'eleven_multilingual_v2',
-              voiceSettings,
-            }
-          );
+          console.log('[narration] Calling ElevenLabs with model:', model, 'voiceId:', effectiveVoiceId);
+          let audioStream;
+          try {
+            audioStream = await elevenlabs!.textToSpeech.convert(
+              effectiveVoiceId,
+              {
+                text: textToNarrate,
+                modelId: model,
+                voiceSettings,
+              }
+            );
+          } catch (err: any) {
+            console.error('[narration] ElevenLabs FULL ERROR:', JSON.stringify(err), err?.message, err?.body);
+            throw err;
+          }
 
           const reader = audioStream.getReader();
           const chunks: Buffer[] = [];

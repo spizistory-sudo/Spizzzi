@@ -4,7 +4,7 @@ import { generatePageAnimation } from '@/lib/ai/video-generator';
 import { getMotionPrompt } from '@/lib/ai/prompts/motion-prompts';
 import { uploadImage } from '@/lib/supabase/storage';
 
-export const maxDuration = 600;
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   try {

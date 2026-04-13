@@ -72,6 +72,15 @@ export default function FinalizePage() {
     loadTracks();
   }, [supabase]);
 
+  // Auto-select Liam for Hebrew books
+  console.log('[finalize] wizard language:', language);
+  useEffect(() => {
+    if (language === 'he') {
+      console.log('[finalize] Hebrew detected — auto-selecting Liam voice');
+      setSelectedVoice('TX3LPaxmHKxFdv7VOQHJ');
+    }
+  }, [language, setSelectedVoice]);
+
   // Auto-suggest music
   useEffect(() => {
     if (!selectedMusicId && generatedStory && musicTracks.length > 0) {
@@ -323,48 +332,86 @@ export default function FinalizePage() {
       {/* Voice selector */}
       <section style={{ marginBottom: 40 }}>
         <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '1.3rem', marginBottom: 8 }}>Narrator voice</h2>
-        <p style={{ color: 'rgba(255,255,255,0.50)', fontSize: '0.88rem', marginBottom: 16 }}>Choose who will read the story aloud. Click &ldquo;Preview&rdquo; to hear a sample.</p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {NARRATOR_VOICES.map((voice) => {
-            const isSelected = selectedVoiceId === voice.id;
-            const isPreviewing = previewingVoice === voice.id;
-            return (
-              <div key={voice.id} className="transition-all duration-300" style={{
-                background: isSelected ? 'rgba(245,200,66,0.06)' : 'rgba(255,255,255,0.06)',
-                backdropFilter: 'blur(12px) saturate(150%)', WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-                border: isSelected ? '2px solid #F5C842' : '1px solid rgba(255,255,255,0.10)',
-                boxShadow: isSelected ? 'inset 0 0 20px rgba(255,255,255,0.04), 0 0 0 1px #F5C842, 0 0 24px rgba(245,200,66,0.25)' : 'inset 0 0 20px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.20)',
-                borderRadius: '1.5rem', padding: '20px 24px', cursor: 'pointer', position: 'relative',
-              }}
-                onMouseEnter={(e) => { if (!isSelected) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = 'rgba(245,200,66,0.40)'; } }}
-                onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; } }}
-              >
-                {isSelected && <div style={{ position: 'absolute', top: 12, right: 12, width: 24, height: 24, background: '#F5C842', color: '#1A1000', fontSize: '0.72rem', fontWeight: 700, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>&#10003;</div>}
-                <button onClick={() => setSelectedVoice(voice.id)} className="w-full text-left" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? 'rgba(245,200,66,0.20)' : 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.30)' }}>
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
-                    </div>
-                    <div>
-                      <p style={{ color: 'rgba(255,255,255,0.95)', fontWeight: 500 }}>{voice.name}</p>
-                      <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.78rem', textTransform: 'capitalize' }}>{voice.gender} &middot; {voice.tone}</p>
-                    </div>
-                  </div>
-                  <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.88rem', lineHeight: 1.5 }}>{voice.description}</p>
-                </button>
-                <button onClick={() => previewVoice(voice.id, voice.voiceId)} style={{
-                  marginTop: 10,
-                  background: isPreviewing ? 'linear-gradient(135deg, rgba(155,125,212,0.80), rgba(126,200,227,0.70))' : 'rgba(255,255,255,0.08)',
-                  border: isPreviewing ? '1px solid rgba(255,255,255,0.20)' : '1px solid rgba(255,255,255,0.18)',
-                  color: isPreviewing ? '#fff' : 'rgba(255,255,255,0.75)',
-                  borderRadius: '9999px', padding: '6px 16px', fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.2s ease',
-                }}>
-                  {isPreviewing ? 'Stop' : 'Preview'}
-                </button>
+        <p style={{ color: 'rgba(255,255,255,0.50)', fontSize: '0.88rem', marginBottom: 16 }}>
+          {language === 'he' ? 'Hebrew books use Liam \u2014 the best narrator for natural Hebrew.' : 'Choose who will read the story aloud. Click \u201CPreview\u201D to hear a sample.'}
+        </p>
+        {language === 'he' ? (
+          <div style={{
+            background: 'rgba(245,200,66,0.06)',
+            backdropFilter: 'blur(12px) saturate(150%)', WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+            border: '2px solid #F5C842',
+            boxShadow: 'inset 0 0 20px rgba(255,255,255,0.04), 0 0 0 1px #F5C842, 0 0 24px rgba(245,200,66,0.25)',
+            borderRadius: '1.5rem', padding: '20px 24px', position: 'relative', maxWidth: 360,
+          }}>
+            <div style={{ position: 'absolute', top: 12, right: 12, width: 24, height: 24, background: '#F5C842', color: '#1A1000', fontSize: '0.72rem', fontWeight: 700, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>&#10003;</div>
+            <div className="flex items-center gap-3 mb-2">
+              <div style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(245,200,66,0.20)', color: 'rgba(255,255,255,0.30)' }}>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
               </div>
-            );
-          })}
-        </div>
+              <div>
+                <p style={{ color: 'rgba(255,255,255,0.95)', fontWeight: 500 }}>Liam</p>
+                <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.78rem' }}>Male &middot; Hebrew Narrator</p>
+              </div>
+            </div>
+            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.88rem', lineHeight: 1.5 }}>
+              The only narrator that speaks natural Hebrew
+            </p>
+            <div style={{
+              background: 'rgba(126,200,227,0.15)',
+              border: '1px solid rgba(126,200,227,0.40)',
+              color: '#7EC8E3',
+              borderRadius: 9999,
+              padding: '3px 12px',
+              fontSize: '0.75rem',
+              display: 'inline-block',
+              marginTop: 8,
+            }}>
+              &#10003; Auto-selected for Hebrew
+            </div>
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {NARRATOR_VOICES.map((voice) => {
+              const isSelected = selectedVoiceId === voice.id;
+              const isPreviewing = previewingVoice === voice.id;
+              return (
+                <div key={voice.id} className="transition-all duration-300" style={{
+                  background: isSelected ? 'rgba(245,200,66,0.06)' : 'rgba(255,255,255,0.06)',
+                  backdropFilter: 'blur(12px) saturate(150%)', WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+                  border: isSelected ? '2px solid #F5C842' : '1px solid rgba(255,255,255,0.10)',
+                  boxShadow: isSelected ? 'inset 0 0 20px rgba(255,255,255,0.04), 0 0 0 1px #F5C842, 0 0 24px rgba(245,200,66,0.25)' : 'inset 0 0 20px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.20)',
+                  borderRadius: '1.5rem', padding: '20px 24px', cursor: 'pointer', position: 'relative',
+                }}
+                  onMouseEnter={(e) => { if (!isSelected) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = 'rgba(245,200,66,0.40)'; } }}
+                  onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; } }}
+                >
+                  {isSelected && <div style={{ position: 'absolute', top: 12, right: 12, width: 24, height: 24, background: '#F5C842', color: '#1A1000', fontSize: '0.72rem', fontWeight: 700, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>&#10003;</div>}
+                  <button onClick={() => setSelectedVoice(voice.id)} className="w-full text-left" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    <div className="flex items-center gap-3 mb-2">
+                      <div style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? 'rgba(245,200,66,0.20)' : 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.30)' }}>
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
+                      </div>
+                      <div>
+                        <p style={{ color: 'rgba(255,255,255,0.95)', fontWeight: 500 }}>{voice.name}</p>
+                        <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.78rem', textTransform: 'capitalize' }}>{voice.gender} &middot; {voice.tone}</p>
+                      </div>
+                    </div>
+                    <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.88rem', lineHeight: 1.5 }}>{voice.description}</p>
+                  </button>
+                  <button onClick={() => previewVoice(voice.id, voice.voiceId)} style={{
+                    marginTop: 10,
+                    background: isPreviewing ? 'linear-gradient(135deg, rgba(155,125,212,0.80), rgba(126,200,227,0.70))' : 'rgba(255,255,255,0.08)',
+                    border: isPreviewing ? '1px solid rgba(255,255,255,0.20)' : '1px solid rgba(255,255,255,0.18)',
+                    color: isPreviewing ? '#fff' : 'rgba(255,255,255,0.75)',
+                    borderRadius: '9999px', padding: '6px 16px', fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.2s ease',
+                  }}>
+                    {isPreviewing ? 'Stop' : 'Preview'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* Music selector */}
