@@ -195,7 +195,7 @@ export async function POST(req: Request) {
         metadata: {
           ...existingMetadata,
           narrator_voice_id: voiceId,
-          narrator_voice_name: voice.name,
+          narrator_voice_name: voice?.name || (isHebrew ? 'Liam' : 'Unknown'),
         },
       })
       .eq('id', bookId);
