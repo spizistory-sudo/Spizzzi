@@ -27,10 +27,13 @@ export default function WizardProgress({
           <div key={step.key} className="flex items-center gap-2">
             {i > 0 && (
               <div
-                className="w-8 md:w-12"
+                className="w-8 md:w-14"
                 style={{
-                  borderTop: `3px ${isCompleted ? 'solid' : 'dotted'} ${isCompleted ? 'var(--accent-orange)' : 'var(--border-medium)'}`,
-                  opacity: isCompleted ? 1 : 0.4,
+                  height: 2,
+                  background: isCompleted
+                    ? 'linear-gradient(90deg, var(--gold), rgba(245,200,66,0.40))'
+                    : 'rgba(255,255,255,0.10)',
+                  borderRadius: 99,
                 }}
               />
             )}
@@ -39,13 +42,22 @@ export default function WizardProgress({
                 className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300"
                 style={{
                   background: isActive
-                    ? 'linear-gradient(135deg, var(--accent-orange), var(--accent-orange-hover))'
+                    ? 'linear-gradient(135deg, rgba(155,125,212,0.80), rgba(126,200,227,0.70))'
                     : isCompleted
-                    ? 'var(--accent-green)'
-                    : 'var(--bg-lavender)',
-                  color: isActive || isCompleted ? '#FFF8F0' : 'var(--text-muted)',
+                    ? 'rgba(245,200,66,0.20)'
+                    : 'rgba(255,255,255,0.07)',
+                  border: isActive
+                    ? '1px solid rgba(255,255,255,0.25)'
+                    : isCompleted
+                    ? '1px solid rgba(245,200,66,0.35)'
+                    : '1px solid rgba(255,255,255,0.10)',
+                  color: isActive
+                    ? '#ffffff'
+                    : isCompleted
+                    ? 'var(--gold)'
+                    : 'rgba(255,255,255,0.35)',
                   fontFamily: 'var(--font-display)',
-                  boxShadow: isActive ? '0 3px 12px rgba(255, 140, 66, 0.3)' : 'none',
+                  boxShadow: isActive ? '0 4px 16px rgba(155,125,212,0.35)' : 'none',
                 }}
               >
                 {isCompleted ? (
@@ -61,8 +73,13 @@ export default function WizardProgress({
               <span
                 className="text-sm font-semibold hidden sm:inline"
                 style={{
-                  color: isActive ? 'var(--accent-orange)' : isCompleted ? 'var(--accent-green)' : 'var(--text-light)',
+                  color: isActive
+                    ? 'rgba(255,255,255,0.90)'
+                    : isCompleted
+                    ? 'var(--gold)'
+                    : 'rgba(255,255,255,0.30)',
                   fontFamily: 'var(--font-body)',
+                  letterSpacing: '0.02em',
                 }}
               >
                 {step.label}

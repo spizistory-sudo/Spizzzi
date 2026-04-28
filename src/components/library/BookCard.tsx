@@ -7,11 +7,11 @@ import type { Book } from '@/types/book';
 import ShareModal from '@/components/share/ShareModal';
 
 const statusStyles: Record<string, { bg: string; text: string; label: string }> = {
-  draft: { bg: '#FFF0E8', text: '#C4713A', label: 'Draft' },
-  generating: { bg: '#EDF6FF', text: '#4A8BC2', label: 'Creating...' },
-  review: { bg: '#FFF8E0', text: '#B8960A', label: 'In Review' },
-  complete: { bg: '#E8FFE8', text: '#3DA55C', label: 'Complete' },
-  error: { bg: '#FFE8E8', text: '#C44A4A', label: 'Error' },
+  draft: { bg: 'rgba(245,200,66,0.12)', text: '#F5C842', label: 'Draft' },
+  generating: { bg: 'rgba(126,200,227,0.12)', text: '#7EC8E3', label: 'Creating...' },
+  review: { bg: 'rgba(245,200,66,0.12)', text: '#F5C842', label: 'In Review' },
+  complete: { bg: 'rgba(80,200,120,0.12)', text: '#50C878', label: 'Complete' },
+  error: { bg: 'rgba(220,50,50,0.12)', text: 'rgba(255,150,150,0.95)', label: 'Error' },
 };
 
 interface BookCardProps {
@@ -113,7 +113,7 @@ export default function BookCard({ book }: BookCardProps) {
 
         {/* Content */}
         <div style={{ padding: '14px 18px', background: 'rgba(10,17,40,0.75)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', fontWeight: 500, color: 'rgba(255,255,255,0.95)', marginBottom: 4, lineHeight: 1.3 }} dir="auto">
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', fontWeight: 500, color: 'rgba(255,255,255,0.95)', marginBottom: 4, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }} dir="auto">
             {book.title}
           </h3>
           <p style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'var(--font-body)', fontSize: '0.82rem' }}>

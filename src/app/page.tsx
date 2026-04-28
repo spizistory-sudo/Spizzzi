@@ -2,27 +2,20 @@ import Link from 'next/link';
 
 export default function LandingPage() {
   return (
-    <div style={{ backgroundColor: 'var(--bg-cream)' }}>
+    <div style={{ minHeight: '100vh' }}>
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--accent-burgundy)', fontFamily: 'var(--font-display)' }}>
+      <nav className="flex items-center justify-between px-6 py-5 max-w-7xl mx-auto">
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', fontWeight: 700, color: 'var(--gold)', fontStyle: 'italic' }}>
           StoryMagic &#10024;
         </h1>
         <div className="flex items-center gap-4">
-          <Link href="/login" className="font-medium transition" style={{ color: 'var(--text-body)', fontFamily: 'var(--font-body)' }}>
+          <Link href="/login" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: '0.95rem' }}>
             Sign in
           </Link>
           <Link
             href="/signup"
-            style={{
-              background: 'linear-gradient(135deg, var(--accent-orange), var(--accent-orange-hover))',
-              color: '#FFF8F0',
-              padding: '10px 22px',
-              borderRadius: 'var(--radius-pill)',
-              fontFamily: 'var(--font-body)',
-              fontWeight: 600,
-              boxShadow: 'var(--shadow-orange-glow)',
-            }}
+            className="btn-primary"
+            style={{ padding: '10px 24px', fontSize: '0.92rem' }}
           >
             Get started
           </Link>
@@ -31,23 +24,17 @@ export default function LandingPage() {
 
       {/* Hero */}
       <main className="max-w-7xl mx-auto px-6 pt-16 pb-24">
-        <div className="text-center max-w-3xl mx-auto animate-fade-in-up">
-          {/* Floating decorative elements */}
-          <div className="relative">
-            <span className="absolute -top-8 left-[10%] text-4xl opacity-20 select-none" style={{ animation: 'blobFloat1 20s ease-in-out infinite' }}>&#11088;</span>
-            <span className="absolute -top-4 right-[15%] text-3xl opacity-15 select-none" style={{ animation: 'blobFloat2 25s ease-in-out infinite' }}>&#127769;</span>
-            <span className="absolute top-12 left-[5%] text-2xl opacity-10 select-none" style={{ animation: 'blobFloat3 30s ease-in-out infinite' }}>&#9729;&#65039;</span>
-          </div>
-
+        <div className="text-center max-w-3xl mx-auto">
           <div
             className="inline-block px-5 py-2 mb-6"
             style={{
-              background: 'var(--bg-lavender)',
+              background: 'rgba(155,125,212,0.12)',
+              border: '1px solid rgba(155,125,212,0.25)',
               borderRadius: 'var(--radius-pill)',
-              color: 'var(--accent-purple)',
+              color: 'var(--purple)',
               fontFamily: 'var(--font-body)',
               fontWeight: 600,
-              fontSize: '14px',
+              fontSize: '0.85rem',
             }}
           >
             &#10024; AI-powered personalized storybooks
@@ -58,21 +45,22 @@ export default function LandingPage() {
             style={{
               fontFamily: 'var(--font-display)',
               fontSize: 'clamp(2.5rem, 5vw, 3.8rem)',
-              color: 'var(--text-dark)',
-              fontWeight: 800,
+              color: 'var(--text-primary)',
+              fontWeight: 700,
+              fontStyle: 'italic',
             }}
           >
             Create magical stories{' '}
-            <span style={{ color: 'var(--accent-orange)' }}>starring your child</span>
+            <span style={{ color: 'var(--gold)' }}>starring your child</span>
           </h2>
 
           <p
             className="max-w-2xl mx-auto mb-10"
             style={{
               fontFamily: 'var(--font-body)',
-              fontSize: '20px',
-              color: 'var(--text-muted)',
-              lineHeight: 1.6,
+              fontSize: '1.15rem',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.7,
             }}
           >
             Pick a theme, add your child&apos;s name and photo, and watch as AI creates a
@@ -82,32 +70,15 @@ export default function LandingPage() {
           <div className="flex items-center justify-center gap-4">
             <Link
               href="/signup"
-              className="transition-all duration-300 animate-gentle-pulse"
-              style={{
-                background: 'linear-gradient(135deg, var(--accent-orange), var(--accent-orange-hover))',
-                color: '#FFF8F0',
-                padding: '16px 36px',
-                borderRadius: 'var(--radius-pill)',
-                fontFamily: 'var(--font-body)',
-                fontWeight: 700,
-                fontSize: '18px',
-                boxShadow: 'var(--shadow-orange-glow)',
-              }}
+              className="btn-primary"
+              style={{ padding: '16px 36px', fontSize: '1.1rem' }}
             >
               &#10024; Start Creating
             </Link>
             <Link
               href="/login"
-              className="transition-all duration-200"
-              style={{
-                color: 'var(--text-body)',
-                padding: '16px 28px',
-                borderRadius: 'var(--radius-pill)',
-                fontFamily: 'var(--font-body)',
-                fontWeight: 600,
-                fontSize: '18px',
-                border: '2px solid var(--border-medium)',
-              }}
+              className="btn-secondary"
+              style={{ padding: '16px 28px', fontSize: '1.1rem' }}
             >
               Sign in
             </Link>
@@ -115,57 +86,55 @@ export default function LandingPage() {
         </div>
 
         {/* Features */}
-        <div className="mt-28 grid md:grid-cols-3 gap-8 stagger">
+        <div className="mt-28 grid md:grid-cols-3 gap-6">
           {[
             {
               emoji: '&#127912;',
               title: 'Choose a theme',
               desc: 'Superheroes, underwater adventures, magical kitchens, and more. Pick the perfect story world for your child.',
-              bg: 'var(--bg-peach-light)',
-              accent: 'var(--accent-orange)',
+              glow: 'var(--gold-glow)',
+              border: 'rgba(245,200,66,0.20)',
             },
             {
               emoji: '&#10024;',
               title: 'Personalize everything',
               desc: 'Your child becomes the hero. Add their name, traits, and photo for custom illustrations that look like them.',
-              bg: 'var(--bg-lavender)',
-              accent: 'var(--accent-purple)',
+              glow: 'var(--purple-glow)',
+              border: 'rgba(155,125,212,0.20)',
             },
             {
               emoji: '&#128214;',
               title: 'Read, listen & share',
               desc: 'An interactive book reader with voice narration, background music, and beautiful page-flip animations.',
-              bg: 'var(--bg-sky-light)',
-              accent: 'var(--accent-blue)',
+              glow: 'var(--cyan-glow)',
+              border: 'rgba(126,200,227,0.20)',
             },
           ].map((feature) => (
             <div
               key={feature.title}
-              className="animate-fade-in-up hover-lift"
+              className="glass"
               style={{
-                background: 'var(--bg-white)',
-                borderRadius: 'var(--radius-xl)',
+                borderRadius: 'var(--radius-md)',
                 padding: '32px',
-                boxShadow: 'var(--shadow-card)',
-                border: '1px solid var(--border-light)',
+                border: `1px solid ${feature.border}`,
               }}
             >
               <div
                 className="w-14 h-14 flex items-center justify-center mb-5"
                 style={{
-                  background: feature.bg,
-                  borderRadius: 'var(--radius-md)',
+                  background: feature.glow,
+                  borderRadius: 'var(--radius-sm)',
                   fontSize: '28px',
                 }}
                 dangerouslySetInnerHTML={{ __html: feature.emoji }}
               />
               <h3
                 className="text-xl font-bold mb-2"
-                style={{ color: 'var(--text-dark)', fontFamily: 'var(--font-display)' }}
+                style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}
               >
                 {feature.title}
               </h3>
-              <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', lineHeight: 1.6 }}>
+              <p style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', lineHeight: 1.7 }}>
                 {feature.desc}
               </p>
             </div>
@@ -175,8 +144,8 @@ export default function LandingPage() {
         {/* How it works */}
         <div className="mt-28 text-center">
           <h2
-            className="text-3xl font-bold mb-12"
-            style={{ color: 'var(--text-dark)', fontFamily: 'var(--font-display)' }}
+            className="text-3xl font-bold mb-14"
+            style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontStyle: 'italic' }}
           >
             How it works
           </h2>
@@ -188,27 +157,25 @@ export default function LandingPage() {
             ].map((step, i) => (
               <div key={step.num} className="flex items-center gap-4">
                 {i > 0 && (
-                  <div className="hidden md:block w-16" style={{ borderTop: '3px dotted var(--accent-orange)', opacity: 0.3 }} />
+                  <div className="hidden md:block w-16" style={{ borderTop: '2px dotted rgba(155,125,212,0.30)' }} />
                 )}
                 <div className="text-center">
                   <div
-                    className="w-14 h-14 flex items-center justify-center mx-auto mb-3"
+                    className="w-14 h-14 flex items-center justify-center mx-auto mb-3 btn-primary"
                     style={{
-                      background: 'linear-gradient(135deg, var(--accent-orange), var(--accent-orange-hover))',
                       borderRadius: '50%',
-                      color: '#FFF8F0',
                       fontFamily: 'var(--font-display)',
                       fontWeight: 800,
                       fontSize: '22px',
-                      boxShadow: '0 3px 12px rgba(255, 140, 66, 0.3)',
+                      padding: 0,
                     }}
                   >
                     {step.num}
                   </div>
-                  <h4 className="font-bold mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-dark)', fontSize: '18px' }}>
+                  <h4 className="font-bold mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '18px' }}>
                     {step.title}
                   </h4>
-                  <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontSize: '14px' }}>
+                  <p style={{ color: 'var(--text-faint)', fontFamily: 'var(--font-body)', fontSize: '14px' }}>
                     {step.desc}
                   </p>
                 </div>
@@ -219,8 +186,8 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer style={{ borderTop: '1px solid var(--border-light)' }} className="py-8">
-        <div className="max-w-7xl mx-auto px-6 text-center" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-body)', fontSize: '14px' }}>
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }} className="py-8">
+        <div className="max-w-7xl mx-auto px-6 text-center" style={{ color: 'var(--text-faint)', fontFamily: 'var(--font-body)', fontSize: '14px' }}>
           &copy; {new Date().getFullYear()} StoryMagic. Where stories come alive. &#10024;
         </div>
       </footer>

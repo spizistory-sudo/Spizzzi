@@ -43,26 +43,7 @@
   --font-display: 'Playfair Display', Georgia, serif;
   --font-body:    'Figtree', system-ui, sans-serif;
 
-  /* Landing page — warm bookshop palette */
-  --bg-cream:       #FFF8F0;
-  --bg-white:       #FFFFFF;
-  --bg-peach-light: rgba(255, 200, 150, 0.15);
-  --bg-lavender:    rgba(155, 125, 212, 0.12);
-  --bg-sky-light:   rgba(126, 200, 227, 0.12);
-  --accent-burgundy: #7c3aed;
-  --accent-orange:       #FF8C42;
-  --accent-orange-hover: #E67A30;
-  --accent-purple: #9B7DD4;
-  --accent-blue:   #7EC8E3;
-  --text-dark:     #1A1A2E;
-  --text-body:     #4A4A6A;
-  --text-muted:    #6B7280;
-  --text-light:    #9CA3AF;
-  --border-light:  rgba(0, 0, 0, 0.06);
-  --border-medium: rgba(0, 0, 0, 0.12);
-  --radius-xl:     1.5rem;
-  --shadow-card:       0 4px 24px rgba(0, 0, 0, 0.06);
-  --shadow-orange-glow: 0 4px 20px rgba(255, 140, 66, 0.30);
+  --radius-xl: 1.5rem;
 }
 
 * { box-sizing: border-box; }

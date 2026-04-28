@@ -45,12 +45,11 @@ export default async function LibraryPage() {
       <div className="flex items-center justify-between mb-10">
         <div>
           <h1
-            className="text-4xl font-bold"
-            style={{ color: 'var(--text-dark)', fontFamily: 'var(--font-display)' }}
+            style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '2.2rem', fontWeight: 500, color: 'var(--text-primary)' }}
           >
             My Library &#128218;
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', marginTop: '4px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', marginTop: '4px' }}>
             {books.length === 0
               ? "Your magical bookshelf is waiting for its first story"
               : `${books.length} book${books.length === 1 ? '' : 's'} in your collection`}
@@ -58,17 +57,8 @@ export default async function LibraryPage() {
         </div>
         <Link
           href="/create"
-          className="flex items-center gap-2 transition-all duration-200"
-          style={{
-            background: 'linear-gradient(135deg, var(--accent-orange), var(--accent-orange-hover))',
-            color: '#FFF8F0',
-            padding: '12px 24px',
-            borderRadius: 'var(--radius-pill)',
-            fontFamily: 'var(--font-body)',
-            fontWeight: 600,
-            fontSize: '15px',
-            boxShadow: 'var(--shadow-orange-glow)',
-          }}
+          className="btn-primary"
+          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -79,18 +69,13 @@ export default async function LibraryPage() {
 
       {books.length === 0 ? (
         <div
-          className="flex flex-col items-center justify-center py-20"
-          style={{
-            background: 'var(--bg-lavender-light)',
-            borderRadius: 'var(--radius-xl)',
-            boxShadow: 'var(--shadow-md)',
-            border: '1px solid var(--border-light)',
-          }}
+          className="flex flex-col items-center justify-center py-20 glass"
+          style={{ borderRadius: 'var(--radius-lg)' }}
         >
           <div
             className="w-24 h-24 flex items-center justify-center mb-6"
             style={{
-              background: 'linear-gradient(135deg, var(--bg-peach-light), var(--bg-lavender))',
+              background: 'linear-gradient(135deg, var(--purple-glow), var(--cyan-glow))',
               borderRadius: '50%',
               fontSize: '42px',
             }}
@@ -99,29 +84,20 @@ export default async function LibraryPage() {
           </div>
           <h2
             className="text-2xl font-bold mb-2"
-            style={{ color: 'var(--text-dark)', fontFamily: 'var(--font-display)' }}
+            style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontStyle: 'italic' }}
           >
             Your magical library awaits
           </h2>
           <p
             className="mb-8 text-center max-w-md"
-            style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}
+            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}
           >
             Create your first personalized storybook and watch your child become the hero of their very own adventure!
           </p>
           <Link
             href="/create"
-            className="transition-all duration-200 animate-gentle-pulse"
-            style={{
-              background: 'linear-gradient(135deg, var(--accent-orange), var(--accent-orange-hover))',
-              color: '#FFF8F0',
-              padding: '14px 32px',
-              borderRadius: 'var(--radius-pill)',
-              fontFamily: 'var(--font-body)',
-              fontWeight: 700,
-              fontSize: '16px',
-              boxShadow: 'var(--shadow-orange-glow)',
-            }}
+            className="btn-primary"
+            style={{ padding: '14px 32px', fontSize: '1rem' }}
           >
             &#10024; Create Your First Book
           </Link>
