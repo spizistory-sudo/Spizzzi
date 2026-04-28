@@ -17,9 +17,21 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Missing params' }, { status: 400 });
     }
 
+    const startedAt = searchParams.get('startedAt');
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Server-side timeout: if page has been generating for > 5 minutes, mark as timed out
+    if (startedAt) {
+      const elapsed = Date.now() - parseInt(startedAt, 10);
+      if (elapsed > 5 * 60 * 1000) {
+        console.warn(`[animate-status] Page ${pageId} timed out after ${Math.round(elapsed / 1000)}s`);
+        await supabase.from('pages').update({ video_status: 'error', video_url: null }).eq('id', pageId);
+        return NextResponse.json({ status: 'timeout', message: 'Animation timed out after 5 minutes' });
+      }
+    }
 
     // Check fal queue status
     let queueStatus: string;

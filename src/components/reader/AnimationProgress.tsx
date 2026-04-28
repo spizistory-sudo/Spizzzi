@@ -15,28 +15,54 @@ interface Props {
   onAllComplete: () => void;
   onShowAnimateButton: () => void;
   renderUI?: boolean;
+  onRetry?: () => void;
 }
 
-export default function AnimationProgress({ bookId, jobs, totalPages, onAllComplete, onShowAnimateButton, renderUI = true }: Props) {
+const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
+export default function AnimationProgress({ bookId, jobs, totalPages, onAllComplete, onShowAnimateButton, renderUI = true, onRetry }: Props) {
   const [completedCount, setCompletedCount] = useState(0);
   const [isDone, setIsDone] = useState(false);
+  const [isTimedOut, setIsTimedOut] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const completedIds = useRef<Set<string>>(new Set());
   const pollIntervals = useRef<Record<string, ReturnType<typeof setInterval>>>({});
+  const startedAtRef = useRef(Date.now());
 
   useEffect(() => {
     if (jobs.length === 0) return;
 
+    const startedAt = startedAtRef.current;
+
+    // Global timeout — stop all polling after 5 minutes
+    const timeoutTimer = setTimeout(() => {
+      console.warn('[AnimationProgress] Global timeout reached (5 min)');
+      Object.values(pollIntervals.current).forEach(clearInterval);
+      setIsTimedOut(true);
+    }, TIMEOUT_MS);
+
     jobs.forEach((job) => {
       pollIntervals.current[job.pageId] = setInterval(async () => {
+        // Client-side check — stop polling if timed out
+        if (Date.now() - startedAt > TIMEOUT_MS) {
+          clearInterval(pollIntervals.current[job.pageId]);
+          return;
+        }
+
         try {
           const res = await fetch(
-            `/api/animate-page/status?pageId=${job.pageId}&requestId=${job.requestId}&bookId=${bookId}`
+            `/api/animate-page/status?pageId=${job.pageId}&requestId=${job.requestId}&bookId=${bookId}&startedAt=${startedAt}`
           );
           const data = await res.json();
 
-          if (data.status === 'complete' || data.status === 'not_found' || data.status === 'error') {
+          if (data.status === 'complete' || data.status === 'not_found' || data.status === 'error' || data.status === 'timeout') {
             clearInterval(pollIntervals.current[job.pageId]);
+
+            if (data.status === 'timeout') {
+              setIsTimedOut(true);
+              Object.values(pollIntervals.current).forEach(clearInterval);
+              return;
+            }
 
             if (!completedIds.current.has(job.pageId)) {
               completedIds.current.add(job.pageId);
@@ -60,6 +86,7 @@ export default function AnimationProgress({ bookId, jobs, totalPages, onAllCompl
     });
 
     return () => {
+      clearTimeout(timeoutTimer);
       Object.values(pollIntervals.current).forEach(clearInterval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -82,7 +109,38 @@ export default function AnimationProgress({ bookId, jobs, totalPages, onAllCompl
       position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
       zIndex: 150, transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', pointerEvents: 'auto',
     }}>
-      {!isDone ? (
+      {isTimedOut ? (
+        <div style={{
+          background: 'rgba(10,15,40,0.92)', backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(220,50,50,0.40)', borderRadius: 16,
+          padding: '14px 22px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.30)', minWidth: 280, maxWidth: 360,
+        }}>
+          <div style={{ fontSize: '0.85rem', color: 'rgba(255,150,150,0.95)', fontFamily: 'var(--font-body)', textAlign: 'center', lineHeight: 1.5 }}>
+            Animation service is currently unavailable. Please try again later.
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {onRetry && (
+              <button onClick={onRetry} style={{
+                background: 'linear-gradient(135deg, rgba(155,125,212,0.80), rgba(126,200,227,0.70))',
+                border: '1px solid rgba(255,255,255,0.20)',
+                color: 'white', borderRadius: 9999, padding: '7px 18px',
+                fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
+                boxShadow: '0 2px 12px rgba(155,125,212,0.35)',
+              }}>
+                Retry
+              </button>
+            )}
+            <button onClick={() => setIsVisible(false)} style={{
+              background: 'transparent', border: '1px solid rgba(255,255,255,0.15)',
+              color: 'rgba(255,255,255,0.50)', borderRadius: 9999, padding: '7px 16px',
+              fontSize: '0.82rem', cursor: 'pointer',
+            }}>
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ) : !isDone ? (
         <div style={{
           background: 'rgba(10,15,40,0.88)', backdropFilter: 'blur(16px)',
           border: '1px solid rgba(255,255,255,0.12)', borderRadius: 9999,

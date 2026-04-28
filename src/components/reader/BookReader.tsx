@@ -572,6 +572,11 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
           onAllComplete={handleAllAnimationsComplete}
           onShowAnimateButton={() => setViewMode('animated')}
           renderUI={false}
+          onRetry={() => {
+            setAnimationStarted(false);
+            setAnimationJobs([]);
+            setTimeout(() => handleAcceptAnimate(), 500);
+          }}
         />
       )}
 
