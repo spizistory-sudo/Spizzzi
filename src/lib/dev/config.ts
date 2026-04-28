@@ -10,6 +10,10 @@ export function isDevPhotoAnalysis(): boolean {
   return process.env.DEV_PHOTO_ANALYSIS === 'true';
 }
 
+export function isDevIllustrations(): boolean {
+  return process.env.DEV_ILLUSTRATIONS === 'true';
+}
+
 export function getTestPageCount(): number | null {
   const val = process.env.TEST_PAGE_COUNT;
   if (!val) return null;

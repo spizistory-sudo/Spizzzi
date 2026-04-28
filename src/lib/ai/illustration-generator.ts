@@ -2,7 +2,7 @@ import { getGeminiClient } from './gemini';
 import { ART_STYLES, type ArtStyleKey } from './prompts/style-references';
 import { generateWithRateLimit } from './rate-limit';
 import type { Part } from '@google/genai';
-import { isDevMode } from '@/lib/dev/config';
+import { isDevIllustrations } from '@/lib/dev/config';
 import { generateImageWithFlux } from './fal-client';
 
 const PRIMARY_MODEL = 'gemini-3-pro-image-preview';
@@ -93,15 +93,15 @@ TECHNICAL RULES:
 - Think of this as a movie poster or a painting on a wall — NOT a page in a book
 - CRITICAL: Do NOT include any text, title, words, letters, numbers, or writing ANYWHERE in the image. Generate ONLY the illustration with NO text whatsoever. We will add the title separately with CSS.`;
 
-  // Dev mode: FLUX.2 Pro via fal.ai — high quality, ~$0.03/image
-  if (isDevMode()) {
-    console.log(`[DEV_MODE] Using FLUX.2 Pro for cover (${styleKey})`);
+  // DEV_ILLUSTRATIONS=true: FLUX.2 Pro via fal.ai — cheap dev mode (~$0.03/image)
+  if (isDevIllustrations()) {
+    console.log(`[DEV_ILLUSTRATIONS] Using FLUX.2 Pro for cover (${styleKey})`);
     return generateWithRateLimit(() =>
       generateImageWithFlux(promptText, { aspectRatio: 'portrait_4_3' })
     );
   }
 
-  // Production: Nano Banana Pro with reference images, fallback to Imagen 4
+  // Production (default): Gemini 3 Pro with reference images, fallback to Imagen 4
   const fullPrompt = childPhotoBase64
     ? `${promptText}\nGenerate in PORTRAIT orientation (2:3 aspect ratio, taller than wide).\nThink step by step about the character's appearance before generating. The main character must look EXACTLY like the child in the reference photo.`
     : `${promptText}\nGenerate in PORTRAIT orientation (2:3 aspect ratio, taller than wide).`;
@@ -191,15 +191,15 @@ TECHNICAL RULES:
 
   console.log(`[PROMPT DEBUG] Full page illustration prompt:\n${promptText}`);
 
-  // Dev mode: FLUX.2 Pro via fal.ai — high quality, ~$0.03/image
-  if (isDevMode()) {
-    console.log(`[DEV_MODE] Using FLUX.2 Pro for page ${pageNumber}`);
+  // DEV_ILLUSTRATIONS=true: FLUX.2 Pro via fal.ai — cheap dev mode (~$0.03/image)
+  if (isDevIllustrations()) {
+    console.log(`[DEV_ILLUSTRATIONS] Using FLUX.2 Pro for page ${pageNumber}`);
     return generateWithRateLimit(() =>
       generateImageWithFlux(promptText, { aspectRatio: 'portrait_4_3' })
     );
   }
 
-  // Production: Nano Banana Pro with reference images
+  // Production (default): Gemini 3 Pro with reference images
   const fullPrompt = childPhotoBase64
     ? `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).\nThink step by step about the character's appearance. The main character must look EXACTLY like the child in the reference photo.`
     : `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).`;
