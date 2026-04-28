@@ -1,39 +1,51 @@
 import type { GeneratedStory } from '@/types/ai';
 
 const HEBREW_THEME_TITLES: Record<string, string> = {
-  dinosaur: 'בארץ הדינוזאורים',
+  // Actual app themes
   superhero: 'והכוח המיוחד',
-  ocean: 'בים הקסום',
   underwater: 'בים הקסום',
+  chef: 'והמטבח הקסום',
   space: 'בחלל המופלא',
+  dinosaur: 'בארץ הדינוזאורים',
+  fairy: 'וארץ הפיות',
+  pirate: 'והאוצר האבוד',
+  sports: 'והמשחק הגדול',
+  music: 'והמנגינה הקסומה',
+  winter: 'והחורף הקסום',
+  // Aliases and extras
+  ocean: 'בים הקסום',
   forest: 'ויער הקסמים',
   'magical-kitchen': 'והמטבח הקסום',
   kitchen: 'והמטבח הקסום',
   castle: 'והטירה הקסומה',
   'magical-kingdom': 'בממלכה הקסומה',
   garden: 'והגן הקסום',
-  pirate: 'והאוצר האבוד',
-  fairy: 'וארץ הפיות',
   robot: 'והרובוט החבר',
-  music: 'והמנגינה הקסומה',
+  '__custom__': 'והרפתקה מיוחדת',
 };
 
 const ENGLISH_THEME_TITLES: Record<string, string> = {
-  dinosaur: 'and the Friendly Dinosaur',
+  // Actual app themes
   superhero: 'and the Secret Superpower',
-  ocean: 'and the Magical Ocean',
   underwater: 'and the Underwater Kingdom',
+  chef: 'and the Magical Kitchen',
   space: 'and the Amazing Space Journey',
+  dinosaur: 'and the Friendly Dinosaur',
+  fairy: 'and the Land of Fairies',
+  pirate: 'and the Lost Treasure',
+  sports: 'and the Big Game',
+  music: 'and the Magical Melody',
+  winter: 'and the Magical Winter',
+  // Aliases and extras
+  ocean: 'and the Magical Ocean',
   forest: 'and the Enchanted Forest',
   'magical-kitchen': 'and the Magical Kitchen',
   kitchen: 'and the Magical Kitchen',
   castle: 'and the Magical Castle',
   'magical-kingdom': 'and the Magical Kingdom',
   garden: 'and the Secret Garden',
-  pirate: 'and the Lost Treasure',
-  fairy: 'and the Land of Fairies',
   robot: 'and the Robot Friend',
-  music: 'and the Magical Melody',
+  '__custom__': "'s Special Adventure",
 };
 
 export function getMockStory(
