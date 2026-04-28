@@ -30,7 +30,8 @@ export async function generateStory(
     ? `LANGUAGE: Write the entire story in natural, warm, colloquial Israeli Hebrew (עברית מדוברת).
 Write like a loving Israeli parent telling a bedtime story — not like a translation, not like a textbook.
 Use everyday Israeli speech patterns: 'בא לו', 'יאללה', 'סבבה', 'כיף', 'ממש', 'בדיוק'.
-The title MUST also be in Hebrew. Illustration prompts MUST be in English.`
+The book title must be entirely in Hebrew — no English words at all. Not even a single English word in the title.
+The "text" field on every page must be entirely in Hebrew. Illustration prompts MUST be in English.`
     : `LANGUAGE: Write the entire story in English. Use warm, playful language appropriate for a children's book.`;
 
   let userPrompt: string;

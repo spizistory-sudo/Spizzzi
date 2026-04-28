@@ -73,7 +73,7 @@ Return a JSON object with this exact structure:
   ]
 }
 
-IMPORTANT: The "title" MUST be in Hebrew. The "text" MUST be in colloquial Israeli Hebrew. The "illustration_prompt" MUST be in English (for the image generator).
+IMPORTANT: The "title" MUST be entirely in Hebrew — no English words at all, not even one. The "text" MUST be in colloquial Israeli Hebrew — no English words mixed in. The "illustration_prompt" MUST be in English (for the image generator).
 
 Valid mood values: happy, adventurous, calm, excited, magical, cozy, triumphant
 
