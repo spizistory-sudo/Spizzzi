@@ -71,6 +71,9 @@ Generate exactly ${pageCount} pages.`;
   const systemPrompt =
     language === 'he' ? STORY_SYSTEM_PROMPT_HE : STORY_SYSTEM_PROMPT;
 
+  console.log('[story-gen] language:', language, '| using Hebrew system prompt:', language === 'he');
+  console.log('[story-gen] Final user prompt (first 500 chars):', userPrompt.substring(0, 500));
+
   const ai = getGeminiClient();
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash',

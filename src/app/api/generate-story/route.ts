@@ -27,6 +27,7 @@ export async function POST(req: Request) {
     }
 
     const { themeSlug, childName, childAge, childTraits, language, customPrompt } = parsed.data;
+    console.log('[generate-story] LANGUAGE:', language, '| raw body.language:', body.language);
     const isCustom = themeSlug === '__custom__';
 
     // Validate theme exists (unless custom mode)
