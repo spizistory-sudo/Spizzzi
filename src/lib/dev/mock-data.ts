@@ -2,9 +2,10 @@ import type { GeneratedStory } from '@/types/ai';
 
 export function getMockStory(
   childName: string,
-  pageCount: number
+  pageCount: number,
+  language: 'en' | 'he' = 'en'
 ): GeneratedStory {
-  const storyTexts = [
+  const storyTextsEn = [
     `Once upon a time, ${childName} found a magical golden key hidden under the oldest oak tree in the garden. It shimmered with a soft purple glow.`,
     `${childName} picked up the key and felt a warm tingle in their fingers. "I wonder what this opens," ${childName} whispered, eyes wide with excitement.`,
     `Following a trail of glowing footprints, ${childName} arrived at a tiny door carved into the trunk of the tree. The key fit perfectly!`,
@@ -15,6 +16,19 @@ export function getMockStory(
     `${childName} placed both hands in the fountain and thought about all the people they loved. Slowly, golden water began to bubble up between their fingers.`,
     `The fountain burst to life! Flowers bloomed everywhere, butterflies filled the air, and the floating islands began to glow with warm, golden light.`,
     `"Thank you, ${childName}!" everyone cheered. And from that day on, ${childName} knew that the real magic had been inside them all along. The End.`,
+  ];
+
+  const storyTextsHe = [
+    `יום אחד, ${childName} מצא מפתח זהב קסום מתחת לעץ האלון הכי ישן בגינה. המפתח נצנץ באור סגול רך.`,
+    `${childName} הרים את המפתח והרגיש דגדוג חם באצבעות. "מה זה פותח?" לחש ${childName}, עם עיניים גדולות מהתרגשות.`,
+    `${childName} הלך אחרי עקבות זוהרות והגיע לדלת קטנטנה חקוקה בגזע העץ. המפתח התאים בדיוק!`,
+    `מאחורי הדלת היה עולם של איים מרחפים ומפלי קשת בענן. שועל חברותי עם כנפיים כסופות עף לקבל את פני ${childName}.`,
+    `"ברוך הבא לגן הקסום!" אמר השועל. "חיכינו למישהו אמיץ מספיק שימצא את המפתח."`,
+    `השועל הוביל את ${childName} על גשר עשוי עלי כותרת ענקיים לפגוש את מלכת הגן — צב חכם וטוב לב עם כתר של חינניות.`,
+    `"המזרקה הקסומה שלנו הפסיקה לזרום," אמרה המלכה. "רק מישהו עם לב טוב יכול להפעיל אותה מחדש." היא הסתכלה על ${childName} בתקווה.`,
+    `${childName} שם את שתי הידיים במזרקה וחשב על כל האנשים שהוא אוהב. לאט לאט, מים זהובים התחילו לבעבע בין האצבעות.`,
+    `המזרקה התעוררה לחיים! פרחים פרחו בכל מקום, פרפרים מילאו את האוויר, והאיים המרחפים התחילו לזהור באור חם וזהוב.`,
+    `"תודה, ${childName}!" כולם צהלו. ומאותו יום, ${childName} ידע שהקסם האמיתי היה בתוכו כל הזמן. סוף.`,
   ];
 
   const moods: Array<'happy' | 'adventurous' | 'magical' | 'excited' | 'cozy' | 'triumphant'> = [
@@ -35,6 +49,8 @@ export function getMockStory(
     'A child waving goodbye to magical friends at sunset. Warm, cozy, nostalgic feeling.',
   ];
 
+  const storyTexts = language === 'he' ? storyTextsHe : storyTextsEn;
+
   const pages = Array.from({ length: pageCount }, (_, i) => ({
     page_number: i + 1,
     text: storyTexts[i % storyTexts.length],
@@ -43,7 +59,7 @@ export function getMockStory(
   }));
 
   return {
-    title: `${childName}'s Magical Adventure`,
+    title: language === 'he' ? `${childName} והרפתקת הקסם` : `${childName}'s Magical Adventure`,
     pages,
   };
 }
