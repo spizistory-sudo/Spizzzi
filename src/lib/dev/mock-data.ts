@@ -1,9 +1,46 @@
 import type { GeneratedStory } from '@/types/ai';
 
+const HEBREW_THEME_TITLES: Record<string, string> = {
+  dinosaur: 'בארץ הדינוזאורים',
+  superhero: 'והכוח המיוחד',
+  ocean: 'בים הקסום',
+  underwater: 'בים הקסום',
+  space: 'בחלל המופלא',
+  forest: 'ויער הקסמים',
+  'magical-kitchen': 'והמטבח הקסום',
+  kitchen: 'והמטבח הקסום',
+  castle: 'והטירה הקסומה',
+  'magical-kingdom': 'בממלכה הקסומה',
+  garden: 'והגן הקסום',
+  pirate: 'והאוצר האבוד',
+  fairy: 'וארץ הפיות',
+  robot: 'והרובוט החבר',
+  music: 'והמנגינה הקסומה',
+};
+
+const ENGLISH_THEME_TITLES: Record<string, string> = {
+  dinosaur: 'and the Friendly Dinosaur',
+  superhero: 'and the Secret Superpower',
+  ocean: 'and the Magical Ocean',
+  underwater: 'and the Underwater Kingdom',
+  space: 'and the Amazing Space Journey',
+  forest: 'and the Enchanted Forest',
+  'magical-kitchen': 'and the Magical Kitchen',
+  kitchen: 'and the Magical Kitchen',
+  castle: 'and the Magical Castle',
+  'magical-kingdom': 'and the Magical Kingdom',
+  garden: 'and the Secret Garden',
+  pirate: 'and the Lost Treasure',
+  fairy: 'and the Land of Fairies',
+  robot: 'and the Robot Friend',
+  music: 'and the Magical Melody',
+};
+
 export function getMockStory(
   childName: string,
   pageCount: number,
-  language: 'en' | 'he' = 'en'
+  language: 'en' | 'he' = 'en',
+  themeSlug?: string
 ): GeneratedStory {
   const storyTextsEn = [
     `Once upon a time, ${childName} found a magical golden key hidden under the oldest oak tree in the garden. It shimmered with a soft purple glow.`,
@@ -59,7 +96,9 @@ export function getMockStory(
   }));
 
   return {
-    title: language === 'he' ? `${childName} והרפתקת הקסם` : `${childName}'s Magical Adventure`,
+    title: language === 'he'
+      ? `${childName} ${(themeSlug && HEBREW_THEME_TITLES[themeSlug]) || 'והרפתקת הקסם'}`
+      : `${childName}${(themeSlug && ENGLISH_THEME_TITLES[themeSlug]) ? ` ${ENGLISH_THEME_TITLES[themeSlug]}` : "'s Magical Adventure"}`,
     pages,
   };
 }

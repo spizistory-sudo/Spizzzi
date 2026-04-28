@@ -23,7 +23,7 @@ export async function generateStory(
   if (isDevMode()) {
     console.log('[DEV_MODE] Returning mock story, language:', language);
     const pageCount = testPageCount || 3;
-    return getMockStory(childName, pageCount, language);
+    return getMockStory(childName, pageCount, language, themeSlug);
   }
 
   const languageInstruction = language === 'he'
