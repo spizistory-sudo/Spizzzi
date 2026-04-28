@@ -80,9 +80,7 @@ export async function POST(req: Request) {
           input: {
             image_url: page.illustration_url!,
             prompt,
-            prompt_optimizer: true,
-            duration: '6',
-            resolution: '768P',
+            duration: '5',
           },
         });
 
