@@ -5,7 +5,8 @@ import { generateAnimationPrompt } from '@/lib/animation-prompts';
 
 fal.config({ credentials: process.env.FAL_KEY });
 
-const FAL_MODEL = 'fal-ai/kling-video/v1.6/standard/image-to-video';
+const PRIMARY_MODEL = 'fal-ai/minimax/hailuo-02/standard/image-to-video';
+const FALLBACK_MODEL = 'fal-ai/kling-video/v1.6/standard/image-to-video';
 
 export async function POST(req: Request) {
   try {
@@ -76,19 +77,40 @@ export async function POST(req: Request) {
 
         console.log(`[animate-book] Submitting page ${page.page_number}, prompt: ${prompt.substring(0, 80)}...`);
 
-        const result = await fal.queue.submit(FAL_MODEL, {
-          input: {
-            image_url: page.illustration_url!,
-            prompt,
-            duration: '5',
-          },
-        });
+        let requestId: string;
+        let modelUsed: 'minimax' | 'kling';
 
-        const requestId = result.request_id;
+        // Try MiniMax first, fall back to Kling on failure
+        try {
+          const result = await fal.queue.submit(PRIMARY_MODEL, {
+            input: {
+              image_url: page.illustration_url!,
+              prompt,
+              prompt_optimizer: true,
+              duration: '6',
+              resolution: '768P',
+            },
+          });
+          requestId = result.request_id;
+          modelUsed = 'minimax';
+          console.log(`[animate-book] Page ${page.page_number} submitted to MiniMax: ${requestId}`);
+        } catch (primaryErr) {
+          console.warn(`[animate-book] MiniMax failed for page ${page.page_number}, falling back to Kling:`, primaryErr);
+          const result = await fal.queue.submit(FALLBACK_MODEL, {
+            input: {
+              image_url: page.illustration_url!,
+              prompt,
+              duration: '5',
+            },
+          });
+          requestId = result.request_id;
+          modelUsed = 'kling';
+          console.log(`[animate-book] Page ${page.page_number} submitted to Kling (fallback): ${requestId}`);
+        }
 
         await supabase
           .from('pages')
-          .update({ video_status: 'generating', video_url: `fal:${requestId}` })
+          .update({ video_status: 'generating', video_url: `fal:${modelUsed}:${requestId}` })
           .eq('id', page.id);
 
         return { pageId: page.id, pageNumber: page.page_number, requestId };

@@ -4,7 +4,10 @@ import { fal } from '@fal-ai/client';
 
 fal.config({ credentials: process.env.FAL_KEY });
 
-const FAL_MODEL = 'fal-ai/kling-video/v1.6/standard/image-to-video';
+const MODELS: Record<string, string> = {
+  minimax: 'fal-ai/minimax/hailuo-02/standard/image-to-video',
+  kling: 'fal-ai/kling-video/v1.6/standard/image-to-video',
+};
 
 export async function GET(req: Request) {
   try {
@@ -33,12 +36,26 @@ export async function GET(req: Request) {
       }
     }
 
+    // Resolve which model was used from the page's video_url (fal:minimax:xxx or fal:kling:xxx)
+    const { data: pageRow } = await supabase
+      .from('pages')
+      .select('video_url')
+      .eq('id', pageId)
+      .limit(1);
+
+    const videoUrlField = pageRow?.[0]?.video_url || '';
+    const parts = videoUrlField.split(':');
+    // Format: "fal:minimax:requestId" or legacy "fal:requestId"
+    const modelKey = parts.length >= 3 ? parts[1] : 'minimax';
+    const falModel = MODELS[modelKey] || MODELS.minimax;
+    console.log('[animate-status] Resolved model:', modelKey, '→', falModel);
+
     // Check fal queue status
     let queueStatus: string;
     try {
-      const status = await fal.queue.status(FAL_MODEL, { requestId, logs: true });
+      const status = await fal.queue.status(falModel, { requestId, logs: true });
       queueStatus = status.status as string;
-      console.log('[animate-status] fal status:', JSON.stringify({ requestId, status: queueStatus }));
+      console.log('[animate-status] fal status:', JSON.stringify({ requestId, model: modelKey, status: queueStatus }));
     } catch (falErr: unknown) {
       const errStatus = (falErr as { status?: number })?.status;
       if (errStatus === 404 || errStatus === 422) {
@@ -49,7 +66,7 @@ export async function GET(req: Request) {
     }
 
     if (queueStatus === 'COMPLETED') {
-      const result = await fal.queue.result(FAL_MODEL, { requestId });
+      const result = await fal.queue.result(falModel, { requestId });
       const videoUrl = (result.data as { video?: { url?: string } })?.video?.url;
 
       if (!videoUrl) {
