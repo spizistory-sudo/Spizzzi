@@ -88,8 +88,8 @@ export async function POST(req: Request) {
       .update({ status: 'generating', cover_style: styleKey })
       .eq('id', bookId);
 
-    // Background generation
-    generateAllIllustrations({
+    // Await generation — must complete before response for Vercel compatibility
+    const results = await generateAllIllustrations({
       bookId,
       pages,
       styleKey,
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
       coverImageBase64,
     });
 
-    return NextResponse.json({ status: 'generating', total: pages.length });
+    return NextResponse.json({ status: 'complete', total: pages.length, results });
   } catch (err) {
     console.error('Illustration generation error:', err);
     return NextResponse.json(
@@ -120,7 +120,7 @@ async function generateAllIllustrations(params: {
   characterDescription: string;
   childPhotoBase64?: string;
   coverImageBase64?: string;
-}) {
+}): Promise<Array<{ pageNumber: number; status: string; url?: string; error?: string }>> {
   const { bookId, pages, styleKey, characterDescription, childPhotoBase64, coverImageBase64 } = params;
 
   const { createClient: createServiceClient } = await import('@supabase/supabase-js');
@@ -129,6 +129,7 @@ async function generateAllIllustrations(params: {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
+  const results: Array<{ pageNumber: number; status: string; url?: string; error?: string }> = [];
   let completedCount = 0;
 
   for (const page of pages) {
@@ -155,9 +156,10 @@ async function generateAllIllustrations(params: {
         .eq('id', page.id);
 
       completedCount++;
+      results.push({ pageNumber: page.page_number, status: 'complete', url: imageUrl });
 
       if (completedCount < pages.length) {
-        await new Promise((resolve) => setTimeout(resolve, 4000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     } catch (err) {
       console.error(`Failed to generate illustration for page ${page.page_number}:`, err);
@@ -165,17 +167,15 @@ async function generateAllIllustrations(params: {
         .from('pages')
         .update({ illustration_status: 'error' })
         .eq('id', page.id);
+      results.push({ pageNumber: page.page_number, status: 'error', error: err instanceof Error ? err.message : String(err) });
     }
   }
 
-  const { data: finalPages } = await supabase
-    .from('pages')
-    .select('illustration_status')
-    .eq('book_id', bookId);
-
-  const allComplete = finalPages?.every((p) => p.illustration_status === 'complete');
+  const allComplete = results.every((r) => r.status === 'complete');
   await supabase
     .from('books')
     .update({ status: allComplete ? 'complete' : 'review' })
     .eq('id', bookId);
+
+  return results;
 }
