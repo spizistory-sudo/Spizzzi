@@ -12,6 +12,12 @@ RULES:
 - Include sensory details (colors, sounds, textures) to make scenes vivid.
 - The tone is always warm, encouraging, and wonder-filled.
 
+ILLUSTRATION PROMPT RULES (for the "illustration_prompt" field):
+- Each illustration_prompt must re-describe every character in the scene with their FULL visual appearance (hair color, eye color, clothing, species, size) — do NOT assume the illustrator remembers previous pages.
+- Side characters (animals, friends, creatures) must be described identically every time they appear — same species, same color, same size, same features.
+- The main character must appear EXACTLY ONCE per scene — never drawn twice or duplicated.
+- Every person in the scene must be described as having a complete, friendly face with clear eyes, nose, and mouth. Never describe faceless, blurred, or silhouetted people.
+
 OUTPUT FORMAT:
 Return a JSON object with this exact structure:
 {
@@ -20,7 +26,7 @@ Return a JSON object with this exact structure:
     {
       "page_number": 1,
       "text": "The story text for this page.",
-      "illustration_prompt": "A detailed description of the SCENE to illustrate. Include: setting, characters, their expressions, actions, colors, lighting, and mood. Describe only the scene content — do NOT mention books, pages, borders, or frames. The description should read like a painting brief.",
+      "illustration_prompt": "A detailed description of the SCENE to illustrate. Include: setting, all characters with their FULL visual descriptions (hair, eyes, clothing, species), their expressions, actions, colors, lighting, and mood. Every character must be described the same way on every page. Describe only the scene content — do NOT mention books, pages, borders, or frames.",
       "mood": "happy"
     }
   ]
@@ -59,6 +65,12 @@ STORY RULES:
 - Include sensory details (colors, sounds, textures) to make scenes vivid.
 - The tone is always warm, encouraging, and wonder-filled.
 
+ILLUSTRATION PROMPT RULES (for the "illustration_prompt" field — written in ENGLISH):
+- Each illustration_prompt must re-describe every character in the scene with their FULL visual appearance (hair color, eye color, clothing, species, size) — do NOT assume the illustrator remembers previous pages.
+- Side characters (animals, friends, creatures) must be described identically every time they appear — same species, same color, same size, same features.
+- The main character must appear EXACTLY ONCE per scene — never drawn twice or duplicated.
+- Every person in the scene must be described as having a complete, friendly face with clear eyes, nose, and mouth. Never describe faceless, blurred, or silhouetted people.
+
 OUTPUT FORMAT:
 Return a JSON object with this exact structure:
 {
@@ -67,7 +79,7 @@ Return a JSON object with this exact structure:
     {
       "page_number": 1,
       "text": "טקסט הסיפור בעברית מדוברת, חמה וטבעית.",
-      "illustration_prompt": "A detailed description IN ENGLISH of the SCENE to illustrate. Include: setting, characters, their expressions, actions, colors, lighting, and mood. Describe only the scene content — do NOT mention books, pages, borders, or frames. The description should read like a painting brief.",
+      "illustration_prompt": "A detailed description IN ENGLISH of the SCENE to illustrate. Include: setting, all characters with their FULL visual descriptions (hair, eyes, clothing, species), their expressions, actions, colors, lighting, and mood. Every character must be described the same way on every page. Describe only the scene content — do NOT mention books, pages, borders, or frames.",
       "mood": "happy"
     }
   ]

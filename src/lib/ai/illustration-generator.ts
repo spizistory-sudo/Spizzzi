@@ -67,9 +67,10 @@ export async function generateCoverImage(
     console.warn('[illustration] WARNING: Cover character description is too short or missing:', characterDescription);
   }
 
-  const promptText = `MAIN CHARACTER (must appear in this illustration, looking EXACTLY as described):
+  const promptText = `MAIN CHARACTER (must appear EXACTLY ONCE in this illustration, looking EXACTLY as described):
 ${characterDescription}
 This character MUST be recognizable — same face shape, same hair color and style, same eye color, same skin tone. Do not change the character's appearance.
+The main character appears EXACTLY ONCE — not duplicated, not mirrored.
 
 SCENE TO ILLUSTRATE:
 A magical, warm, and inviting cover scene that captures the essence of this story theme: ${themeDescription}
@@ -77,8 +78,12 @@ A magical, warm, and inviting cover scene that captures the essence of this stor
 ART STYLE:
 ${style.stylePrompt}
 
-RULES:
-- The main character must look identical to the description above
+CHARACTER RULES:
+- The main character must look identical to the description above and appear ONCE
+- EVERY person in the scene must have a complete, clearly drawn, friendly face with visible eyes, nose, and mouth
+- NEVER draw faceless people, blurred faces, or featureless silhouettes
+
+TECHNICAL RULES:
 - Generate ONLY the scene as a flat digital painting
 - Do NOT draw a book, book pages, page edges, binding, spine, or any book frame
 - Do NOT add any border, frame, vignette, or edge effects
@@ -155,9 +160,10 @@ export async function generatePageIllustration(
     console.warn('[illustration] WARNING: Character description is too short or missing:', characterDescription);
   }
 
-  const promptText = `MAIN CHARACTER (must appear in EVERY illustration, looking EXACTLY the same):
+  const promptText = `MAIN CHARACTER (must appear EXACTLY ONCE in this scene, looking EXACTLY the same as every other page):
 ${characterDescription}
 This character MUST be recognizable across all pages — same face shape, same hair color and style, same eye color, same skin tone, same clothing. Do not change the character's appearance.
+The main character appears EXACTLY ONCE in the scene — never duplicated, never shown in multiple places, never appearing twice.
 
 SCENE TO ILLUSTRATE:
 ${illustrationPrompt}
@@ -165,8 +171,15 @@ ${illustrationPrompt}
 ART STYLE:
 ${style.stylePrompt}
 
-RULES:
-- The main character must look identical to the description above
+CHARACTER CONSISTENCY RULES:
+- The main character must look identical to the description above — same face, hair, eyes, skin, clothes on EVERY page
+- The main character appears ONCE per illustration — not duplicated, not mirrored, not shown from two angles
+- All side characters (animals, friends, creatures) must remain visually identical to how they appeared in earlier pages — same species, same colors, same size, same features
+- EVERY person in the scene must have a complete, clearly drawn, friendly face with visible eyes, nose, and mouth
+- NEVER draw faceless people, blurred faces, featureless silhouettes, or people with missing facial features — this is a children's book and faceless figures are scary
+- Background characters must also have complete faces — no blank ovals or smudged features
+
+TECHNICAL RULES:
 - Generate ONLY the scene as a flat digital painting
 - Do NOT draw a book, book pages, page edges, binding, spine, or any book frame
 - Do NOT add any border, frame, vignette, or edge effects
