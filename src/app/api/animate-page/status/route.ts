@@ -4,7 +4,7 @@ import { fal } from '@fal-ai/client';
 
 fal.config({ credentials: process.env.FAL_KEY });
 
-const FAL_MODEL = 'fal-ai/minimax/hailuo-02/standard/image-to-video';
+const FAL_MODEL = 'fal-ai/kling-video/v1.6/standard/image-to-video';
 
 export async function GET(req: Request) {
   try {
