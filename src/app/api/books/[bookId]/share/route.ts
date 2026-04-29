@@ -47,7 +47,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Failed to update' }, { status: 500 });
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://spizzzy.vercel.app';
     return NextResponse.json({
       ...updated,
       shareUrl: updated.share_slug ? `${appUrl}/share/${updated.share_slug}` : null,

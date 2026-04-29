@@ -333,7 +333,7 @@ export default function FinalizePage() {
       <section style={{ marginBottom: 40 }}>
         <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '1.3rem', marginBottom: 8 }}>קול המספר</h2>
         <p style={{ color: 'rgba(255,255,255,0.50)', fontSize: '0.88rem', marginBottom: 16 }}>
-          ספרים בעברית משתמשים ב-<span dir="ltr">Liam</span> \u2014 המספר הטוב ביותר לעברית טבעית.
+          הקול שיספר את הסיפור שלכם.
         </p>
         {language === 'he' ? (
           <div style={{
@@ -354,7 +354,7 @@ export default function FinalizePage() {
               </div>
             </div>
             <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.88rem', lineHeight: 1.5 }}>
-              המספר היחיד שדובר עברית טבעית
+              קריינות מקצועית בעברית טבעית וחמה
             </p>
             <div style={{
               background: 'rgba(126,200,227,0.15)',
