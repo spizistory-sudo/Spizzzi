@@ -124,7 +124,7 @@ export async function POST(req: Request) {
           audioBuffer = generateSilentMp3(3);
           durationMs = 3000;
         } else {
-          const textToNarrate = processText(page.text_content);
+          const textToNarrate = processText(page.text_for_tts || page.text_content);
 
           if (isHebrew) {
             console.log('[narration] Hebrew text sample:', textToNarrate.substring(0, 150));

@@ -34,6 +34,7 @@ export interface Page {
   book_id: string;
   page_number: number;
   text_content: string;
+  text_for_tts: string | null;
   illustration_prompt: string | null;
   illustration_url: string | null;
   illustration_status: 'pending' | 'generating' | 'complete' | 'error';
