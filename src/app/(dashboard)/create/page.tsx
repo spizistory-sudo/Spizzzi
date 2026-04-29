@@ -27,7 +27,7 @@ export default function CreatePage() {
   return (
     <div style={{ minHeight: '70vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
       <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', color: 'rgba(255,255,255,0.95)', marginBottom: 48, textAlign: 'center', fontStyle: 'italic' }}>
-        Create a new book
+        ספר חדש
       </h1>
 
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -36,9 +36,9 @@ export default function CreatePage() {
           onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; e.currentTarget.style.boxShadow = 'inset 0 0 20px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.25)'; }}
         >
           <span style={{ fontSize: '3rem', marginBottom: 16, display: 'block' }}>&#127912;</span>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: 'rgba(255,255,255,0.95)', marginBottom: 10 }}>Choose a Theme</h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: 'rgba(255,255,255,0.95)', marginBottom: 10 }}>בחרו נושא מוכן</h2>
           <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.88rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>
-            Pick from premade story themes — superheroes, underwater adventures, magical kitchens, and more.
+            נושאים מוכנים — גיבורי-על, הרפתקאות מתחת למים, מטבח קסום ועוד.
           </p>
         </Link>
 
@@ -47,9 +47,9 @@ export default function CreatePage() {
           onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; e.currentTarget.style.boxShadow = 'inset 0 0 20px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.25)'; }}
         >
           <span style={{ fontSize: '3rem', marginBottom: 16, display: 'block' }}>&#9997;&#65039;</span>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: 'rgba(255,255,255,0.95)', marginBottom: 10 }}>Create Your Own</h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: 'rgba(255,255,255,0.95)', marginBottom: 10 }}>סיפור משלכם</h2>
           <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.88rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>
-            Write a free-text storyline or answer guided questions to build a fully original story.
+            כתבו קונספט חופשי או ענו על שאלות מכוונות ליצירת סיפור ייחודי לגמרי.
           </p>
         </Link>
       </div>

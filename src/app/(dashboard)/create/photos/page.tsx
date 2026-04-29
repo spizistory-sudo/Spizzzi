@@ -7,10 +7,10 @@ import { createClient } from '@/lib/supabase/client';
 import WizardProgress from '@/components/wizard/WizardProgress';
 
 const LABELS = [
-  { value: 'child', label: 'Child (required)' },
-  { value: 'parent', label: 'Parent' },
-  { value: 'sibling', label: 'Sibling' },
-  { value: 'pet', label: 'Pet' },
+  { value: 'child', label: 'ילד (חובה)' },
+  { value: 'parent', label: 'הורה' },
+  { value: 'sibling', label: 'אח/ות' },
+  { value: 'pet', label: 'חיית מחמד' },
 ] as const;
 
 type PhotoLabel = (typeof LABELS)[number]['value'];
@@ -53,7 +53,7 @@ export default function PhotosPage() {
       return;
     }
     if (uploadedPhotos.length >= MAX_FILES) {
-      setError(`Maximum ${MAX_FILES} photos allowed.`);
+      setError(`מקסימום ${MAX_FILES} תמונות.`);
       return;
     }
 
@@ -85,7 +85,7 @@ export default function PhotosPage() {
         previewUrl,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      setError(err instanceof Error ? err.message : 'ההעלאה נכשלה');
     } finally {
       setUploading(false);
     }
@@ -137,7 +137,7 @@ export default function PhotosPage() {
 
   function handleNext() {
     if (!hasChildPhoto) {
-      setError('Please upload at least one photo of your child.');
+      setError('נא להעלות לפחות תמונה אחת של הילד.');
       return;
     }
     setStep('preview');
@@ -149,10 +149,10 @@ export default function PhotosPage() {
       <WizardProgress currentStep="photos" />
 
       <div className="mb-8">
-        <h1 style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '2.2rem', fontWeight: 500, color: 'var(--text-primary)' }}>Upload photos</h1>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 600, color: 'var(--text-primary)' }}>העלאת תמונות</h1>
         <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
-          Upload a photo of {childName} so we can create illustrations that look like them.
-          At least one photo of the child is required.
+          העלו תמונה של {childName} כדי שנוכל ליצור איורים שדומים לו.
+          צריך לפחות תמונה אחת של הילד.
         </p>
       </div>
 
@@ -185,15 +185,15 @@ export default function PhotosPage() {
         {uploading ? (
           <div className="flex items-center justify-center gap-2">
             <div className="animate-spin w-5 h-5 border-2 rounded-full" style={{ borderColor: 'rgba(126,200,227,0.3)', borderTopColor: 'var(--cyan)' }} />
-            <p style={{ color: 'var(--cyan)', fontWeight: 500 }}>Uploading...</p>
+            <p style={{ color: 'var(--cyan)', fontWeight: 500 }}>מעלים...</p>
           </div>
         ) : (
           <>
             <p style={{ color: 'rgba(255, 255, 255, 0.85)', fontFamily: 'var(--font-body)', fontWeight: 500 }}>
-              Drag & drop photos here, or click to browse
+              גררו תמונות לכאן, או לחצו לבחירה
             </p>
             <p style={{ color: 'rgba(255, 255, 255, 0.40)', fontSize: '0.85rem', marginTop: 4 }}>
-              JPG, PNG, or WebP &middot; Max 5MB each &middot; Up to {MAX_FILES} photos
+              JPG, PNG או WebP &middot; עד 5MB לתמונה &middot; עד {MAX_FILES} תמונות
             </p>
           </>
         )}
@@ -252,10 +252,10 @@ export default function PhotosPage() {
       {/* Navigation */}
       <div className="flex items-center gap-3 mt-8">
         <button onClick={() => router.push('/create/details')} className="btn-secondary">
-          Back
+          חזרה
         </button>
         <button onClick={handleNext} disabled={uploading} className="btn-primary">
-          Next: Generate Story
+          הלאה: יצירת הסיפור
         </button>
         {!hasChildPhoto && uploadedPhotos.length === 0 && (
           <button
@@ -264,7 +264,7 @@ export default function PhotosPage() {
             onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.65)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.40)'; }}
           >
-            Skip for now
+            דלגו על זה
           </button>
         )}
       </div>
