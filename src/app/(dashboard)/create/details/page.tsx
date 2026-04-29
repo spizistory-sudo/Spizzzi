@@ -57,14 +57,14 @@ function blurHandler(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>
 export default function DetailsPage() {
   const router = useRouter();
   const {
-    selectedThemeSlug, childName, childAge, childTraits,
-    setChildDetails, setStep, setLanguage,
+    selectedThemeSlug, childName, childAge, childTraits, traitDetails: storedTraitDetails,
+    setChildDetails, setStep, setLanguage, setTraitDetails: setStoredTraitDetails,
   } = useCreationWizard();
 
   const [name, setName] = useState(childName);
   const [age, setAge] = useState(childAge?.toString() || '');
   const [traits, setTraits] = useState<string[]>(childTraits);
-  const [interestDetails, setInterestDetails] = useState<Record<string, string>>({});
+  const [interestDetails, setInterestDetails] = useState<Record<string, string>>(storedTraitDetails || {});
   const [error, setError] = useState<string | null>(null);
 
   // Always Hebrew
@@ -101,6 +101,7 @@ export default function DetailsPage() {
     });
 
     setChildDetails(name.trim(), ageNum, enrichedTraits);
+    setStoredTraitDetails(interestDetails);
     setStep('photos');
     router.push('/create/photos');
   }

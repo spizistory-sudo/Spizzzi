@@ -257,7 +257,7 @@ export default function FinalizePage() {
     const isComplete = phase === 'done';
 
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-4" style={{ paddingLeft: 240 }}>
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-4">
         <VideoBackground />
         {/* Content above background — offset for sidebar */}
         <div className="relative z-10 flex flex-col items-center">

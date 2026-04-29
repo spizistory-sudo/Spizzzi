@@ -24,8 +24,14 @@ export async function POST(req: Request) {
     // Download the photo and convert to base64
     const photoBase64 = await getImageBase64('photos', storagePath);
 
-    // Analyze with Gemini Vision
-    const description = await analyzeChildPhoto(photoBase64);
+    // Analyze with Gemini Vision (with retry + graceful fallback)
+    let description: string;
+    try {
+      description = await analyzeChildPhoto(photoBase64);
+    } catch (err: unknown) {
+      console.error('[analyze-photo] All retries failed, using fallback:', (err as Error)?.message);
+      description = `A child around age 5-8 with a friendly, cheerful expression`;
+    }
 
     // Save to book metadata
     const { error: updateError } = await supabase

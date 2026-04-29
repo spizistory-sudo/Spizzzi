@@ -23,6 +23,7 @@ interface WizardState {
   childName: string;
   childAge: number | null;
   childTraits: string[];
+  traitDetails: Record<string, string>;
 
   // Step 3: Photos
   uploadedPhotos: UploadedPhoto[];
@@ -50,6 +51,7 @@ interface WizardState {
   setStep: (step: WizardStep) => void;
   setTheme: (slug: string) => void;
   setChildDetails: (name: string, age: number, traits: string[]) => void;
+  setTraitDetails: (details: Record<string, string>) => void;
   addPhoto: (photo: UploadedPhoto) => void;
   removePhoto: (id: string) => void;
   setCharacterDescription: (desc: string) => void;
@@ -74,6 +76,7 @@ const initialState = {
   childName: '',
   childAge: null,
   childTraits: [],
+  traitDetails: {} as Record<string, string>,
   uploadedPhotos: [] as UploadedPhoto[],
   characterDescription: null as string | null,
   generatedStory: null,
@@ -100,6 +103,8 @@ export const useCreationWizard = create<WizardState>((set) => ({
 
   setChildDetails: (name, age, traits) =>
     set({ childName: name, childAge: age, childTraits: traits }),
+
+  setTraitDetails: (details) => set({ traitDetails: details }),
 
   addPhoto: (photo) =>
     set((state) => ({ uploadedPhotos: [...state.uploadedPhotos, photo] })),

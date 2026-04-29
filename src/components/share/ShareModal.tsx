@@ -102,7 +102,7 @@ export default function ShareModal({ book, isOpen, onClose }: ShareModalProps) {
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-md mx-4 glass" style={{ padding: '32px', borderRadius: 'var(--radius-lg)' }}>
+      <div className="relative w-full max-w-md mx-4" style={{ padding: '32px', borderRadius: 'var(--radius-lg)', background: '#1a1d2e', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
         <button onClick={onClose} className="absolute top-4 left-4" style={{ color: 'var(--text-faint)', background: 'none', border: 'none', cursor: 'pointer' }}>
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
