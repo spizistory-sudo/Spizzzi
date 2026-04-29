@@ -117,21 +117,26 @@ export default function ShareModal({ book, isOpen, onClose }: ShareModalProps) {
             <p style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: '0.92rem' }}>הפכו את הספר לציבורי</p>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>כל מי שיש לו את הקישור יוכל לקרוא</p>
           </div>
-          <button
-            onClick={togglePublic}
-            disabled={loading}
-            style={{
-              position: 'relative', width: 48, height: 28, borderRadius: 9999, border: 'none', cursor: 'pointer',
-              background: isPublic ? 'var(--purple)' : 'rgba(255,255,255,0.15)',
-              opacity: loading ? 0.5 : 1, transition: 'background 0.2s',
-            }}
-          >
-            <div style={{
-              position: 'absolute', top: 2, width: 24, height: 24, background: 'white', borderRadius: '50%',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transition: 'transform 0.2s',
-              transform: isPublic ? 'translateX(-22px)' : 'translateX(22px)',
-            }} />
-          </button>
+          <div style={{ direction: 'ltr', display: 'inline-block', flexShrink: 0 }}>
+            <button
+              onClick={togglePublic}
+              disabled={loading}
+              role="switch"
+              aria-checked={isPublic}
+              style={{
+                position: 'relative', width: 52, height: 28, borderRadius: 9999, padding: 0,
+                border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer',
+                background: isPublic ? 'rgba(126,200,227,0.35)' : 'rgba(255,255,255,0.08)',
+                opacity: loading ? 0.5 : 1, transition: 'background 0.2s',
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 2, left: isPublic ? 26 : 2,
+                width: 22, height: 22, borderRadius: '50%', background: '#ffffff',
+                transition: 'left 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+              }} />
+            </button>
+          </div>
         </div>
 
         {/* Share URL */}
