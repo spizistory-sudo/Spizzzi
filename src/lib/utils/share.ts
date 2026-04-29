@@ -7,6 +7,6 @@ export function createShareSlug(): string {
 }
 
 export function getShareUrl(slug: string): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL || 'https://spizzzy.vercel.app';
+  const base = process.env.NEXT_PUBLIC_APP_URL || 'https://spizzzi.vercel.app';
   return `${base}/share/${slug}`;
 }

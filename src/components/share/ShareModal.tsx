@@ -16,7 +16,7 @@ export default function ShareModal({ book, isOpen, onClose }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://spizzzy.vercel.app');
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://spizzzi.vercel.app');
   const shareUrl = shareSlug ? `${appUrl}/share/${shareSlug}` : null;
 
   const togglePublic = useCallback(async () => {
