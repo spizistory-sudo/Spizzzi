@@ -7,11 +7,11 @@ import type { Book } from '@/types/book';
 import ShareModal from '@/components/share/ShareModal';
 
 const statusStyles: Record<string, { bg: string; text: string; label: string }> = {
-  draft: { bg: 'rgba(245,200,66,0.12)', text: '#F5C842', label: 'Draft' },
-  generating: { bg: 'rgba(126,200,227,0.12)', text: '#7EC8E3', label: 'Creating...' },
-  review: { bg: 'rgba(245,200,66,0.12)', text: '#F5C842', label: 'In Review' },
-  complete: { bg: 'rgba(80,200,120,0.12)', text: '#50C878', label: 'Complete' },
-  error: { bg: 'rgba(220,50,50,0.12)', text: 'rgba(255,150,150,0.95)', label: 'Error' },
+  draft: { bg: 'rgba(245,200,66,0.12)', text: '#F5C842', label: 'טיוטה' },
+  generating: { bg: 'rgba(126,200,227,0.12)', text: '#7EC8E3', label: 'בהכנה...' },
+  review: { bg: 'rgba(245,200,66,0.12)', text: '#F5C842', label: 'בבדיקה' },
+  complete: { bg: 'rgba(80,200,120,0.12)', text: '#50C878', label: 'מוכן!' },
+  error: { bg: 'rgba(220,50,50,0.12)', text: 'rgba(255,150,150,0.95)', label: 'שגיאה' },
 };
 
 interface BookCardProps {
@@ -25,7 +25,7 @@ export default function BookCard({ book }: BookCardProps) {
   const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {
-    if (!confirm(`Delete "${book.title}"? This cannot be undone.`)) return;
+    if (!confirm(`למחוק את "${book.title}"? אי אפשר לבטל את זה.`)) return;
     setDeleting(true);
     try {
       const res = await fetch(`/api/books/${book.id}`, { method: 'DELETE' });
@@ -83,7 +83,7 @@ export default function BookCard({ book }: BookCardProps) {
               textAlign: 'center',
               textDecoration: 'none',
               display: 'block',
-            }}>Read</Link>
+            }}>קריאה</Link>
             <button onClick={(e) => { e.stopPropagation(); setShowShareModal(true); }} style={{
               background: 'rgba(255, 255, 255, 0.14)',
               border: '1px solid rgba(255, 255, 255, 0.30)',
@@ -95,7 +95,7 @@ export default function BookCard({ book }: BookCardProps) {
               cursor: 'pointer',
               width: 160,
               textAlign: 'center',
-            }}>Share &amp; Export</button>
+            }}>שיתוף</button>
             <button onClick={(e) => { e.stopPropagation(); handleDelete(); }} disabled={deleting} style={{
               background: 'rgba(255, 80, 60, 0.12)',
               border: '1px solid rgba(255, 100, 80, 0.35)',
@@ -107,7 +107,7 @@ export default function BookCard({ book }: BookCardProps) {
               cursor: 'pointer',
               width: 160,
               textAlign: 'center',
-            }}>{deleting ? 'Deleting...' : 'Delete'}</button>
+            }}>{deleting ? 'מוחק...' : 'מחיקה'}</button>
           </div>
         </div>
 
@@ -117,7 +117,7 @@ export default function BookCard({ book }: BookCardProps) {
             {book.title}
           </h3>
           <p style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'var(--font-body)', fontSize: '0.82rem' }}>
-            For {book.child_name}{book.child_age ? `, age ${book.child_age}` : ''}
+            עבור {book.child_name}{book.child_age ? `, גיל ${book.child_age}` : ''}
           </p>
 
           <div className="flex items-center justify-between mt-4">
@@ -133,7 +133,7 @@ export default function BookCard({ book }: BookCardProps) {
                 className="btn-primary"
                 style={{ fontSize: '0.82rem', fontWeight: 600, padding: '7px 18px', gap: 6, boxShadow: '0 2px 12px rgba(155,125,212,0.30)' }}
               >
-                &#9654; Read
+                &#9654; קריאה
               </Link>
             </div>
           </div>

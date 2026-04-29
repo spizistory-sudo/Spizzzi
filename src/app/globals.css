@@ -39,9 +39,9 @@
   --text-secondary: rgba(255, 255, 255, 0.65);
   --text-faint:     rgba(255, 255, 255, 0.35);
 
-  /* Fonts */
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-body:    'Figtree', system-ui, sans-serif;
+  /* Fonts — Hebrew-first */
+  --font-display: 'Rubik', 'Heebo', system-ui, sans-serif;
+  --font-body:    'Heebo', 'Rubik', system-ui, sans-serif;
 
   --radius-xl: 1.5rem;
 }

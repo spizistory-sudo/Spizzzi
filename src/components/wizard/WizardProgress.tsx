@@ -3,11 +3,11 @@
 import { type WizardStep } from '@/stores/creation-wizard';
 
 const steps: { key: WizardStep; label: string }[] = [
-  { key: 'theme', label: 'Theme' },
-  { key: 'details', label: 'Details' },
-  { key: 'photos', label: 'Photos' },
-  { key: 'preview', label: 'Preview' },
-  { key: 'finalize', label: 'Finalize' },
+  { key: 'theme', label: 'נושא' },
+  { key: 'details', label: 'פרטים' },
+  { key: 'photos', label: 'תמונות' },
+  { key: 'preview', label: 'תצוגה' },
+  { key: 'finalize', label: 'סיום' },
 ];
 
 export default function WizardProgress({
