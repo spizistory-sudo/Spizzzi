@@ -58,9 +58,14 @@ export default function PreviewPage() {
   // Auto-generate story on first visit — ref guard prevents double execution in React strict mode
   useEffect(() => {
     if (generatedStory || isGenerating) return;
-    if (!selectedThemeSlug || !childName || !childAge) return;
+    if ((!selectedThemeSlug && !categoryId) || !childName || !childAge) return;
     if (storyGenRef.current) return;
     storyGenRef.current = true;
+
+    console.log('[preview-page] Starting story generation:', {
+      isStructuredHebrew, categoryId, topicId, selectedThemeSlug, childName, childAge,
+      traitCount: childTraits?.length, language, storyMode,
+    });
 
     async function generate() {
       setIsGenerating(true);
