@@ -53,7 +53,7 @@ export default function FinalizePage() {
   // Redirect if no book
   useEffect(() => {
     if (!bookId || !generatedStory) {
-      router.replace('/create/theme');
+      router.replace('/create/category');
     }
   }, [bookId, generatedStory, router]);
 
