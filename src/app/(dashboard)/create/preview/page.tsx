@@ -38,16 +38,22 @@ export default function PreviewPage() {
     setIsGeneratingIllustrations,
     setIllustrationProgress,
     setCharacterDescription,
+    categoryId,
+    topicId,
+    storyMode,
+    traitDetails,
   } = useCreationWizard();
+
+  const isStructuredHebrew = language === 'he' && storyMode === 'structured' && !!categoryId;
 
   const [error, setError] = useState<string | null>(null);
 
   // Redirect if missing required data
   useEffect(() => {
-    if (!selectedThemeSlug || !childName || !childAge) {
-      router.replace('/create/theme');
+    if ((!selectedThemeSlug && !categoryId) || !childName || !childAge) {
+      router.replace(categoryId ? '/create/category' : '/create/theme');
     }
-  }, [selectedThemeSlug, childName, childAge, router]);
+  }, [selectedThemeSlug, categoryId, childName, childAge, router]);
 
   // Auto-generate story on first visit — ref guard prevents double execution in React strict mode
   useEffect(() => {
@@ -61,17 +67,31 @@ export default function PreviewPage() {
       setError(null);
 
       try {
+        // Build request body conditionally based on flow
+        const requestBody: Record<string, unknown> = {
+          childName,
+          childAge,
+          childTraits,
+          language,
+        };
+
+        if (isStructuredHebrew) {
+          // Structured Hebrew flow → Claude
+          requestBody.categoryId = categoryId;
+          requestBody.topicId = topicId || 'surprise';
+          requestBody.childGender = 'male'; // Phase 1 default
+          requestBody.traits = childTraits; // IDs in structured mode
+          requestBody.traitDetails = traitDetails;
+        } else {
+          // Legacy flow → Gemini
+          requestBody.themeSlug = selectedThemeSlug;
+          requestBody.customPrompt = customPrompt || undefined;
+        }
+
         const res = await fetch('/api/generate-story', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            themeSlug: selectedThemeSlug,
-            childName,
-            childAge,
-            childTraits,
-            language,
-            customPrompt: customPrompt || undefined,
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         if (!res.ok) {
@@ -193,7 +213,7 @@ export default function PreviewPage() {
     router.push('/create/finalize');
   }
 
-  if (!selectedThemeSlug || !childName || !childAge) return null;
+  if ((!selectedThemeSlug && !categoryId) || !childName || !childAge) return null;
 
   if (isGenerating) {
     return (

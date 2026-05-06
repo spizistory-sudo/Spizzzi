@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCreationWizard } from '@/stores/creation-wizard';
 
 const cardStyle: React.CSSProperties = {
@@ -21,8 +22,15 @@ const cardStyle: React.CSSProperties = {
 };
 
 export default function CreatePage() {
+  const router = useRouter();
   const reset = useCreationWizard((s) => s.reset);
-  useEffect(() => { reset(); }, [reset]);
+
+  useEffect(() => {
+    reset();
+    // After reset, redirect Hebrew pilot users to structured flow
+    // storyMode defaults to 'structured' in initial state
+    router.replace('/create/category');
+  }, [reset, router]);
 
   return (
     <div style={{ minHeight: '70vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
