@@ -71,9 +71,6 @@ export default function DetailsPage() {
   const [interestDetails, setInterestDetails] = useState<Record<string, string>>(storedTraitDetails || {});
   const [error, setError] = useState<string | null>(null);
 
-  // Always Hebrew for pilot
-  useEffect(() => { setLanguage('he'); }, [setLanguage]);
-
   // Guard: must have either a theme slug (legacy) or a category (structured)
   if (!selectedThemeSlug && !categoryId) {
     if (storyMode === 'structured') {
@@ -133,6 +130,32 @@ export default function DetailsPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-xl" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+        {/* Language */}
+        <div>
+          <label style={labelStyle}>Story Language / שפת הסיפור</label>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {([{ code: 'en' as const, label: 'English' }, { code: 'he' as const, label: 'עברית' }]).map(({ code, label }) => {
+              const selected = language === code;
+              return (
+                <button key={code} type="button" onClick={() => setLanguage(code)}
+                  style={{
+                    background: selected ? 'linear-gradient(135deg, rgba(155,125,212,0.70), rgba(126,200,227,0.60))' : 'rgba(255,255,255,0.07)',
+                    backdropFilter: 'blur(8px)',
+                    border: selected ? '1px solid rgba(255,255,255,0.25)' : '1px solid rgba(255,255,255,0.15)',
+                    color: selected ? '#ffffff' : 'rgba(255,255,255,0.65)',
+                    borderRadius: '9999px', padding: '10px 24px',
+                    fontFamily: 'var(--font-body)', fontWeight: 500, cursor: 'pointer',
+                    transition: 'all 0.25s ease',
+                    boxShadow: selected ? '0 4px 20px rgba(155,125,212,0.35)' : 'none',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Name */}
         <div>
           <label htmlFor="childName" style={labelStyle}>שם הילד</label>
