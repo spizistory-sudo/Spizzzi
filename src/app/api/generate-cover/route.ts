@@ -62,13 +62,12 @@ export async function POST(req: Request) {
       }
     }
 
-    // Generate 3 covers in different styles
-    const coverResults = [];
-    const errors: Array<{ style: string; error: unknown }> = [];
+    // Generate 3 covers in parallel (Promise.allSettled — partial success is OK)
+    console.log(`[generate-cover] Starting ${ART_STYLE_KEYS.length} covers in parallel...`);
 
-    for (const styleKey of ART_STYLE_KEYS) {
-      console.log(`[generate-cover] Generating ${styleKey} cover...`);
-      try {
+    const settled = await Promise.allSettled(
+      ART_STYLE_KEYS.map(async (styleKey) => {
+        console.log(`[generate-cover] Generating ${styleKey} cover...`);
         const imageBuffer = await generateCoverImage({
           styleKey,
           bookTitle: book.title,
@@ -93,12 +92,22 @@ export async function POST(req: Request) {
 
         if (coverError) throw coverError;
         console.log(`[generate-cover] ${styleKey} saved, id:`, cover.id);
-        coverResults.push(cover);
-      } catch (err) {
-        console.error(`[generate-cover] FAILED ${styleKey}:`, err instanceof Error ? err.message : err);
-        errors.push({ style: styleKey, error: err instanceof Error ? err.message : String(err) });
-      }
+        return cover;
+      })
+    );
+
+    const coverResults = settled
+      .filter((r): r is PromiseFulfilledResult<typeof settled extends Array<PromiseSettledResult<infer T>> ? T : never> => r.status === 'fulfilled')
+      .map((r) => r.value);
+
+    const errors = settled
+      .map((r, i) => r.status === 'rejected' ? { style: ART_STYLE_KEYS[i], error: r.reason instanceof Error ? r.reason.message : String(r.reason) } : null)
+      .filter(Boolean);
+
+    if (errors.length > 0) {
+      console.error('[generate-cover] Some styles failed:', errors);
     }
+    console.log(`[generate-cover] ${coverResults.length}/${ART_STYLE_KEYS.length} covers succeeded`);
 
     if (coverResults.length === 0) {
       return NextResponse.json(
