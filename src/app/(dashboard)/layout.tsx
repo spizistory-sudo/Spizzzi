@@ -39,7 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div style={{ position: 'relative', zIndex: 1, display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar — RTL: appears on the right naturally via flex + dir=rtl */}
+      {/* Sidebar — glassmorphism */}
       <aside style={{
         width: 240,
         background: 'rgba(10, 17, 40, 0.70)',
