@@ -68,9 +68,34 @@ export function validateHebrewStory(
     });
   }
 
-  // 4. Child name not at end of rhyming line (only if rhymes required)
+  // 4. Rhyme checks (only if rhymes required)
   if (rules.rhymeRequired) {
     const cleanChildName = stripNiqqud(childName);
+
+    // 4a. Check that lines 2 and 4 actually rhyme (ABCB scheme)
+    let rhymeFailCount = 0;
+    story.spreads.forEach(spread => {
+      const lines = spread.text.split('\n').filter(Boolean);
+      if (lines.length >= 4) {
+        const word2 = getLastWord(lines[1]);
+        const word4 = getLastWord(lines[3]);
+        if (word2 && word4 && !basicRhymeCheck(word2, word4)) {
+          errors.push(
+            `Spread ${spread.spread_number}: lines 2 and 4 do not rhyme ("${stripNiqqud(word2)}" / "${stripNiqqud(word4)}")`
+          );
+          rhymeFailCount++;
+        }
+      } else if (lines.length < 4) {
+        // Spread doesn't have 4 lines — can't be ABCB
+        warnings.push(
+          `Spread ${spread.spread_number}: only ${lines.length} lines (need 4 for ABCB rhyme)`
+        );
+      }
+    });
+    // Big score penalty for rhyme failures — this is a hard requirement
+    score -= rhymeFailCount * 20;
+
+    // 4b. Child name not at end of rhyming line
     story.spreads.forEach(spread => {
       const lines = spread.text.split('\n').filter(Boolean);
       [1, 3].forEach(idx => {
@@ -120,4 +145,16 @@ function getLastWord(line: string): string {
   const words = line.trim().split(/\s+/).filter(Boolean);
   const lastWord = words[words.length - 1] || '';
   return lastWord.replace(/[.,!?;:"׳']/g, '');
+}
+
+/**
+ * Basic Hebrew rhyme check — compares last 2 Hebrew characters after stripping niqqud/punctuation.
+ * Permissive: catches obvious failures (completely different endings) without requiring
+ * stressed-syllable analysis. Good enough to reject prose-when-rhyme-required.
+ */
+function basicRhymeCheck(word1: string, word2: string): boolean {
+  const clean1 = stripNiqqud(word1).replace(/[^\u05D0-\u05EA]/g, '');
+  const clean2 = stripNiqqud(word2).replace(/[^\u05D0-\u05EA]/g, '');
+  if (clean1.length < 2 || clean2.length < 2) return false;
+  return clean1.slice(-2) === clean2.slice(-2);
 }
