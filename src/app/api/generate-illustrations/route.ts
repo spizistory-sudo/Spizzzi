@@ -50,9 +50,12 @@ export async function POST(req: Request) {
       .single();
 
     const styleKey = (selectedCover?.style_name || 'storybook') as ArtStyleKey;
-    const characterDescription =
-      (book.metadata as Record<string, string>)?.character_description ||
-      `A ${book.child_age}-year-old child named ${book.child_name}`;
+    const bookMeta = (book.metadata || {}) as Record<string, string>;
+    const childGender = bookMeta.childGender || 'male';
+    const genderDesc = childGender === 'female'
+      ? `A ${book.child_age}-year-old girl (female child) named ${book.child_name}. She has typical feminine features.`
+      : `A ${book.child_age}-year-old boy (male child) named ${book.child_name}. He has short hair and wears typical boy clothing like a t-shirt and pants.`;
+    const characterDescription = bookMeta.character_description || genderDesc;
 
     // Load reference images for Nano Banana Pro
     let childPhotoBase64: string | undefined;

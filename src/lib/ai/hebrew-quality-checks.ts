@@ -85,11 +85,12 @@ export function validateHebrewStory(
           );
           rhymeFailCount++;
         }
-      } else if (lines.length < 4) {
-        // Spread doesn't have 4 lines — can't be ABCB
-        warnings.push(
-          `Spread ${spread.spread_number}: only ${lines.length} lines (need 4 for ABCB rhyme)`
+      } else {
+        // Spread doesn't have 4 lines — not structured as verse at all
+        errors.push(
+          `Spread ${spread.spread_number}: not structured as verse — only ${lines.length} line(s), need 4 lines for ABCB rhyme`
         );
+        rhymeFailCount++;
       }
     });
     // Big score penalty for rhyme failures — this is a hard requirement
@@ -112,8 +113,14 @@ export function validateHebrewStory(
     });
   }
 
-  // 5. Forbidden phrases
-  const forbiddenPhrases = ['היה היה', 'באושר ועושר', 'מיינדפולנס', 'ויסות רגשי'];
+  // 5. Forbidden phrases and words
+  const forbiddenPhrases = [
+    'היה היה', 'באושר ועושר', 'מיינדפולנס', 'ויסות רגשי',
+    // Modern Hebrew offensive/inappropriate/ambiguous:
+    'תחת',      // "ass" in modern colloquial, even if formal for "under"
+    'אכל אותה', // vulgar expression
+    'מטומטם',    // "stupid"
+  ];
   const fullText = story.spreads.map(s => s.text).join(' ');
   forbiddenPhrases.forEach(phrase => {
     if (fullText.includes(phrase)) {
