@@ -7,9 +7,9 @@ import WizardProgress from '@/components/wizard/WizardProgress';
 import type { CoverOption } from '@/types/book';
 
 const styleLabels: Record<string, { name: string; desc: string }> = {
-  watercolor: { name: 'חלום מים', desc: 'צבעי מים רכים וחולמניים בגוונים פסטליים עדינים' },
-  cartoon: { name: 'צבעוני ונועז', desc: 'קריקטורה צבעונית עם קווי מתאר ברורים' },
-  storybook: { name: 'ספר קלאסי', desc: 'תחושה של ספר ילדים חמים וקלאסי' },
+  watercolor: { name: 'Watercolor Dream', desc: 'Soft, dreamy watercolors with gentle pastel tones' },
+  cartoon: { name: 'Bold & Bright', desc: 'Fun, colorful cartoon with bold outlines' },
+  storybook: { name: 'Classic Storybook', desc: 'Rich, warm classic storybook feel' },
 };
 
 export default function PreviewPage() {
@@ -44,8 +44,6 @@ export default function PreviewPage() {
     traitDetails,
   } = useCreationWizard();
 
-  const isStructuredHebrew = language === 'he' && storyMode === 'structured' && !!categoryId;
-
   const [error, setError] = useState<string | null>(null);
 
   // Redirect if missing required data
@@ -63,7 +61,7 @@ export default function PreviewPage() {
     storyGenRef.current = true;
 
     console.log('[preview-page] Starting story generation:', {
-      isStructuredHebrew, categoryId, topicId, selectedThemeSlug, childName, childAge,
+      categoryId, topicId, selectedThemeSlug, childName, childAge,
       traitCount: childTraits?.length, language, storyMode,
     });
 
@@ -72,31 +70,17 @@ export default function PreviewPage() {
       setError(null);
 
       try {
-        // Build request body conditionally based on flow
-        const requestBody: Record<string, unknown> = {
-          childName,
-          childAge,
-          childTraits,
-          language,
-        };
-
-        if (isStructuredHebrew) {
-          // Structured Hebrew flow → Claude
-          requestBody.categoryId = categoryId;
-          requestBody.topicId = topicId || 'surprise';
-          requestBody.childGender = 'male'; // Phase 1 default
-          requestBody.traits = childTraits; // IDs in structured mode
-          requestBody.traitDetails = traitDetails;
-        } else {
-          // Legacy flow → Gemini
-          requestBody.themeSlug = selectedThemeSlug;
-          requestBody.customPrompt = customPrompt || undefined;
-        }
-
         const res = await fetch('/api/generate-story', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
+          body: JSON.stringify({
+            themeSlug: selectedThemeSlug,
+            childName,
+            childAge,
+            childTraits,
+            language,
+            customPrompt: customPrompt || undefined,
+          }),
         });
 
         if (!res.ok) {
@@ -226,8 +210,8 @@ export default function PreviewPage() {
         <WizardProgress currentStep="preview" />
         <div className="flex flex-col items-center justify-center py-20">
           <div className="animate-spin w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full mb-6" />
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>יוצרים סיפור קסום ל{childName}...</h2>
-          <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>זה בדרך כלל לוקח 10-20 שניות</p>
+          <h2 className="text-xl font-semibold text-gray-900">Creating a magical story for {childName}...</h2>
+          <p className="text-gray-500 mt-2">This usually takes 10-20 seconds</p>
         </div>
       </div>
     );
@@ -243,13 +227,13 @@ export default function PreviewPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
             </svg>
           </div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>אופס! משהו השתבש</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>{error}</p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Oops! Something went wrong</h2>
+          <p className="text-gray-500 mb-6">{error}</p>
           <button
             onClick={() => { setError(null); setIsGenerating(false); }}
             className="px-6 py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition"
           >
-            נסו שוב
+            Try again
           </button>
         </div>
       </div>
@@ -265,7 +249,7 @@ export default function PreviewPage() {
       <div className="mb-8">
         <h1 style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '2.2rem', fontWeight: 500, color: 'var(--text-primary)' }} dir="auto">{generatedStory.title}</h1>
         <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
-          סיפור אישי ל{childName} &middot; {generatedStory.pages.length} עמודים
+          A personalized story for {childName} &middot; {generatedStory.pages.length} pages
         </p>
       </div>
 
@@ -275,8 +259,8 @@ export default function PreviewPage() {
           <div className="flex items-center gap-3">
             <div className="animate-spin w-6 h-6 rounded-full" style={{ border: '3px solid rgba(126,200,227,0.25)', borderTopColor: 'rgba(126,200,227,0.80)' }} />
             <div>
-              <p style={{ color: 'rgba(255,255,255,0.90)', fontWeight: 500 }}>מציירים את העטיפה...</p>
-              <p style={{ color: 'rgba(255,255,255,0.50)', fontSize: '0.85rem' }}>יוצרים 3 סגנונות ייחודיים שתוכלו לבחור מהם</p>
+              <p style={{ color: 'rgba(255,255,255,0.90)', fontWeight: 500 }}>Generating cover art...</p>
+              <p style={{ color: 'rgba(255,255,255,0.50)', fontSize: '0.85rem' }}>Creating 3 unique styles for you to choose from</p>
             </div>
           </div>
         </div>
@@ -285,8 +269,8 @@ export default function PreviewPage() {
       {/* Cover selection — glass cards */}
       {coverOptions.length > 0 && !isGeneratingCovers && (
         <div className="mb-8">
-          <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '1.3rem', marginBottom: 8 }}>בחרו את סגנון הספר</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: 16 }}>הסגנון הזה ישמש לכל האיורים בספר.</p>
+          <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '1.3rem', marginBottom: 8 }}>Choose your book&apos;s style</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: 16 }}>This style will be used for all illustrations in the book.</p>
           <div className="grid sm:grid-cols-3 gap-4">
             {coverOptions.map((cover: CoverOption) => {
               const style = styleLabels[cover.style_name] || { name: cover.style_name, desc: '' };
@@ -324,7 +308,7 @@ export default function PreviewPage() {
 
           {selectedCoverId && (
             <button onClick={handleGenerateAndContinue} className="btn-primary" style={{ marginTop: 16 }}>
-              הלאה: קריינות ומוזיקה
+              Next: Add Narration &amp; Music
             </button>
           )}
         </div>
@@ -332,16 +316,16 @@ export default function PreviewPage() {
 
       {/* Bottom actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 32, paddingBottom: 32 }}>
-        <button onClick={() => router.push('/create/photos')} className="btn-secondary">חזרה</button>
+        <button onClick={() => router.push('/create/photos')} className="btn-secondary">Back</button>
       </div>
 
       {/* Generate covers button if no photos were uploaded */}
       {uploadedPhotos.length === 0 && coverOptions.length === 0 && !isGeneratingCovers && bookId && (
         <div className="glass mb-8" style={{ padding: '24px 32px' }}>
-          <p style={{ color: 'rgba(245,200,66,0.90)', fontWeight: 500, marginBottom: 8 }}>רוצים איורים מותאמים אישית?</p>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: 16 }}>צרו עטיפה ואיורים לדפים כדי להחיות את הסיפור.</p>
+          <p style={{ color: 'rgba(245,200,66,0.90)', fontWeight: 500, marginBottom: 8 }}>Want custom illustrations?</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: 16 }}>Generate cover art and page illustrations to bring the story to life.</p>
           <button onClick={() => triggerPhotoAnalysisAndCovers(bookId)} className="btn-primary" style={{ fontSize: '0.88rem', padding: '10px 24px' }}>
-            יצירת עטיפה
+            Generate Cover Art
           </button>
         </div>
       )}

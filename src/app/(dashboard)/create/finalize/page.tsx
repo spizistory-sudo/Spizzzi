@@ -13,11 +13,11 @@ import VideoBackground from '@/components/ui/VideoBackground';
 type FinalizationPhase = 'select' | 'building' | 'done';
 
 function getBuildingMessage(percent: number): string {
-  if (percent < 30) return 'מציירים את הסיפור שלכם...';
-  if (percent < 60) return 'מוסיפים צבעים ופרטים...';
-  if (percent < 80) return 'מקליטים את הקריינות...';
-  if (percent < 100) return 'נגיעות אחרונות...';
-  return 'הספר שלכם מוכן!';
+  if (percent < 30) return 'Painting your illustrations...';
+  if (percent < 60) return 'Adding colors and details...';
+  if (percent < 80) return 'Recording your narration...';
+  if (percent < 100) return 'Putting the finishing touches...';
+  return 'Your book is ready!';
 }
 
 export default function FinalizePage() {
@@ -71,15 +71,6 @@ export default function FinalizePage() {
     }
     loadTracks();
   }, [supabase]);
-
-  // Auto-select Liam for Hebrew books
-  console.log('[finalize] wizard language:', language);
-  useEffect(() => {
-    if (language === 'he') {
-      console.log('[finalize] Hebrew detected — auto-selecting Liam voice');
-      setSelectedVoice('TX3LPaxmHKxFdv7VOQHJ');
-    }
-  }, [language, setSelectedVoice]);
 
   // Auto-suggest music
   useEffect(() => {
@@ -220,7 +211,7 @@ export default function FinalizePage() {
 
   // Create My Book — trigger illustrations + narration in parallel, switch to building view
   async function handleCreateBook() {
-    if (!selectedVoiceId) { setError('נא לבחור קול מספר'); return; }
+    if (!selectedVoiceId) { setError('Please select a narrator voice'); return; }
 
     // Stop previews
     voicePreviewRef.current?.pause();
@@ -274,8 +265,8 @@ export default function FinalizePage() {
         {/* Phase content — fades between building and complete */}
         {isComplete ? (
           <div key="complete" className="text-center build-fade-in">
-            <p className="text-white text-xl font-semibold mb-2" style={{ fontFamily: 'var(--font-display)' }}>הספר שלכם מוכן!</p>
-            <p className="text-white/50 text-sm mb-6">הגיע הזמן לקרוא את הסיפור</p>
+            <p className="text-white text-xl font-semibold mb-2" style={{ fontFamily: 'Georgia, serif' }}>Your book is ready!</p>
+            <p className="text-white/50 text-sm mb-6">Time to read the story</p>
             <button
               onClick={async () => {
                 if (buildingMusicRef.current) { buildingMusicRef.current.pause(); buildingMusicRef.current = null; }
@@ -287,13 +278,13 @@ export default function FinalizePage() {
               }}
               className="px-10 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-lg font-semibold transition shadow-lg shadow-purple-900/40"
             >
-              מתחילים לקרוא
+              Start Reading
             </button>
           </div>
         ) : (
           <div key="building" className="w-[280px] md:w-[360px] text-center build-fade-in">
             <p className="text-white text-lg font-medium mb-1">{getBuildingMessage(percent)}</p>
-            <p className="text-white/30 text-sm mb-4">{completed} מתוך {buildProgress.total} שלבים</p>
+            <p className="text-white/30 text-sm mb-4">{completed} of {buildProgress.total} steps complete</p>
             <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
               <div
                 className="h-full bg-purple-500 rounded-full transition-all duration-700 ease-out"
@@ -325,51 +316,16 @@ export default function FinalizePage() {
       <WizardProgress currentStep="finalize" />
 
       <div className="mb-8">
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 600, color: 'var(--text-primary)' }}>סיום הספר</h1>
-        <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>בחרו קול מספר ומוזיקת רקע ל&ldquo;{generatedStory.title}&rdquo;</p>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '2.2rem', fontWeight: 500, color: 'var(--text-primary)' }}>Finalize your book</h1>
+        <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>Choose a narrator voice and background music for &ldquo;{generatedStory.title}&rdquo;</p>
       </div>
 
       {/* Voice selector */}
       <section style={{ marginBottom: 40 }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '1.3rem', marginBottom: 8 }}>קול המספר</h2>
+        <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '1.3rem', marginBottom: 8 }}>Narrator voice</h2>
         <p style={{ color: 'rgba(255,255,255,0.50)', fontSize: '0.88rem', marginBottom: 16 }}>
-          הקול שיספר את הסיפור שלכם.
+          Choose who will read the story aloud. Click &ldquo;Preview&rdquo; to hear a sample.
         </p>
-        {language === 'he' ? (
-          <div style={{
-            background: 'rgba(245,200,66,0.06)',
-            backdropFilter: 'blur(12px) saturate(150%)', WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-            border: '2px solid #F5C842',
-            boxShadow: 'inset 0 0 20px rgba(255,255,255,0.04), 0 0 0 1px #F5C842, 0 0 24px rgba(245,200,66,0.25)',
-            borderRadius: '1.5rem', padding: '20px 24px', position: 'relative', maxWidth: 360,
-          }}>
-            <div style={{ position: 'absolute', top: 12, right: 12, width: 24, height: 24, background: '#F5C842', color: '#1A1000', fontSize: '0.72rem', fontWeight: 700, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>&#10003;</div>
-            <div className="flex items-center gap-3 mb-2">
-              <div style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(245,200,66,0.20)', color: 'rgba(255,255,255,0.30)' }}>
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
-              </div>
-              <div>
-                <p style={{ color: 'rgba(255,255,255,0.95)', fontWeight: 500 }}>Liam</p>
-                <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.78rem' }}>גברי &middot; מספר בעברית</p>
-              </div>
-            </div>
-            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.88rem', lineHeight: 1.5 }}>
-              קריינות מקצועית בעברית טבעית וחמה
-            </p>
-            <div style={{
-              background: 'rgba(126,200,227,0.15)',
-              border: '1px solid rgba(126,200,227,0.40)',
-              color: '#7EC8E3',
-              borderRadius: 9999,
-              padding: '3px 12px',
-              fontSize: '0.75rem',
-              display: 'inline-block',
-              marginTop: 8,
-            }}>
-              &#10003; נבחר אוטומטית לעברית
-            </div>
-          </div>
-        ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {NARRATOR_VOICES.map((voice) => {
               const isSelected = selectedVoiceId === voice.id;
@@ -405,19 +361,18 @@ export default function FinalizePage() {
                     color: isPreviewing ? '#fff' : 'rgba(255,255,255,0.75)',
                     borderRadius: '9999px', padding: '6px 16px', fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.2s ease',
                   }}>
-                    {isPreviewing ? 'עצירה' : 'השמעה'}
+                    {isPreviewing ? 'Stop' : 'Preview'}
                   </button>
                 </div>
               );
             })}
           </div>
-        )}
       </section>
 
       {/* Music selector */}
       <section style={{ marginBottom: 40 }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '1.3rem', marginBottom: 8 }}>מוזיקת רקע</h2>
-        <p style={{ color: 'rgba(255,255,255,0.50)', fontSize: '0.88rem', marginBottom: 16 }}>מתנגנת ברקע מאחורי הקריינות. לחצו על שיר כדי להאזין.</p>
+        <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '1.3rem', marginBottom: 8 }}>Background music</h2>
+        <p style={{ color: 'rgba(255,255,255,0.50)', fontSize: '0.88rem', marginBottom: 16 }}>Plays softly behind the narration. Click a track to preview it.</p>
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
           {categories.map((cat) => (
             <button key={cat} onClick={() => setMusicCategory(cat)} style={{
@@ -461,7 +416,7 @@ export default function FinalizePage() {
                   color: isPlaying ? '#fff' : 'rgba(255,255,255,0.75)',
                   borderRadius: '9999px', padding: '6px 16px', fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.2s ease',
                 }}>
-                  {isPlaying ? 'עצירה' : 'השמעה'}
+                  {isPlaying ? 'Stop' : 'Play'}
                 </button>
               </div>
             );
@@ -475,9 +430,9 @@ export default function FinalizePage() {
 
       {/* Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 32 }}>
-        <button onClick={() => router.push('/create/preview')} className="btn-secondary">חזרה</button>
+        <button onClick={() => router.push('/create/preview')} className="btn-secondary">Back</button>
         <button onClick={handleCreateBook} disabled={!selectedVoiceId} className="btn-primary">
-          &#10022; יוצרים את הספר!
+          &#10022; Create My Book
         </button>
       </div>
     </div>
