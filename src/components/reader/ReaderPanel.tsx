@@ -69,23 +69,23 @@ export default function ReaderPanel({
         {!isEditMode ? (
           <PanelButton
             icon="&#9998;"
-            label="עריכה"
-            tooltip="ערכו את הטקסט של הסיפור"
+            label="Edit"
+            tooltip="Make changes to your story text"
             onClick={onToggleEdit}
           />
         ) : (
           <>
             <PanelButton
               icon="&#10003;"
-              label={dirtyPageCount > 0 ? `שמירה (${dirtyPageCount})` : 'שמירה'}
-              tooltip="שמרו את השינויים והפיקו קריינות חדשה"
+              label={dirtyPageCount > 0 ? `Save (${dirtyPageCount})` : 'Save'}
+              tooltip="Save your edits and re-generate the narration"
               onClick={onSave}
               highlight="gold"
             />
             <PanelButton
               icon="&#10005;"
-              label="ביטול"
-              tooltip="בטלו את כל השינויים וחזרו לקריאה"
+              label="Cancel"
+              tooltip="Discard all changes and go back to reading"
               onClick={onCancelEdit}
               muted
             />
@@ -99,15 +99,15 @@ export default function ReaderPanel({
           <>
             <PanelButton
               icon="&#9678;"
-              label="סטטי"
-              tooltip="צפייה בגרסה המאוירת המקורית"
+              label="Static"
+              tooltip="Reading the original illustrated version"
               onClick={() => onSetViewMode('static')}
               active={viewMode === 'static'}
             />
             <PanelButton
               icon="&#10024;"
-              label="אנימציה"
-              tooltip="עברו לגרסה המונפשת — ראו את הסיפור קם לתחייה!"
+              label="Animated"
+              tooltip="Switch to the animated version — watch it come alive!"
               onClick={() => onSetViewMode('animated')}
               active={viewMode === 'animated'}
               highlight={viewMode === 'animated' ? 'gold' : undefined}
@@ -117,8 +117,8 @@ export default function ReaderPanel({
         ) : animationStarted ? (
           <PanelButton
             icon="&#9676;"
-            label="מנפש..."
-            tooltip="האיורים שלכם עוברים הנפשה ברקע..."
+            label="Animating"
+            tooltip="Your illustrations are being animated in the background..."
             onClick={() => {}}
             muted
             spin
@@ -126,8 +126,8 @@ export default function ReaderPanel({
         ) : (
           <PanelButton
             icon="&#10024;"
-            label="אנימציה"
-            tooltip="הפיחו חיים באיורים — ראו את הסיפור קם לתחייה!"
+            label="Animate"
+            tooltip="Animate all illustrations and watch your book come to life!"
             onClick={onStartAnimation}
           />
         )}
@@ -137,14 +137,14 @@ export default function ReaderPanel({
         {/* ── UTILITY SECTION ── */}
         <PanelButton
           icon="&#8599;"
-          label="שיתוף"
-          tooltip="שתפו את הסיפור הקסום עם משפחה וחברים"
+          label="Share"
+          tooltip="Share this magical story with friends and family"
           onClick={onShare}
         />
         <PanelButton
           icon="&#9881;"
-          label="הגדרות"
-          tooltip="ניהול הגדרות הספר"
+          label="Settings"
+          tooltip="Manage your book settings"
           onClick={onSettings}
         />
 
@@ -165,7 +165,7 @@ export default function ReaderPanel({
           boxShadow: '0 0 20px rgba(245,200,66,0.20)',
           animation: 'goldPulse 2s ease-in-out 3',
         }}>
-          &#10024; מוכן!
+          &#10024; Ready!
         </div>
       )}
     </div>
@@ -261,7 +261,7 @@ function PanelButton({ icon, label, tooltip, onClick, active, highlight, muted, 
       {hovered && tooltip && (
         <div style={{
           position: 'absolute',
-          left: 'calc(100% + 12px)',
+          right: 'calc(100% + 12px)',
           top: '50%',
           transform: 'translateY(-50%)',
           background: 'rgba(10, 15, 40, 0.92)',
@@ -279,14 +279,14 @@ function PanelButton({ icon, label, tooltip, onClick, active, highlight, muted, 
           {/* Arrow pointing right toward the panel */}
           <div style={{
             position: 'absolute',
-            left: -5,
+            right: -5,
             top: '50%',
             width: 8,
             height: 8,
             background: 'rgba(10, 15, 40, 0.92)',
             border: '1px solid rgba(255,255,255,0.12)',
-            borderRight: 'none',
-            borderTop: 'none',
+            borderLeft: 'none',
+            borderBottom: 'none',
             transform: 'translateY(-50%) rotate(45deg)',
           }} />
           <span style={{

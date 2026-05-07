@@ -117,7 +117,7 @@ export default function AnimationProgress({ bookId, jobs, totalPages, onAllCompl
           boxShadow: '0 8px 32px rgba(0,0,0,0.30)', minWidth: 280, maxWidth: 360,
         }}>
           <div style={{ fontSize: '0.85rem', color: 'rgba(255,150,150,0.95)', fontFamily: 'var(--font-body)', textAlign: 'center', lineHeight: 1.5 }}>
-            שירות האנימציה לא זמין כרגע. נסו שוב בעוד רגע.
+            Animation service is currently unavailable. Please try again later.
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             {onRetry && (
@@ -128,7 +128,7 @@ export default function AnimationProgress({ bookId, jobs, totalPages, onAllCompl
                 fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
                 boxShadow: '0 2px 12px rgba(155,125,212,0.35)',
               }}>
-                נסו שוב
+                Retry
               </button>
             )}
             <button onClick={() => setIsVisible(false)} style={{
@@ -136,7 +136,7 @@ export default function AnimationProgress({ bookId, jobs, totalPages, onAllCompl
               color: 'rgba(255,255,255,0.50)', borderRadius: 9999, padding: '7px 16px',
               fontSize: '0.82rem', cursor: 'pointer',
             }}>
-              סגירה
+              Dismiss
             </button>
           </div>
         </div>
@@ -154,7 +154,7 @@ export default function AnimationProgress({ bookId, jobs, totalPages, onAllCompl
           }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.70)', marginBottom: 5, fontFamily: 'var(--font-body)' }}>
-              מנפשים את הספר... {completedCount} מתוך {totalPages} עמודים
+              Animating your book... {completedCount} of {totalPages} pages
             </div>
             <div style={{ height: 3, background: 'rgba(255,255,255,0.10)', borderRadius: 99, overflow: 'hidden' }}>
               <div style={{
@@ -181,12 +181,12 @@ export default function AnimationProgress({ bookId, jobs, totalPages, onAllCompl
           cursor: 'pointer', fontFamily: 'var(--font-body)',
         }}>
           <span style={{ fontSize: '1.2rem' }}>&#10024;</span>
-          <span style={{ color: '#F5C842', fontWeight: 600, fontSize: '0.92rem' }}>הגרסה המונפשת מוכנה!</span>
+          <span style={{ color: '#F5C842', fontWeight: 600, fontSize: '0.92rem' }}>Animated Version Ready!</span>
           <span style={{
             background: 'rgba(245,200,66,0.20)', border: '1px solid rgba(245,200,66,0.40)',
             color: '#F5C842', borderRadius: 9999, padding: '3px 12px', fontSize: '0.78rem', fontWeight: 600,
           }}>
-            &larr; עברו עכשיו
+            Switch Now &rarr;
           </span>
         </div>
       )}

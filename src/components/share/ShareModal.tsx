@@ -16,7 +16,7 @@ export default function ShareModal({ book, isOpen, onClose }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://spizzzi.vercel.app');
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://storymagic.app');
   const shareUrl = shareSlug ? `${appUrl}/share/${shareSlug}` : null;
 
   const togglePublic = useCallback(async () => {
@@ -63,7 +63,7 @@ export default function ShareModal({ book, isOpen, onClose }: ShareModalProps) {
       try {
         await navigator.share({
           title: book.title,
-          text: `ספר מותאם אישית עבור ${book.child_name}!`,
+          text: `Check out this personalized story for ${book.child_name}!`,
           url: shareUrl,
         });
       } catch { /* cancelled */ }
@@ -103,21 +103,21 @@ export default function ShareModal({ book, isOpen, onClose }: ShareModalProps) {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       <div className="relative w-full max-w-md mx-4" style={{ padding: '32px', borderRadius: 'var(--radius-lg)', background: '#1a1d2e', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
-        <button onClick={onClose} className="absolute top-4 left-4" style={{ color: 'var(--text-faint)', background: 'none', border: 'none', cursor: 'pointer' }}>
+        <button onClick={onClose} className="absolute top-4 right-4" style={{ color: 'var(--text-faint)', background: 'none', border: 'none', cursor: 'pointer' }}>
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
           </svg>
         </button>
 
-        <h2 style={{ fontSize: '1.3rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16, fontFamily: 'var(--font-display)' }}>שיתוף</h2>
+        <h2 style={{ fontSize: '1.3rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16, fontFamily: 'var(--font-display)' }}>Share &amp; Export</h2>
 
         {/* Public toggle */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--radius-sm)', marginBottom: 16, border: '1px solid rgba(255,255,255,0.08)' }}>
           <div>
-            <p style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: '0.92rem' }}>הפכו את הספר לציבורי</p>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>כל מי שיש לו את הקישור יוכל לקרוא</p>
+            <p style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: '0.92rem' }}>Make this book public</p>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Anyone with the link can read it</p>
           </div>
-          <div style={{ direction: 'ltr', display: 'inline-block', flexShrink: 0 }}>
+          <div style={{ display: 'inline-block', flexShrink: 0 }}>
             <button
               onClick={togglePublic}
               disabled={loading}
@@ -148,14 +148,14 @@ export default function ShareModal({ book, isOpen, onClose }: ShareModalProps) {
                 className="input-field" style={{ flex: 1, fontSize: '0.82rem', padding: '10px 12px' }}
               />
               <button onClick={copyLink} className="btn-primary" style={{ padding: '10px 16px', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
-                {copied ? 'הועתק!' : 'העתקה'}
+                {copied ? 'Copied!' : 'Copy'}
               </button>
             </div>
 
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               {typeof navigator !== 'undefined' && 'share' in navigator && (
                 <button onClick={handleShare} className="btn-primary" style={{ flex: 1, padding: '10px', fontSize: '0.85rem' }}>
-                  שיתוף
+                  Share
                 </button>
               )}
               <a
@@ -163,13 +163,13 @@ export default function ShareModal({ book, isOpen, onClose }: ShareModalProps) {
                 target="_blank" rel="noopener noreferrer"
                 style={{ flex: 1, padding: '10px', background: '#25D366', color: 'white', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem', fontWeight: 600, textAlign: 'center', textDecoration: 'none' }}
               >
-                ווטסאפ
+                WhatsApp
               </a>
               <a
-                href={`mailto:?subject=${encodeURIComponent(book.title)}&body=${encodeURIComponent(`ספר מותאם אישית: ${shareUrl}`)}`}
+                href={`mailto:?subject=${encodeURIComponent(book.title)}&body=${encodeURIComponent(`Check out this personalized story: ${shareUrl}`)}`}
                 style={{ flex: 1, padding: '10px', background: 'rgba(255,255,255,0.10)', color: 'var(--text-primary)', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem', fontWeight: 500, textAlign: 'center', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.15)' }}
               >
-                אימייל
+                Email
               </a>
             </div>
           </div>
@@ -186,14 +186,14 @@ export default function ShareModal({ book, isOpen, onClose }: ShareModalProps) {
           {pdfLoading ? (
             <>
               <div className="animate-spin w-4 h-4 border-2 rounded-full" style={{ borderColor: 'rgba(255,255,255,0.2)', borderTopColor: 'var(--cyan)' }} />
-              מייצרים PDF...
+              Generating PDF...
             </>
           ) : (
             <>
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
-              הורדת PDF
+              Download PDF
             </>
           )}
         </button>
