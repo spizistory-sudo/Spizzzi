@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateStory, generateStructuredHebrewStory } from '@/lib/ai/story-generator';
+import { generateStory as generateEnglishStory } from '@/lib/ai/story-generation-en';
 import { generateStorySchema } from '@/lib/utils/validators';
 import { THEMES } from '@/lib/ai/prompts/story-themes';
 
@@ -27,7 +28,15 @@ export async function POST(req: Request) {
       return await handleStructuredHebrewStory(supabase, user.id, body);
     }
 
-    // EXISTING LOGIC: untouched below
+    // NEW: detect English structured request (curated catalog) and route to Claude Opus
+    if (
+      body.storyId &&
+      body.language === 'en'
+    ) {
+      return await handleStructuredEnglishStory(supabase, user.id, body);
+    }
+
+    // LEGACY LOGIC: theme-based English (Gemini) or Hebrew custom-prompt (Gemini)
     const parsed = generateStorySchema.safeParse(body);
     if (!parsed.success) {
       console.log('[generate-story] Validation failed:', JSON.stringify(parsed.error.flatten(), null, 2));
@@ -198,6 +207,98 @@ async function handleStructuredHebrewStory(
     console.error('[generate-story] Structured Hebrew error:', err);
     return NextResponse.json(
       { error: 'Failed to generate structured Hebrew story.' },
+      { status: 500 }
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Structured English story handler (Claude Opus)
+// ═══════════════════════════════════════════════════════════
+
+async function handleStructuredEnglishStory(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  body: Record<string, unknown>
+) {
+  console.log('[generate-story] Routing to structured English (Claude Opus)');
+
+  try {
+    const childProfile = {
+      name: body.name as string || body.childName as string,
+      age: body.age as number || body.childAge as number,
+      gender: (body.gender as 'boy' | 'girl' | 'nonbinary') || 'boy',
+      traits: (body.traits as string[]) || (body.childTraits as string[]) || [],
+      interests: (body.interests as string[]) || [],
+    };
+
+    const result = await generateEnglishStory(
+      childProfile,
+      body.storyId as string,
+      process.env.ANTHROPIC_API_KEY!,
+      'claude-opus-4-7',
+    );
+
+    // Insert book — mirrors Hebrew structured pattern
+    const { data: book, error: bookError } = await supabase
+      .from('books')
+      .insert({
+        user_id: userId,
+        title: result.title,
+        child_name: childProfile.name,
+        child_age: childProfile.age,
+        child_traits: childProfile.traits,
+        creation_mode: 'curated_en',
+        custom_prompt: null,
+        status: 'review',
+        metadata: {
+          language: 'en',
+          story_template_id: body.storyId,
+          child_profile: childProfile,
+          main_theme: result.metadata?.main_theme,
+          key_message: result.metadata?.key_message,
+        },
+      })
+      .select()
+      .single();
+
+    if (bookError) {
+      console.error('[generate-story] Error saving English structured book:', bookError);
+      return NextResponse.json({ error: 'Failed to save book' }, { status: 500 });
+    }
+
+    // Insert pages — mirrors Hebrew structured pattern
+    const pageRecords = result.spreads.map((spread) => ({
+      book_id: book.id,
+      page_number: spread.spread_number,
+      text_content: spread.text,
+      text_for_tts: spread.text, // English: same as text (no niqqud stripping needed)
+      illustration_prompt: spread.illustration_prompt,
+    }));
+
+    const { error: pagesError } = await supabase.from('pages').insert(pageRecords);
+    if (pagesError) {
+      console.error('[generate-story] Error saving English structured pages:', pagesError);
+      return NextResponse.json({ error: 'Failed to save pages' }, { status: 500 });
+    }
+
+    // Return same shape as Hebrew structured flow for wizard compatibility
+    return NextResponse.json({
+      bookId: book.id,
+      story: {
+        title: result.title,
+        pages: result.spreads.map((s) => ({
+          page_number: s.spread_number,
+          text: s.text,
+          illustration_prompt: s.illustration_prompt,
+          mood: 'magical',
+        })),
+      },
+    });
+  } catch (err) {
+    console.error('[generate-story] Structured English error:', err);
+    return NextResponse.json(
+      { error: 'Failed to generate English story.' },
       { status: 500 }
     );
   }
