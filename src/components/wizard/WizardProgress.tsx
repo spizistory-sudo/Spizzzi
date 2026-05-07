@@ -3,8 +3,8 @@
 import { type WizardStep } from '@/stores/creation-wizard';
 
 const steps: { key: WizardStep; label: string }[] = [
-  { key: 'theme', label: 'Theme' },
   { key: 'details', label: 'Details' },
+  { key: 'stories', label: 'Stories' },
   { key: 'photos', label: 'Photos' },
   { key: 'preview', label: 'Preview' },
   { key: 'finalize', label: 'Finalize' },

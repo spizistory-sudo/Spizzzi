@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { GeneratedStory } from '@/types/ai';
 import type { CoverOption } from '@/types/book';
 
-export type WizardStep = 'theme' | 'details' | 'photos' | 'preview' | 'finalize';
+export type WizardStep = 'theme' | 'details' | 'stories' | 'photos' | 'preview' | 'finalize';
 
 interface UploadedPhoto {
   id: string;
@@ -22,11 +22,18 @@ interface WizardState {
   topicId: string | null;
   storyMode: 'structured' | 'custom';
 
-  // Step 2: Child details
+  // Step 1 (new flow): Child details
   childName: string;
   childAge: number | null;
-  childTraits: string[];
+  childGender: 'boy' | 'girl' | 'nonbinary' | null;
+  childTraits: string[];       // trait IDs (e.g. 'sensitive', 'creative')
+  childInterests: string[];    // interest IDs (e.g. 'horses', 'art_and_creativity')
   traitDetails: Record<string, string>;
+
+  // Step 2 (new flow): Story selection
+  storyId: string | null;      // selected story template ID from catalog
+  curationResult: unknown;     // cached CurationResult from /api/curate-stories
+  curationCachedFor: string | null; // hash key to invalidate cache if profile changes
 
   // Step 3: Photos
   uploadedPhotos: UploadedPhoto[];
@@ -69,6 +76,10 @@ interface WizardState {
   setSelectedMusic: (musicId: string) => void;
   setIsGeneratingNarration: (generating: boolean) => void;
   setLanguage: (lang: 'en' | 'he') => void;
+  setChildGender: (g: 'boy' | 'girl' | 'nonbinary' | null) => void;
+  setChildInterests: (i: string[]) => void;
+  setStoryId: (id: string | null) => void;
+  setCurationResult: (r: unknown, cacheKey: string) => void;
   setCustomPrompt: (prompt: string) => void;
   setCategoryId: (id: string | null) => void;
   setTopicId: (id: string | null) => void;
@@ -84,8 +95,13 @@ const initialState = {
   storyMode: 'structured' as const,
   childName: '',
   childAge: null,
+  childGender: null as 'boy' | 'girl' | 'nonbinary' | null,
   childTraits: [],
+  childInterests: [] as string[],
   traitDetails: {} as Record<string, string>,
+  storyId: null as string | null,
+  curationResult: null as unknown,
+  curationCachedFor: null as string | null,
   uploadedPhotos: [] as UploadedPhoto[],
   characterDescription: null as string | null,
   generatedStory: null,
@@ -150,6 +166,11 @@ export const useCreationWizard = create<WizardState>((set) => ({
   setIsGeneratingNarration: (generating) => set({ isGeneratingNarration: generating }),
 
   setLanguage: (lang) => set({ language: lang }),
+
+  setChildGender: (g) => set({ childGender: g }),
+  setChildInterests: (i) => set({ childInterests: i }),
+  setStoryId: (id) => set({ storyId: id }),
+  setCurationResult: (r, cacheKey) => set({ curationResult: r, curationCachedFor: cacheKey }),
 
   setCustomPrompt: (prompt) => set({ customPrompt: prompt }),
 
