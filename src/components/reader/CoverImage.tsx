@@ -64,7 +64,7 @@ export default function CoverImage({ coverUrl, title, childName, size = 'reader'
           }}
           dir="auto"
         >
-          סיפור עבור {childName}
+          A story for {childName}
         </p>
       </div>
     </div>

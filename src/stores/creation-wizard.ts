@@ -15,9 +15,12 @@ interface WizardState {
   // Current step
   currentStep: WizardStep;
 
-  // Step 1: Theme (or custom)
+  // Step 1: Theme (or custom) / Category+Topic (structured Hebrew)
   selectedThemeSlug: string | null;
   customPrompt: string | null;
+  categoryId: string | null;
+  topicId: string | null;
+  storyMode: 'structured' | 'custom';
 
   // Step 2: Child details
   childName: string;
@@ -67,12 +70,18 @@ interface WizardState {
   setIsGeneratingNarration: (generating: boolean) => void;
   setLanguage: (lang: 'en' | 'he') => void;
   setCustomPrompt: (prompt: string) => void;
+  setCategoryId: (id: string | null) => void;
+  setTopicId: (id: string | null) => void;
+  setStoryMode: (mode: 'structured' | 'custom') => void;
   reset: () => void;
 }
 
 const initialState = {
   currentStep: 'theme' as WizardStep,
   selectedThemeSlug: null,
+  categoryId: null as string | null,
+  topicId: null as string | null,
+  storyMode: 'structured' as const,
   childName: '',
   childAge: null,
   childTraits: [],
@@ -143,6 +152,10 @@ export const useCreationWizard = create<WizardState>((set) => ({
   setLanguage: (lang) => set({ language: lang }),
 
   setCustomPrompt: (prompt) => set({ customPrompt: prompt }),
+
+  setCategoryId: (id) => set({ categoryId: id }),
+  setTopicId: (id) => set({ topicId: id }),
+  setStoryMode: (mode) => set({ storyMode: mode }),
 
   reset: () => set(initialState),
 }));

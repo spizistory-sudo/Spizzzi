@@ -29,12 +29,12 @@ export default function ReaderControls({
   const activeDotIndex = currentPage + 1;
 
   return (
-    <div dir="ltr" className="bg-white/5 backdrop-blur-sm rounded-xl px-4 md:px-6 py-2.5 md:py-3 flex items-center justify-between max-w-2xl mx-auto w-full">
+    <div className="bg-white/5 backdrop-blur-sm rounded-xl px-4 md:px-6 py-2.5 md:py-3 flex items-center justify-between max-w-2xl mx-auto w-full">
       {/* Close button */}
       <button
         onClick={onClose}
         className="text-white/60 hover:text-white transition p-2"
-        title="סגירה"
+        title="Close"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -50,7 +50,7 @@ export default function ReaderControls({
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
         </svg>
-        <span className="hidden sm:inline">הקודם</span>
+        <span className="hidden sm:inline">Previous</span>
       </button>
 
       {/* Audio controls */}
@@ -59,7 +59,7 @@ export default function ReaderControls({
           <button
             onClick={onTogglePlay}
             className="text-white/70 hover:text-white transition p-2"
-            title={isPlaying ? 'השהייה' : 'נגינה'}
+            title={isPlaying ? 'Pause' : 'Play'}
           >
             {isPlaying ? (
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -79,9 +79,9 @@ export default function ReaderControls({
                   ? 'bg-purple-600 text-white'
                   : 'bg-white/10 text-white/50 hover:text-white'
               }`}
-              title={isAutoPlay ? 'ניגון אוטומטי פועל' : 'ניגון אוטומטי כבוי'}
+              title={isAutoPlay ? 'Auto-play on' : 'Auto-play off'}
             >
-              אוטו
+              Auto
             </button>
           )}
         </div>
@@ -107,7 +107,7 @@ export default function ReaderControls({
         disabled={currentPage >= totalPages - 1}
         className="text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition flex items-center gap-1 text-sm font-medium px-3 py-2"
       >
-        <span className="hidden sm:inline">הבא</span>
+        <span className="hidden sm:inline">Next</span>
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
         </svg>

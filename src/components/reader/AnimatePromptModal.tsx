@@ -26,15 +26,15 @@ export default function AnimatePromptModal({ bookTitle, pageCount, onAccept, onD
         </div>
 
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.7rem', color: 'rgba(255,255,255,0.95)', marginBottom: 16 }}>
-          להחיות את הספר?
+          Animate Your Book?
         </h2>
 
         <p style={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.8, marginBottom: 8, fontSize: '0.95rem' }}>
-          ראו את <strong style={{ color: 'white' }}>{bookTitle}</strong> קם לתחייה!
-          נחיה את כל {pageCount} העמודים ברקע בזמן שאתם קוראים.
+          Watch <strong style={{ color: 'white' }}>{bookTitle}</strong> come to life!
+          We&apos;ll animate all {pageCount} pages in the background while you read.
         </p>
         <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.85rem', marginBottom: 36 }}>
-          לוקח בערך {estimatedMinutes}&ndash;{estimatedMinutes + 3} דקות. נודיע לכם כשזה יהיה מוכן &#127881;
+          Takes about {estimatedMinutes}&ndash;{estimatedMinutes + 3} minutes. We&apos;ll let you know when it&apos;s ready &#127881;
         </p>
 
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
@@ -43,7 +43,7 @@ export default function AnimatePromptModal({ bookTitle, pageCount, onAccept, onD
             color: 'rgba(255,255,255,0.55)', borderRadius: 9999, padding: '12px 28px',
             fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'var(--font-body)',
           }}>
-            לא עכשיו
+            Not Now
           </button>
           <button onClick={onAccept} style={{
             background: 'linear-gradient(135deg, rgba(155,125,212,0.85), rgba(126,200,227,0.75))',
@@ -52,7 +52,7 @@ export default function AnimatePromptModal({ bookTitle, pageCount, onAccept, onD
             boxShadow: '0 4px 24px rgba(155,125,212,0.40)', fontFamily: 'var(--font-body)',
             display: 'flex', alignItems: 'center', gap: 8,
           }}>
-            &#10024; כן, תחיו את הספר!
+            &#10024; Yes, Animate It!
           </button>
         </div>
       </div>

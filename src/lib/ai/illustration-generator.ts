@@ -26,6 +26,21 @@ interface GeneratePageIllustrationParams {
   coverImageBase64?: string;
 }
 
+function extractStatusCode(err: Error): number | undefined {
+  const asAny = err as Error & { status?: number; statusCode?: number };
+  if (asAny.status) return asAny.status;
+  if (asAny.statusCode) return asAny.statusCode;
+  // Try parsing from error message (some Google SDK errors embed JSON)
+  try {
+    const parsed = JSON.parse(err.message);
+    return parsed?.error?.code;
+  } catch { /* not JSON */ }
+  // Check for "503" in message text
+  if (err.message.includes('503')) return 503;
+  if (err.message.includes('429')) return 429;
+  return undefined;
+}
+
 function extractImageFromResponse(response: { candidates?: Array<{ content?: { parts?: Part[] } }> }): Buffer | null {
   const imagePart = response.candidates?.[0]?.content?.parts?.find(
     (part: Part) => part.inlineData?.mimeType?.startsWith('image/')
@@ -103,41 +118,57 @@ TECHNICAL RULES:
 
   // Production (default): Gemini 3 Pro with reference images, fallback to Imagen 4
   const fullPrompt = childPhotoBase64
-    ? `${promptText}\nGenerate in PORTRAIT orientation (2:3 aspect ratio, taller than wide).\nThink step by step about the character's appearance before generating. The main character must look EXACTLY like the child in the reference photo.`
-    : `${promptText}\nGenerate in PORTRAIT orientation (2:3 aspect ratio, taller than wide).`;
+    ? `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).\nThink step by step about the character's appearance before generating. The main character must look EXACTLY like the child in the reference photo.`
+    : `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).`;
 
   console.log(`[illustration-generator] generateCoverImage: ${styleKey}, model: ${PRIMARY_MODEL}`);
 
   return generateWithRateLimit(async () => {
     const ai = getGeminiClient();
 
-    try {
-      const parts: Part[] = [];
-      if (childPhotoBase64) {
-        parts.push({ inlineData: { mimeType: 'image/jpeg', data: childPhotoBase64 } });
+    // Retry Gemini 3 Pro on 503/429 (overloaded) before falling back to Imagen
+    let geminiError: Error | null = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const parts: Part[] = [];
+        if (childPhotoBase64) {
+          parts.push({ inlineData: { mimeType: 'image/jpeg', data: childPhotoBase64 } });
+        }
+        parts.push({ text: fullPrompt });
+
+        const response = await ai.models.generateContent({
+          model: PRIMARY_MODEL,
+          contents: [{ role: 'user', parts }],
+          config: { responseModalities: ['image', 'text'] },
+        });
+
+        const imageBuffer = extractImageFromResponse(response);
+        if (!imageBuffer) {
+          console.warn(`[illustration-generator] ${PRIMARY_MODEL} returned no image on attempt ${attempt}`);
+          geminiError = new Error('No image in response');
+          break; // No point retrying if model returned success but no image
+        }
+
+        console.log(`[illustration-generator] Cover generated via ${PRIMARY_MODEL} (attempt ${attempt}), ${imageBuffer.length} bytes`);
+        return imageBuffer;
+      } catch (err) {
+        geminiError = err instanceof Error ? err : new Error(String(err));
+        const status = extractStatusCode(geminiError);
+        if ((status === 503 || status === 429) && attempt < 3) {
+          const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
+          console.log(`[illustration-generator] ${PRIMARY_MODEL} cover attempt ${attempt} got ${status}, retrying in ${delayMs}ms`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          continue;
+        }
+        break; // Non-retryable error
       }
-      parts.push({ text: fullPrompt });
-
-      const response = await ai.models.generateContent({
-        model: PRIMARY_MODEL,
-        contents: [{ role: 'user', parts }],
-        config: { responseModalities: ['image', 'text'] },
-      });
-
-      const imageBuffer = extractImageFromResponse(response);
-      if (!imageBuffer) {
-        console.warn(`[illustration-generator] ${PRIMARY_MODEL} returned no image, trying fallback`);
-        return await generateWithImagen(FALLBACK_MODEL, fullPrompt, `cover-${styleKey}`, '2:3');
-      }
-
-      console.log(`[illustration-generator] Cover generated via ${PRIMARY_MODEL}, ${imageBuffer.length} bytes`);
-      return imageBuffer;
-    } catch (err) {
-      console.error(`[illustration-generator] ${PRIMARY_MODEL} cover FAILED, trying fallback:`, {
-        message: err instanceof Error ? err.message : String(err),
-      });
-      return await generateWithImagen(FALLBACK_MODEL, fullPrompt, `cover-${styleKey}`, '2:3');
     }
+
+    // Fallback to Imagen 4
+    console.error(`[illustration-generator] ${PRIMARY_MODEL} cover FAILED after retries, trying Imagen fallback:`, {
+      message: geminiError?.message,
+    });
+    return await generateWithImagen(FALLBACK_MODEL, fullPrompt, `cover-${styleKey}`, '3:4');
   });
 }
 

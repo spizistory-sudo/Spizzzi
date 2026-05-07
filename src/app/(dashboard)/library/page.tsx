@@ -45,14 +45,14 @@ export default async function LibraryPage() {
       <div className="flex items-center justify-between mb-10">
         <div>
           <h1
-            style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 600, color: 'var(--text-primary)' }}
+            style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '2.2rem', fontWeight: 500, color: 'var(--text-primary)' }}
           >
-            הספרייה שלי &#128218;
+            My Library &#128218;
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', marginTop: '4px' }}>
             {books.length === 0
-              ? 'המדף הקסום שלכם מחכה לסיפור הראשון'
-              : `${books.length} ${books.length === 1 ? 'ספר' : 'ספרים'} באוסף שלכם`}
+              ? "Your magical bookshelf is waiting for its first story"
+              : `${books.length} book${books.length === 1 ? '' : 's'} in your collection`}
           </p>
         </div>
         <Link
@@ -63,7 +63,7 @@ export default async function LibraryPage() {
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
-          ספר חדש
+          Create New Book
         </Link>
       </div>
 
@@ -84,22 +84,22 @@ export default async function LibraryPage() {
           </div>
           <h2
             className="text-2xl font-bold mb-2"
-            style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}
+            style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontStyle: 'italic' }}
           >
-            הספרייה הקסומה מחכה לכם
+            Your magical library awaits
           </h2>
           <p
             className="mb-8 text-center max-w-md"
             style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}
           >
-            צרו את הספר הראשון שלכם וצפו איך הילד שלכם הופך לגיבור של הרפתקה משלו!
+            Create your first personalized storybook and watch your child become the hero of their very own adventure!
           </p>
           <Link
             href="/create"
             className="btn-primary"
             style={{ padding: '14px 32px', fontSize: '1rem' }}
           >
-            &#10024; יאללה, מתחילים!
+            &#10024; Create Your First Book
           </Link>
         </div>
       ) : (

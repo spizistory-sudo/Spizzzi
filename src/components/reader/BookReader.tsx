@@ -432,21 +432,21 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
           <div style={{ width: '50%', height: '100%', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center', padding: '32px' }}>
               <p style={{ color: '#d1d5db', fontSize: '18px', letterSpacing: '0.3em', marginBottom: '16px' }}>&#10022; &#10022; &#10022;</p>
-              <p style={{ fontSize: '40px', fontWeight: 'bold', color: '#7e22ce', fontFamily: 'var(--font-display)', marginBottom: '20px' }}>הסוף</p>
+              <p style={{ fontSize: '40px', fontWeight: 'bold', color: '#7e22ce', fontFamily: 'Georgia, serif', marginBottom: '20px' }}>The End</p>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '20px' }}>
                 <div style={{ width: '32px', height: '1px', background: '#d8b4fe' }} />
                 <span style={{ color: '#d8b4fe', fontSize: '14px' }}>&#10047;</span>
                 <div style={{ width: '32px', height: '1px', background: '#d8b4fe' }} />
               </div>
-              <p style={{ color: '#6b7280', fontSize: '16px', fontFamily: 'var(--font-body)' }}>סיפור שנעשה במיוחד עבור</p>
-              <p style={{ color: '#374151', fontSize: '18px', fontWeight: 600, fontFamily: 'var(--font-display)' }} dir="auto">{book.child_name}</p>
+              <p style={{ color: '#6b7280', fontSize: '16px', fontFamily: 'Georgia, serif' }}>A story made just for</p>
+              <p style={{ color: '#374151', fontSize: '18px', fontWeight: 600, fontFamily: 'Georgia, serif' }} dir="auto">{book.child_name}</p>
             </div>
           </div>
           <div style={{ width: '50%', height: '100%', background: 'linear-gradient(135deg, #1a1035, #0f0a2a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center', padding: '24px' }}>
-              <p style={{ color: '#c4b5fd', fontSize: '24px', fontWeight: 'bold', fontFamily: 'var(--font-display)', marginBottom: '8px' }}>Spizzzy</p>
+              <p style={{ color: '#c4b5fd', fontSize: '24px', fontWeight: 'bold', fontFamily: 'Georgia, serif', marginBottom: '8px' }}>StoryMagic</p>
               <div style={{ width: '40px', height: '1px', background: 'rgba(139,92,246,0.3)', margin: '12px auto' }} />
-              <p style={{ color: 'rgba(167,139,250,0.6)', fontSize: '14px' }}>spizzzi.vercel.app</p>
+              <p style={{ color: 'rgba(167,139,250,0.6)', fontSize: '14px' }}>storymagic.app</p>
             </div>
           </div>
         </div>
@@ -509,7 +509,7 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
 
         {isCover && (
           <button onClick={handleStartReading} className="mt-6 px-8 py-3.5 bg-purple-600 text-white rounded-2xl font-semibold hover:bg-purple-700 transition shadow-lg shadow-purple-900/30 text-base">
-            מתחילים לקרוא
+            Start Reading
           </button>
         )}
       </div>
@@ -517,7 +517,7 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
       {/* Edit mode banner */}
       {isEditMode && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: 'rgba(245,200,66,0.12)', borderBottom: '1px solid rgba(245,200,66,0.25)', color: 'rgba(245,200,66,0.90)', textAlign: 'center', padding: 8, fontSize: '0.80rem', fontWeight: 500, zIndex: 50, backdropFilter: 'blur(8px)', letterSpacing: '0.05em' }}>
-          &#9998; מצב עריכה — לחצו על טקסט בכל עמוד כדי לערוך. דפדפו בין עמודים כרגיל. לחצו &ldquo;שמירה&rdquo; כשסיימתם.
+          &#9998; EDIT MODE — Click any page text to edit. Navigate between pages normally. Click &ldquo;Save Changes&rdquo; when done.
         </div>
       )}
 
