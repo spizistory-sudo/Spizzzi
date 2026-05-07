@@ -138,7 +138,7 @@ src/
 - `id` UUID PK, `user_id` FK, `theme_id` FK (nullable)
 - `title`, `child_name`, `child_age`, `child_traits[]`, `creation_mode` (template|custom), `custom_prompt`
 - `cover_style`, `status` (draft|generating|review|complete|error)
-- `is_public`, `share_slug` (unique), `metadata` JSONB (stores: language, themeSlug, narrator_voice_id, narrator_voice_name, selected_music_id, character_description, animation_prompted, animation_status)
+- `is_public`, `share_slug` (unique), `metadata` JSONB (stores: language, themeSlug, narrator_voice_id, narrator_voice_name, selected_music_id, character_description, animation_prompted, animation_status, story_template_id, child_profile, main_theme, key_message, categoryId, topicId, dynamicKnobs, ageRules, validationIssues)
 - `created_at`, `updated_at`
 
 **pages**
@@ -165,9 +165,17 @@ src/
 
 ## 4. External Integrations
 
+### Anthropic (Claude)
+- **Client:** `@anthropic-ai/sdk` → `src/lib/anthropic/client.ts` (lazy singleton)
+- **English story generation:** `claude-opus-4-7` — structured story generation via `src/lib/ai/story-generation-en.ts`
+- **English curation:** `claude-haiku-4-5` — story recommendations via `src/lib/ai/curation-en.ts`
+- **Hebrew story generation:** `claude-sonnet-4-5-20250929` — structured Hebrew stories via `src/lib/ai/story-generator.ts`
+- **Auth:** `ANTHROPIC_API_KEY` env var
+- **Cost:** ~$0.10/story (Opus), ~$0.005/curation (Haiku)
+
 ### Google Gemini
 - **Client:** `@google/genai` → `src/lib/ai/gemini.ts`
-- **Story gen:** `gemini-2.5-flash`, JSON mode, temp=0.9, maxOutputTokens=8192
+- **Legacy story gen (English themes):** `gemini-2.5-flash`, JSON mode, temp=0.9, maxOutputTokens=8192
 - **Photo analysis:** `gemini-2.5-flash` with vision, retry on 503/429 (3 attempts, exponential backoff)
 - **Illustrations:** `gemini-3-pro-image-preview` (primary), `imagen-4.0-generate-001` (fallback)
 - **Animation prompts:** `gemini-2.5-flash` for motion prompt generation
@@ -230,9 +238,39 @@ src/
 - **Camera commands:** `[Push in]`, `[Pull back]`, `[Pan left/right]`, `[Tilt up/down]`, `[Zoom in/out]`, `[Orbit left/right]`
 - **Suffix:** Always ends with "watercolor illustration style, soft dreamy colors, no photorealism, preserve original art style"
 
+### English Structured Story Generation (Claude Opus)
+- **File:** `src/lib/ai/story-generation-en.ts`
+- **System prompt:** `STORY_SYSTEM_PROMPT_EN` — master writer's voice inspired by Mo Willems, Kevin Henkes, Kate DiCamillo
+- **User prompt:** Built from child profile + story template (required beats, things to avoid) + age rules
+- **Output:** JSON with `title`, `spreads[{spread_number, text, illustration_prompt}]`, `metadata{word_count_total, spread_count, main_theme, key_message}`
+- **Validation:** Checks spread count vs age rules, non-empty text/prompts, child name presence, forbidden clichés
+
+### English Story Curation (Claude Haiku)
+- **File:** `src/lib/ai/curation-en.ts`
+- **System prompt:** `CURATION_SYSTEM_PROMPT` — children's librarian persona that scores all 72 stories 0-100 for fit
+- **Scoring factors:** Age fit (heaviest), trait resonance, interest alignment, gender fit, emotional appropriateness
+- **Output:** `CurationResult` with `top_picks` (top 8), `by_category` (grouped with fit labels), `all_stories_ranked`
+- **Fallback:** Deterministic rule-based scorer if Haiku call fails
+
 ### Educational Concept
 - **File:** `src/app/api/generate-educational-concept/route.ts`
 - **Purpose:** Transform real-world topics into age-appropriate story concepts with metaphors
+
+### English Structured Story System
+
+The English flow uses a curation-driven catalog with 72 story templates:
+
+- **Catalog:** `src/lib/ai/prompts/en/story-catalog.ts` — 72 stories across 7 categories (Big Adventures, Animal Friends, All My Feelings, I Can Do It!, Family & Friends, Wonders of the World, Cozy & Calm)
+- **Personality traits:** `src/lib/personality-traits-en.ts` — 17 traits with `prompt_instruction` (tells Claude HOW to express each trait)
+- **Interests:** `src/lib/interests-en.ts` — 24 interests in 5 groups (animals, world, creative, imagination, activity)
+- **Age rules:** `src/lib/ai/prompts/en/age-rules.ts` — 4 buckets (3-5, 6-7, 8-9, 10-12) with spread counts, word counts, vocabulary, complexity
+- **Curation:** `src/lib/ai/curation-en.ts` — Haiku-driven recommendations with deterministic fallback
+- **Generation:** `src/lib/ai/story-generation-en.ts` — Opus-driven story creation with validation
+- **API routes:** `/api/curate-stories` (Haiku curation), `/api/generate-story` with `storyId` trigger (Opus generation)
+
+**Wizard flow:** Details (name + age + gender + traits + interests) → Recommendations (top 8 + see all 72) → Photos → Preview → Finalize → Reader
+
+**Books created through this flow** have `creation_mode = 'custom'` and `metadata.story_template_id` pointing to the catalog entry. Distinguished from legacy custom books by the presence of `story_template_id` in metadata.
 
 ---
 
