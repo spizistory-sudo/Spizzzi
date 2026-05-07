@@ -20,7 +20,9 @@ export default function PreviewPage() {
     selectedThemeSlug,
     childName,
     childAge,
+    childGender,
     childTraits,
+    childInterests,
     uploadedPhotos,
     generatedStory,
     bookId,
@@ -39,30 +41,30 @@ export default function PreviewPage() {
     setIllustrationProgress,
     setCharacterDescription,
     categoryId,
-    topicId,
-    storyMode,
-    traitDetails,
+    storyId,
   } = useCreationWizard();
 
   const [error, setError] = useState<string | null>(null);
 
+  const hasValidPath = !!selectedThemeSlug || !!categoryId || !!storyId;
+
   // Redirect if missing required data
   useEffect(() => {
-    if ((!selectedThemeSlug && !categoryId) || !childName || !childAge) {
-      router.replace(categoryId ? '/create/category' : '/create/theme');
+    if (!hasValidPath || !childName || !childAge) {
+      router.replace('/create/details');
     }
-  }, [selectedThemeSlug, categoryId, childName, childAge, router]);
+  }, [hasValidPath, childName, childAge, router]);
 
   // Auto-generate story on first visit — ref guard prevents double execution in React strict mode
   useEffect(() => {
     if (generatedStory || isGenerating) return;
-    if ((!selectedThemeSlug && !categoryId) || !childName || !childAge) return;
+    if (!hasValidPath || !childName || !childAge) return;
     if (storyGenRef.current) return;
     storyGenRef.current = true;
 
     console.log('[preview-page] Starting story generation:', {
-      categoryId, topicId, selectedThemeSlug, childName, childAge,
-      traitCount: childTraits?.length, language, storyMode,
+      storyId, categoryId, selectedThemeSlug, childName, childAge,
+      traitCount: childTraits?.length, language,
     });
 
     async function generate() {
@@ -70,17 +72,36 @@ export default function PreviewPage() {
       setError(null);
 
       try {
-        const res = await fetch('/api/generate-story', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        // Build payload based on flow
+        let requestBody: Record<string, unknown>;
+
+        if (storyId) {
+          // New English curated flow → Claude Opus
+          requestBody = {
+            language: 'en',
+            storyId,
+            name: childName,
+            age: childAge,
+            gender: childGender || 'boy',
+            traits: childTraits,
+            interests: childInterests,
+          };
+        } else {
+          // Legacy flow → Gemini
+          requestBody = {
             themeSlug: selectedThemeSlug,
             childName,
             childAge,
             childTraits,
             language,
             customPrompt: customPrompt || undefined,
-          }),
+          };
+        }
+
+        const res = await fetch('/api/generate-story', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
         });
 
         if (!res.ok) {
@@ -202,7 +223,7 @@ export default function PreviewPage() {
     router.push('/create/finalize');
   }
 
-  if ((!selectedThemeSlug && !categoryId) || !childName || !childAge) return null;
+  if (!hasValidPath || !childName || !childAge) return null;
 
   if (isGenerating) {
     return (

@@ -31,19 +31,15 @@ export default function PhotosPage() {
     removePhoto,
     setStep,
     categoryId,
-    storyMode,
+    storyId,
   } = useCreationWizard();
 
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if ((!selectedThemeSlug && !categoryId) || !childName || !childAge) {
-    if (storyMode === 'structured') {
-      router.replace('/create/category');
-    } else {
-      router.replace('/create/theme');
-    }
+  if ((!selectedThemeSlug && !categoryId && !storyId) || !childName || !childAge) {
+    router.replace('/create/details');
     return null;
   }
 
