@@ -250,7 +250,7 @@ async function handleStructuredEnglishStory(
         child_name: childProfile.name,
         child_age: childProfile.age,
         child_traits: childProfile.traits,
-        creation_mode: 'curated_en',
+        creation_mode: 'custom',
         custom_prompt: null,
         status: 'review',
         metadata: {
