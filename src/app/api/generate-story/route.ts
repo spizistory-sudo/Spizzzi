@@ -5,6 +5,8 @@ import { generateStory as generateEnglishStory } from '@/lib/ai/story-generation
 import { generateStorySchema } from '@/lib/utils/validators';
 import { THEMES } from '@/lib/ai/prompts/story-themes';
 
+export const maxDuration = 300;
+
 export async function POST(req: Request) {
   try {
     const supabase = await createClient();
@@ -295,10 +297,12 @@ async function handleStructuredEnglishStory(
         })),
       },
     });
-  } catch (err) {
-    console.error('[generate-story] Structured English error:', err);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : undefined;
+    console.error('[generate-story] Structured English error:', { message, stack });
     return NextResponse.json(
-      { error: 'Failed to generate English story.' },
+      { error: `Failed to generate English story: ${message}` },
       { status: 500 }
     );
   }
