@@ -6,7 +6,8 @@
     "dev": "next dev --port 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "verify-catalog-en": "npx tsx scripts/verify-catalog-en.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
