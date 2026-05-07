@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 
 const navItems = [
   {
-    label: 'הספרייה שלי',
+    label: 'My Library',
     href: '/library',
     icon: (
       <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -15,7 +15,7 @@ const navItems = [
     ),
   },
   {
-    label: 'הגדרות',
+    label: 'Settings',
     href: '/admin',
     icon: (
       <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -45,7 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         background: 'rgba(10, 17, 40, 0.70)',
         backdropFilter: 'blur(24px) saturate(150%)',
         WebkitBackdropFilter: 'blur(24px) saturate(150%)',
-        borderLeft: '1px solid rgba(255, 255, 255, 0.07)',
+        borderRight: '1px solid rgba(255, 255, 255, 0.07)',
         display: 'flex',
         flexDirection: 'column',
         padding: '28px 16px',
@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
           }}>
-            &#10022; Spizzzy
+            &#10022; StoryMagic
           </span>
         </Link>
 
@@ -92,7 +92,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   transition: 'all 0.25s ease',
                   textDecoration: 'none',
                   background: isActive ? 'rgba(255,255,255,0.07)' : 'transparent',
-                  borderRight: isActive ? '2px solid rgba(245,200,66,0.8)' : '2px solid transparent',
+                  borderLeft: isActive ? '2px solid rgba(245,200,66,0.8)' : '2px solid transparent',
                 }}
               >
                 {item.icon}
@@ -111,7 +111,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           fontSize: '0.9rem',
           padding: '12px 20px',
         }}>
-          &#10022; ספר חדש
+          &#10022; Create Book
         </Link>
 
         {/* Sign out */}
@@ -134,10 +134,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             width: '100%',
           }}
         >
-          <svg className="w-4 h-4" style={{ transform: 'scaleX(-1)' }} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
           </svg>
-          התנתקות
+          Sign out
         </button>
       </aside>
 

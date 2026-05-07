@@ -1,25 +1,25 @@
 import type { Metadata } from "next";
-import { Heebo, Rubik } from "next/font/google";
+import { Figtree, Lora } from "next/font/google";
 import "./globals.css";
 import NightSkyBackground from "@/components/ui/NightSkyBackground";
 
-const heebo = Heebo({
-  variable: "--font-heebo",
-  subsets: ["latin", "hebrew"],
-  weight: ["300", "400", "500", "600", "700"],
+const figtree = Figtree({
+  variable: "--font-figtree",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
 });
 
-const rubik = Rubik({
-  variable: "--font-rubik",
-  subsets: ["latin", "hebrew"],
-  weight: ["400", "500", "600", "700"],
+const lora = Lora({
+  variable: "--font-lora",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
   style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
-  title: "Spizzzy — ספרי ילדים מותאמים אישית",
+  title: "Spizzzy — Personalized Children's Books",
   description:
-    "צרו ספרי ילדים קסומים ומותאמים אישית עם איורים, קריינות ומוזיקה מבוססי AI",
+    "Create magical, personalized, illustrated storybooks for your child with AI-generated stories, illustrations, and narration.",
 };
 
 export default function RootLayout({
@@ -28,7 +28,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="he" dir="rtl" className={`${heebo.variable} ${rubik.variable} h-full antialiased`}>
+    <html lang="en" className={`${figtree.variable} ${lora.variable} h-full antialiased`}>
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="min-h-full">
         <NightSkyBackground />
         {children}
