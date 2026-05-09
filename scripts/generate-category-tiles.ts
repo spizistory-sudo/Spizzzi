@@ -7,7 +7,6 @@
  * Requires FAL_KEY env var (loaded from .env.local via dotenv).
  */
 
-import { fal } from '@fal-ai/client';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -31,7 +30,7 @@ const TILES: TileSpec[] = [
   {
     filename: 'animal-friends.jpg',
     prompt:
-      'A child kneeling in tall meadow grass with a horse\'s head gently bent toward them, soft golden afternoon sun, painterly photographic style, warm tones, intimate and tender, child seen from behind or side, no face visible, cinematic',
+      'A golden retriever and a tabby cat sitting side by side in a sunlit meadow, wildflowers around them, soft golden afternoon light, painterly photographic style, warm tones, intimate and tender, cinematic, no people',
   },
   {
     filename: 'all-my-feelings.jpg',
@@ -60,13 +59,7 @@ const TILES: TileSpec[] = [
   },
 ];
 
-interface FluxResult {
-  data: {
-    images: Array<{ url: string; content_type: string }>;
-  };
-}
-
-async function generateTile(tile: TileSpec): Promise<void> {
+async function generateTile(tile: TileSpec, falKey: string): Promise<void> {
   const outPath = path.join(OUTPUT_DIR, tile.filename);
 
   // Skip if already exists
@@ -77,42 +70,86 @@ async function generateTile(tile: TileSpec): Promise<void> {
 
   console.log(`[gen] ${tile.filename} ...`);
 
-  const result = (await fal.subscribe('fal-ai/flux-pro/v1.1', {
-    input: {
+  // Submit to queue
+  const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-pro/v1.1', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Key ${falKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
       prompt: tile.prompt,
       image_size: 'landscape_4_3',
       num_images: 1,
       enable_safety_checker: true,
       output_format: 'jpeg',
-    },
-  })) as FluxResult;
+    }),
+  });
 
-  const imageUrl = result.data?.images?.[0]?.url;
+  if (!submitRes.ok) {
+    const body = await submitRes.text();
+    console.error(`[fail] ${tile.filename}: submit failed (${submitRes.status}): ${body}`);
+    return;
+  }
+
+  const { request_id, response_url } = await submitRes.json();
+  console.log(`[queued] ${tile.filename} — request_id: ${request_id}`);
+
+  // Poll for completion
+  const statusUrl = `https://queue.fal.run/fal-ai/flux-pro/v1.1/requests/${request_id}/status`;
+  for (let i = 0; i < 120; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const statusRes = await fetch(statusUrl, {
+      headers: { 'Authorization': `Key ${falKey}` },
+    });
+    if (!statusRes.ok) continue;
+    const status = await statusRes.json();
+    if (status.status === 'COMPLETED') break;
+    if (status.status === 'FAILED') {
+      console.error(`[fail] ${tile.filename}: generation failed`);
+      return;
+    }
+  }
+
+  // Fetch result
+  const resultRes = await fetch(response_url, {
+    headers: { 'Authorization': `Key ${falKey}` },
+  });
+  if (!resultRes.ok) {
+    console.error(`[fail] ${tile.filename}: result fetch failed (${resultRes.status})`);
+    return;
+  }
+
+  const result = await resultRes.json();
+  const imageUrl = result?.images?.[0]?.url;
   if (!imageUrl) {
-    console.error(`[fail] ${tile.filename}: no image returned`);
+    console.error(`[fail] ${tile.filename}: no image in result`);
     return;
   }
 
-  const response = await fetch(imageUrl);
-  if (!response.ok) {
-    console.error(`[fail] ${tile.filename}: download failed (${response.status})`);
+  const imgRes = await fetch(imageUrl);
+  if (!imgRes.ok) {
+    console.error(`[fail] ${tile.filename}: image download failed (${imgRes.status})`);
     return;
   }
 
-  const buffer = Buffer.from(await response.arrayBuffer());
+  const buffer = Buffer.from(await imgRes.arrayBuffer());
   fs.writeFileSync(outPath, buffer);
   console.log(`[done] ${tile.filename} — ${(buffer.length / 1024).toFixed(0)} KB`);
 }
 
 async function main() {
   const falKey = process.env.FAL_KEY;
-  console.log(`[init] FAL_KEY loaded: ${falKey ? falKey.substring(0, 8) + '...' : 'MISSING'}`);
-  fal.config({ credentials: falKey });
+  if (!falKey) {
+    console.error('FAL_KEY not set');
+    process.exit(1);
+  }
+  console.log(`[init] FAL_KEY loaded: ${falKey.substring(0, 8)}...`);
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
   // Generate sequentially to avoid rate limits
   for (const tile of TILES) {
-    await generateTile(tile);
+    await generateTile(tile, falKey);
   }
 
   console.log('\nAll tiles generated.');
