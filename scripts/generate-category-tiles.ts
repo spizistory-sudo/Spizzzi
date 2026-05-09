@@ -21,41 +21,43 @@ interface TileSpec {
   prompt: string;
 }
 
+const STYLE_SUFFIX = ", children's book illustration, soft painterly digital art, warm bright colors, Pixar-inspired key art, joyful and inviting, full-bleed composition, no text, no logos";
+
 const TILES: TileSpec[] = [
   {
     filename: 'big-adventures.jpg',
     prompt:
-      'A small child seen from behind silhouetted on a hilltop at sunrise, vast landscape stretching ahead, distant mountains, golden hour cinematic light, painterly photographic style, deep saturated colors, atmospheric, sense of wonder, no faces visible',
+      'A cheerful child with a backpack standing at the start of a winding path through a magical forest, waterfall in the distance, golden sunlight, sense of adventure and wonder, soft blues and greens' + STYLE_SUFFIX,
   },
   {
     filename: 'animal-friends.jpg',
     prompt:
-      'A golden retriever and a tabby cat sitting side by side in a sunlit meadow, wildflowers around them, soft golden afternoon light, painterly photographic style, warm tones, intimate and tender, cinematic, no people',
+      'A smiling child sitting in a flower meadow surrounded by friendly cartoon animals — a fox, a rabbit, a deer, butterflies — sunny afternoon, lush greens and warm yellows, magical atmosphere' + STYLE_SUFFIX,
   },
   {
     filename: 'all-my-feelings.jpg',
     prompt:
-      'A small child sitting alone on a window seat looking out at rain, warm interior lamp light contrasting with cool blue rain outside, painterly photographic style, contemplative, cozy, intimate, child seen from behind, no face visible, cinematic',
+      'A cozy scene of a small child sitting on a soft armchair holding a teddy bear, soft warm lamp light, gentle pastel colors — pinks, peaches, soft yellows — comforting and warm, NOT sad' + STYLE_SUFFIX,
   },
   {
     filename: 'i-can-do-it.jpg',
     prompt:
-      'A child mid-leap across a stream in a sunny forest clearing, dynamic motion blur, sunlight breaking through tall trees in shafts, painterly photographic style, vibrant green and gold, sense of triumph and courage, child seen from side, no face visible, cinematic',
+      'A joyful child triumphantly raising their arms at the top of a small grassy hill, sun bursting behind them, butterflies and birds, vibrant greens and yellows, sense of confidence and triumph' + STYLE_SUFFIX,
   },
   {
     filename: 'family-and-friends.jpg',
     prompt:
-      'A child and an elderly person sitting together on a wooden porch swing at golden hour, warm intimate lighting, painterly photographic style, soft focus, evening light, both seen from behind, no faces visible, cinematic',
+      'A happy multi-generational moment — grandparent and child laughing together while baking cookies in a warm sunny kitchen, soft yellows and warm wood tones, cozy and loving' + STYLE_SUFFIX,
   },
   {
     filename: 'wonders-of-the-world.jpg',
     prompt:
-      'A small child standing alone looking up at a vast night sky filled with stars and a glowing Milky Way, painterly photographic style, deep blues and purples, magical atmospheric light, sense of awe, child seen from behind in silhouette, no face visible, cinematic',
+      'A wonder-filled child gazing up at a magical scene — floating planets, glowing stars, swirling galaxies — surrounded by soft purple and pink nebula colors, dreamy and magical, NOT dark' + STYLE_SUFFIX,
   },
   {
     filename: 'cozy-and-calm.jpg',
     prompt:
-      'A small child curled up in a window seat wrapped in a soft blanket, single candle on the sill, twilight blue sky outside, painterly photographic style, intimate warm interior light, peaceful, child seen from side or behind, no face visible, cinematic',
+      'A peaceful child curled up reading a book in a soft window nook with a cat beside them, warm candlelight inside, gentle moonlight outside, soft pastel blues and creams, dreamy bedtime feeling' + STYLE_SUFFIX,
   },
 ];
 
