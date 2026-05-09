@@ -90,6 +90,9 @@ The child's name should appear maybe 5-10 times in a typical story — not in ev
 ## Rule 10: Honor real feelings
 If the story is about a hard feeling (anger, fear, sadness, jealousy), don't rush past it. Let the feeling exist. Let it be named. The resolution comes from the feeling being met, not from it being eliminated.
 
+## Rule 11: Outfit consistency in illustration prompts
+Every illustration_prompt MUST describe the protagonist wearing the exact outfit specified in the character_bible. Do not write "in pajamas," "in a swimsuit," "in a costume," or any other clothing description that contradicts the bible. Even for bedtime, beach, or special-occasion scenes, keep the protagonist in the bible's outfit. This is how real children's books maintain character consistency — the protagonist wears the same clothes throughout.
+
 # Character bible
 
 Along with the story, produce a character_bible — a short visual reference that will be prepended verbatim to every illustration prompt to keep characters consistent across all pages.
