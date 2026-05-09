@@ -73,8 +73,8 @@ export default function AllStoriesPage() {
       })}
 
       <div style={{ paddingBottom: 32 }}>
-        <button onClick={() => router.push('/create/recommendations')} className="btn-secondary">
-          &larr; Back to recommendations
+        <button onClick={() => router.push('/create/categories')} className="btn-secondary">
+          &larr; Back to categories
         </button>
       </div>
     </div>

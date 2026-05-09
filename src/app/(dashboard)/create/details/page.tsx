@@ -101,7 +101,7 @@ export default function DetailsPage() {
     setChildGender(gender);
     setChildInterests(interests);
     setStep('stories');
-    router.push('/create/recommendations');
+    router.push('/create/categories');
   }
 
   const isValid = name.trim() && age && gender && traits.length > 0 && interests.length > 0;
