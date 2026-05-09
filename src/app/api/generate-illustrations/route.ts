@@ -56,6 +56,7 @@ export async function POST(req: Request) {
       ? `A ${book.child_age}-year-old girl (female child) named ${book.child_name}. She has typical feminine features.`
       : `A ${book.child_age}-year-old boy (male child) named ${book.child_name}. He has short hair and wears typical boy clothing like a t-shirt and pants.`;
     const characterDescription = bookMeta.character_description || genderDesc;
+    const characterBible = bookMeta.character_bible || '';
 
     // Load reference images for Nano Banana Pro
     let childPhotoBase64: string | undefined;
@@ -97,6 +98,7 @@ export async function POST(req: Request) {
       pages,
       styleKey,
       characterDescription,
+      characterBible,
       childPhotoBase64,
       coverImageBase64,
     });
@@ -121,10 +123,11 @@ async function generateAllIllustrations(params: {
   }>;
   styleKey: ArtStyleKey;
   characterDescription: string;
+  characterBible: string;
   childPhotoBase64?: string;
   coverImageBase64?: string;
 }): Promise<Array<{ pageNumber: number; status: string; url?: string; error?: string }>> {
-  const { bookId, pages, styleKey, characterDescription, childPhotoBase64, coverImageBase64 } = params;
+  const { bookId, pages, styleKey, characterDescription, characterBible, childPhotoBase64, coverImageBase64 } = params;
 
   const { createClient: createServiceClient } = await import('@supabase/supabase-js');
   const supabase = createServiceClient(
@@ -137,10 +140,15 @@ async function generateAllIllustrations(params: {
 
   for (const page of pages) {
     try {
+      const rawPrompt = page.illustration_prompt || `Scene for page ${page.page_number}`;
+      const illustrationPrompt = characterBible
+        ? `${characterBible}\n\n${rawPrompt}`
+        : rawPrompt;
+
       const imageBuffer = await generatePageIllustration({
         styleKey,
         characterDescription,
-        illustrationPrompt: page.illustration_prompt || `Scene for page ${page.page_number}`,
+        illustrationPrompt,
         mood: page.mood || 'happy',
         pageNumber: page.page_number,
         childPhotoBase64,

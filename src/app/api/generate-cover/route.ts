@@ -38,8 +38,12 @@ export async function POST(req: Request) {
       : `A ${book.child_age}-year-old boy (male child) named ${book.child_name}. He has short hair and wears typical boy clothing like a t-shirt and pants.`;
     const characterDescription = bookMeta.character_description || genderDesc;
 
-    const themeDescription =
+    const characterBible = bookMeta.character_bible || '';
+    const rawThemeDescription =
       (book.metadata as Record<string, string>)?.themeSlug || 'adventure';
+    const themeDescription = characterBible
+      ? `${characterBible}\n\n${rawThemeDescription}`
+      : rawThemeDescription;
 
     console.log('[generate-cover] Starting for book:', {
       bookId,

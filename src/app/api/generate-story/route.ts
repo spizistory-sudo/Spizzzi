@@ -259,6 +259,7 @@ async function handleStructuredEnglishStory(
           child_profile: childProfile,
           main_theme: result.metadata?.main_theme,
           key_message: result.metadata?.key_message,
+          character_bible: result.character_bible,
         },
       })
       .select()

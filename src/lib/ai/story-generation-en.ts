@@ -33,6 +33,7 @@ export interface GeneratedSpread {
 
 export interface GeneratedStory {
   title: string;
+  character_bible?: string;
   spreads: GeneratedSpread[];
   metadata: {
     word_count_total: number;
@@ -89,12 +90,27 @@ The child's name should appear maybe 5-10 times in a typical story — not in ev
 ## Rule 10: Honor real feelings
 If the story is about a hard feeling (anger, fear, sadness, jealousy), don't rush past it. Let the feeling exist. Let it be named. The resolution comes from the feeling being met, not from it being eliminated.
 
+# Character bible
+
+Along with the story, produce a character_bible — a short visual reference that will be prepended verbatim to every illustration prompt to keep characters consistent across all pages.
+
+How to write it:
+- Define every named character that appears in illustrations (the protagonist and any secondary characters seen in spreads).
+- Include: physical features (for people: hair color/length/style, eye color, age, build; for animals: species, color, markings, size), clothing (especially for the protagonist — color and type), and any distinguishing visual details.
+- Be EXPLICIT about what each character is NOT. If a horse is just an ordinary horse, say "no horn, no wings, just an ordinary pony." If a person is just a regular person, say so. The image model hallucinates magical or fantastic features unless explicitly told not to.
+- 2-4 sentences per character. The whole bible fits in one paragraph.
+- Format: a single string.
+
+Example:
+"Lily is a 4-year-old girl with a chin-length brown bob, bright eyes, wearing a green t-shirt, blue jeans, and red sneakers. Pearl is a small white pony with a soft gray mane and tail and gentle dark eyes — just an ordinary pony, no horn, no wings, no glow. Grandpa is an older man with white hair, a red plaid shirt, denim overalls, and brown work boots."
+
 # Output format
 
 Return ONLY valid JSON in this exact structure. No prose before or after, no markdown code fence:
 
 {
   "title": "The story title — fits the child, the story, and the age",
+  "character_bible": "A single paragraph describing every named character's visual appearance. Will be prepended to every illustration prompt.",
   "spreads": [
     {
       "spread_number": 1,
@@ -241,6 +257,11 @@ function validateGeneratedStory(
 
   if (!Array.isArray(generated.spreads) || generated.spreads.length === 0) {
     throw new Error('Generated story has no spreads');
+  }
+
+  // Character bible check (warn only — backward compat)
+  if (!generated.character_bible || generated.character_bible.trim().length === 0) {
+    console.warn('[story-generation-en] character_bible is missing or empty — illustration consistency may suffer');
   }
 
   // Spread count tolerance: ±2 from age rules range
