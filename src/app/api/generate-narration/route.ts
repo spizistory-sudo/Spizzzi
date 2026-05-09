@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getElevenLabsClient } from '@/lib/elevenlabs/client';
-import { getVoiceById } from '@/lib/elevenlabs/voices';
+import { getVoiceById, resolveVoiceId, STORYMAGIC_VOICE_SETTINGS, STORYMAGIC_TTS_MODEL } from '@/lib/elevenlabs/voices';
 import { uploadAudio } from '@/lib/supabase/storage';
 import { isDevMode, isDevNarration } from '@/lib/dev/config';
 import { generateSilentMp3 } from '@/lib/dev/mock-data';
@@ -43,9 +43,11 @@ export async function POST(req: Request) {
     }
 
     const isHebrewRequest = body.language === 'he';
-    const voice = getVoiceById(voiceId);
+    // Resolve legacy internal IDs (e.g. 'warm-female') to ElevenLabs IDs
+    const resolvedVoiceId = resolveVoiceId(voiceId);
+    const voice = getVoiceById(resolvedVoiceId);
     if (!voice && !isHebrewRequest) {
-      return NextResponse.json({ error: 'Invalid voice' }, { status: 400 });
+      console.warn(`[narration] Unknown voice ID "${voiceId}" (resolved: "${resolvedVoiceId}"), proceeding with raw ID`);
     }
 
     // Fetch book + pages
@@ -92,13 +94,13 @@ export async function POST(req: Request) {
     // Hebrew: Liam voice + eleven_v3 model (proper Hebrew support)
     const effectiveVoiceId = isHebrew
       ? 'TX3LPaxmHKxFdv7VOQHJ' // Liam
-      : voice?.voiceId || voiceId;
+      : resolvedVoiceId;
 
-    const model = isHebrew ? 'eleven_v3' : 'eleven_multilingual_v2';
+    const model = isHebrew ? 'eleven_v3' : STORYMAGIC_TTS_MODEL;
 
     const voiceSettings = isHebrew
       ? { stability: 0.80, similarityBoost: 0.75, style: 0.30, useSpeakerBoost: true }
-      : { stability: 0.50, similarityBoost: 0.75, style: 0.50, useSpeakerBoost: true };
+      : STORYMAGIC_VOICE_SETTINGS;
 
     const processText = (text: string): string => {
       if (!isHebrew) return text;
@@ -194,7 +196,7 @@ export async function POST(req: Request) {
       .update({
         metadata: {
           ...existingMetadata,
-          narrator_voice_id: voiceId,
+          narrator_voice_id: resolvedVoiceId,
           narrator_voice_name: voice?.name || (isHebrew ? 'Liam' : 'Unknown'),
         },
       })

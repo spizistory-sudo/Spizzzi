@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCreationWizard } from '@/stores/creation-wizard';
 import { createClient } from '@/lib/supabase/client';
 import WizardProgress from '@/components/wizard/WizardProgress';
-import { NARRATOR_VOICES } from '@/lib/elevenlabs/voices';
+import { STORYMAGIC_VOICES, DEFAULT_VOICE_ID, getVoiceById as getVoice } from '@/lib/elevenlabs/voices';
 import { FALLBACK_TRACKS, suggestTrack, type MusicTrack } from '@/lib/music/tracks';
 import CoverImage from '@/components/reader/CoverImage';
 import VideoBackground from '@/components/ui/VideoBackground';
@@ -223,7 +223,7 @@ export default function FinalizePage() {
     try {
       const { data: currentBook } = await supabase.from('books').select('metadata').eq('id', bookId).single();
       await supabase.from('books').update({
-        metadata: { ...((currentBook?.metadata as Record<string, unknown>) || {}), selected_music_id: selectedMusicId, narrator_voice_id: selectedVoiceId, narrator_voice_name: NARRATOR_VOICES.find((v) => v.id === selectedVoiceId)?.name },
+        metadata: { ...((currentBook?.metadata as Record<string, unknown>) || {}), selected_music_id: selectedMusicId, narrator_voice_id: selectedVoiceId, narrator_voice_name: getVoice(selectedVoiceId)?.name },
       }).eq('id', bookId);
     } catch { /* continue */ }
 
@@ -327,7 +327,7 @@ export default function FinalizePage() {
           Choose who will read the story aloud. Click &ldquo;Preview&rdquo; to hear a sample.
         </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {NARRATOR_VOICES.map((voice) => {
+            {STORYMAGIC_VOICES.map((voice) => {
               const isSelected = selectedVoiceId === voice.id;
               const isPreviewing = previewingVoice === voice.id;
               return (
@@ -349,12 +349,12 @@ export default function FinalizePage() {
                       </div>
                       <div>
                         <p style={{ color: 'rgba(255,255,255,0.95)', fontWeight: 500 }}>{voice.name}</p>
-                        <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.78rem', textTransform: 'capitalize' }}>{voice.gender} &middot; {voice.tone}</p>
+                        <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.78rem', textTransform: 'capitalize' }}>{voice.gender} &middot; {voice.accent === 'british' ? 'British' : 'American'}</p>
                       </div>
                     </div>
                     <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.88rem', lineHeight: 1.5 }}>{voice.description}</p>
                   </button>
-                  <button onClick={() => previewVoice(voice.id, voice.voiceId)} style={{
+                  <button onClick={() => previewVoice(voice.id, voice.id)} style={{
                     marginTop: 10,
                     background: isPreviewing ? 'linear-gradient(135deg, rgba(155,125,212,0.80), rgba(126,200,227,0.70))' : 'rgba(255,255,255,0.08)',
                     border: isPreviewing ? '1px solid rgba(255,255,255,0.20)' : '1px solid rgba(255,255,255,0.18)',

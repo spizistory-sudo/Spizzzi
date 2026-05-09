@@ -30,13 +30,12 @@ export async function POST(req: Request) {
     const previewText = text.substring(0, 200);
     const elevenlabs = getElevenLabsClient();
 
+    const { STORYMAGIC_VOICE_SETTINGS, STORYMAGIC_TTS_MODEL } = await import('@/lib/elevenlabs/voices');
+
     const audioStream = await elevenlabs.textToSpeech.convert(voiceId, {
       text: previewText,
-      modelId: 'eleven_flash_v2_5',
-      voiceSettings: {
-        stability: 0.65,
-        similarityBoost: 0.75,
-      },
+      modelId: STORYMAGIC_TTS_MODEL,
+      voiceSettings: STORYMAGIC_VOICE_SETTINGS,
     });
 
     const reader = audioStream.getReader();

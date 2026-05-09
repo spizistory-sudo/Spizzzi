@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { NARRATOR_VOICES } from '@/lib/elevenlabs/voices';
+import { STORYMAGIC_VOICES } from '@/lib/elevenlabs/voices';
 
 export default function VoicesPage() {
   const [previewingId, setPreviewingId] = useState<string | null>(null);
   const [testText, setTestText] = useState('Once upon a time, in a land full of wonder and magic, there lived a brave little child who loved adventures.');
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  async function previewVoice(voiceId: string, elevenLabsVoiceId: string) {
+  async function previewVoice(voiceId: string) {
     if (previewingId === voiceId) {
       audioRef.current?.pause();
       setPreviewingId(null);
@@ -20,7 +20,7 @@ export default function VoicesPage() {
       const res = await fetch('/api/preview-voice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: testText, voiceId: elevenLabsVoiceId }),
+        body: JSON.stringify({ text: testText, voiceId }),
       });
       if (!res.ok) throw new Error('Preview failed');
 
@@ -55,23 +55,23 @@ export default function VoicesPage() {
             <tr>
               <th className="text-left px-4 py-3 font-medium text-gray-500">Name</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">Gender</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Tone</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">Accent</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">Description</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">ElevenLabs ID</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">Preview</th>
             </tr>
           </thead>
           <tbody>
-            {NARRATOR_VOICES.map((voice) => (
+            {STORYMAGIC_VOICES.map((voice) => (
               <tr key={voice.id} className="border-b border-gray-50">
                 <td className="px-4 py-3 font-medium text-gray-900">{voice.name}</td>
                 <td className="px-4 py-3 text-gray-500 capitalize">{voice.gender}</td>
-                <td className="px-4 py-3 text-gray-500 capitalize">{voice.tone}</td>
+                <td className="px-4 py-3 text-gray-500 capitalize">{voice.accent}</td>
                 <td className="px-4 py-3 text-gray-500 text-xs">{voice.description}</td>
-                <td className="px-4 py-3 text-gray-400 font-mono text-xs">{voice.voiceId}</td>
+                <td className="px-4 py-3 text-gray-400 font-mono text-xs">{voice.id}</td>
                 <td className="px-4 py-3">
                   <button
-                    onClick={() => previewVoice(voice.id, voice.voiceId)}
+                    onClick={() => previewVoice(voice.id)}
                     className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${
                       previewingId === voice.id
                         ? 'bg-purple-600 text-white'

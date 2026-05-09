@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { FALLBACK_TRACKS } from '@/lib/music/tracks';
-import { NARRATOR_VOICES } from '@/lib/elevenlabs/voices';
+import { STORYMAGIC_VOICES, getVoiceById } from '@/lib/elevenlabs/voices';
 
 interface ReaderSettingsProps {
   isOpen: boolean;
@@ -38,7 +38,7 @@ export default function ReaderSettings({
 
   if (!isOpen) return null;
 
-  const currentVoice = NARRATOR_VOICES.find((v) => v.id === currentVoiceId);
+  const currentVoice = getVoiceById(currentVoiceId || '');
 
   return (
     <>
@@ -130,7 +130,7 @@ export default function ReaderSettings({
               <div className="p-3 bg-white/5 rounded-lg">
                 <p className="text-sm text-white/70 mb-3">
                   This will regenerate narration for all pages with{' '}
-                  <strong className="text-white">{NARRATOR_VOICES.find((v) => v.id === selectedNewVoice)?.name}</strong>.
+                  <strong className="text-white">{getVoiceById(selectedNewVoice)?.name}</strong>.
                   Continue?
                 </p>
                 <div className="flex gap-2">
@@ -153,7 +153,7 @@ export default function ReaderSettings({
               </div>
             ) : (
               <div className="space-y-1">
-                {NARRATOR_VOICES.map((voice) => (
+                {STORYMAGIC_VOICES.map((voice) => (
                   <button
                     key={voice.id}
                     onClick={() => {
@@ -173,7 +173,7 @@ export default function ReaderSettings({
                     }`}
                   >
                     {voice.name}
-                    <span className="text-xs opacity-50 ml-1">({voice.tone})</span>
+                    <span className="text-xs opacity-50 ml-1">({voice.accent === 'british' ? 'British' : 'American'})</span>
                   </button>
                 ))}
               </div>
