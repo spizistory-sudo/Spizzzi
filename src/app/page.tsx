@@ -38,7 +38,11 @@ export default function LandingPage() {
   return (
     <div style={{ minHeight: '100vh' }}>
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
+      <nav className="flex items-start justify-between px-6 pt-6 max-w-7xl mx-auto">
+        {/* Left spacer for symmetry */}
+        <div className="w-[180px]" />
+
+        {/* Center: logo */}
         <Link href="/">
           <Image
             src="/images/logo/spizzzy-logo.png"
@@ -49,6 +53,8 @@ export default function LandingPage() {
             className="h-48 w-auto"
           />
         </Link>
+
+        {/* Right: buttons */}
         <div className="flex items-center gap-4">
           <Link href="/login" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: '0.95rem' }}>
             Sign in
