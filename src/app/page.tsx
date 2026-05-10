@@ -38,7 +38,7 @@ export default function LandingPage() {
   return (
     <div style={{ minHeight: '100vh' }}>
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-5 max-w-7xl mx-auto">
+      <nav className="flex items-start justify-between px-6 pt-5 max-w-7xl mx-auto">
         <Link href="/">
           <Image
             src="/images/logo/spizzzy-logo.png"
@@ -49,7 +49,7 @@ export default function LandingPage() {
             className="h-48 w-auto"
           />
         </Link>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 pt-3">
           <Link href="/login" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: '0.95rem' }}>
             Sign in
           </Link>
@@ -170,8 +170,7 @@ export default function LandingPage() {
           ))}
         </div>
 
-        {/* Video placeholder */}
-        {/* TODO: Replace with actual demo video — Yossi will provide */}
+        {/* Video */}
         <h2
           className="text-center mb-10"
           style={{
@@ -184,47 +183,16 @@ export default function LandingPage() {
         >
           How it works
         </h2>
-        <div className="max-w-[640px] mx-auto">
-          <button
-            onClick={() => console.log('video play clicked')}
-            className="group relative w-full overflow-hidden transition-all duration-300"
-            style={{
-              aspectRatio: '16 / 9',
-              borderRadius: '1rem',
-              border: '1px solid rgba(255,255,255,0.10)',
-              background: 'rgba(255,255,255,0.05)',
-              backdropFilter: 'blur(12px)',
-              cursor: 'pointer',
-            }}
+        <div className="mx-auto max-w-[640px] overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+          <video
+            controls
+            preload="metadata"
+            playsInline
+            className="h-full w-full"
           >
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <div
-                className="flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '50%',
-                  background: 'rgba(255,255,255,0.10)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  backdropFilter: 'blur(8px)',
-                }}
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="rgba(255,255,255,0.80)">
-                  <path d="M6 4l15 8-15 8V4z" />
-                </svg>
-              </div>
-              <span
-                className="transition-colors duration-300 group-hover:text-white"
-                style={{
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '0.84rem',
-                  color: 'rgba(255,255,255,0.50)',
-                }}
-              >
-                Watch how it works
-              </span>
-            </div>
-          </button>
+            <source src="/videos/how-it-works.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
         </div>
 
         {/* Category strip */}

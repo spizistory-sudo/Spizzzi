@@ -33,8 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
-# videos
-public/videos/
+# videos (large files) — except the landing page demo
+public/videos/*
+!public/videos/how-it-works.mp4
 
 # vercel
 .vercel
