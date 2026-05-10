@@ -3,6 +3,16 @@
 import Link from 'next/link';
 import Image from 'next/image';
 
+const CATEGORY_CARDS = [
+  { title: 'Big Adventures', emoji: '🌟', image: '/images/categories/big-adventures.jpg', id: 'big_adventures' },
+  { title: 'Animal Friends', emoji: '🦊', image: '/images/categories/animal-friends.jpg', id: 'animal_friends' },
+  { title: 'All My Feelings', emoji: '💛', image: '/images/categories/all-my-feelings.jpg', id: 'all_my_feelings' },
+  { title: 'I Can Do It!', emoji: '🚀', image: '/images/categories/i-can-do-it.jpg', id: 'i_can_do_it' },
+  { title: 'Family & Friends', emoji: '🏡', image: '/images/categories/family-and-friends.jpg', id: 'family_and_friends' },
+  { title: 'Wonders of the World', emoji: '🌍', image: '/images/categories/wonders-of-the-world.jpg', id: 'wonders_of_the_world' },
+  { title: 'Cozy & Calm', emoji: '🌙', image: '/images/categories/cozy-and-calm.jpg', id: 'cozy_and_calm' },
+];
+
 const FEATURE_CARDS = [
   {
     title: 'Pick a story',
@@ -203,6 +213,118 @@ export default function LandingPage() {
               </span>
             </div>
           </button>
+        </div>
+
+        {/* Category strip */}
+        <div style={{ marginTop: 80 }}>
+          <h2
+            className="text-center mb-10"
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(1.6rem, 3vw, 2.2rem)',
+              color: 'var(--text-primary)',
+              fontWeight: 700,
+              fontStyle: 'italic',
+            }}
+          >
+            Worlds to explore
+          </h2>
+
+          {/* Desktop: 4-col grid (4+3 layout). Mobile: horizontal scroll */}
+          <div
+            className="hidden md:grid gap-5"
+            style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}
+          >
+            {CATEGORY_CARDS.map((cat) => (
+              <Link
+                key={cat.id}
+                href={`/create/categories/${cat.id}`}
+                className="group relative overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:brightness-110"
+                style={{
+                  height: 220,
+                  borderRadius: '1rem',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  display: 'block',
+                }}
+              >
+                <Image
+                  src={cat.image}
+                  alt={cat.title}
+                  fill
+                  sizes="25vw"
+                  className="object-cover"
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.70) 0%, rgba(0,0,0,0.15) 45%, transparent 70%)',
+                  }}
+                />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <h3
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      color: '#ffffff',
+                      textShadow: '0 2px 8px rgba(0,0,0,0.50)',
+                    }}
+                  >
+                    {cat.emoji} {cat.title}
+                  </h3>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Mobile: horizontal scroll */}
+          <div
+            className="flex md:hidden gap-4 overflow-x-auto pb-4 -mx-6 px-6"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+          >
+            <style>{`.category-scroll::-webkit-scrollbar { display: none; }`}</style>
+            {CATEGORY_CARDS.map((cat) => (
+              <Link
+                key={cat.id}
+                href={`/create/categories/${cat.id}`}
+                className="group relative overflow-hidden flex-shrink-0 transition-all duration-300 hover:scale-[1.02] hover:brightness-110 category-scroll"
+                style={{
+                  width: '70vw',
+                  height: 200,
+                  borderRadius: '1rem',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  display: 'block',
+                }}
+              >
+                <Image
+                  src={cat.image}
+                  alt={cat.title}
+                  fill
+                  sizes="70vw"
+                  className="object-cover"
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.70) 0%, rgba(0,0,0,0.15) 45%, transparent 70%)',
+                  }}
+                />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <h3
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      color: '#ffffff',
+                      textShadow: '0 2px 8px rgba(0,0,0,0.50)',
+                    }}
+                  >
+                    {cat.emoji} {cat.title}
+                  </h3>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </main>
 
