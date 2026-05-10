@@ -18,19 +18,19 @@ const FEATURE_CARDS = [
     title: 'Pick a story',
     emoji: '📚',
     subtext: 'Browse magical worlds and adventures.',
-    image: '/images/categories/big-adventures.jpg',
+    image: '/images/landing/pick-a-story.jpg',
   },
   {
     title: 'Make it theirs',
     emoji: '✨',
     subtext: "Add your child's photo and personality.",
-    image: '/images/categories/family-and-friends.jpg',
+    image: '/images/landing/make-it-theirs.jpg',
   },
   {
     title: 'Read & listen',
     emoji: '🎧',
     subtext: 'Beautiful illustrations with calm narration.',
-    image: '/images/categories/cozy-and-calm.jpg',
+    image: '/images/landing/read-and-listen.jpg',
   },
 ];
 
@@ -43,10 +43,10 @@ export default function LandingPage() {
           <Image
             src="/images/logo/spizzzy-logo.png"
             alt="Spizzzy"
-            width={40}
-            height={40}
+            width={96}
+            height={96}
             priority
-            className="h-10 w-auto"
+            className="h-24 w-auto"
           />
         </Link>
         <div className="flex items-center gap-4">
@@ -172,6 +172,18 @@ export default function LandingPage() {
 
         {/* Video placeholder */}
         {/* TODO: Replace with actual demo video — Yossi will provide */}
+        <h2
+          className="text-center mb-10"
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(1.6rem, 3vw, 2.2rem)',
+            color: 'var(--text-primary)',
+            fontWeight: 700,
+            fontStyle: 'italic',
+          }}
+        >
+          How it works
+        </h2>
         <div className="max-w-[640px] mx-auto">
           <button
             onClick={() => console.log('video play clicked')}
