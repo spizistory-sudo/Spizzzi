@@ -1,4 +1,28 @@
+'use client';
+
 import Link from 'next/link';
+import Image from 'next/image';
+
+const FEATURE_CARDS = [
+  {
+    title: 'Pick a story',
+    emoji: '📚',
+    subtext: 'Browse magical worlds and adventures.',
+    image: '/images/categories/big-adventures.jpg',
+  },
+  {
+    title: 'Make it theirs',
+    emoji: '✨',
+    subtext: "Add your child's photo and personality.",
+    image: '/images/categories/family-and-friends.jpg',
+  },
+  {
+    title: 'Read & listen',
+    emoji: '🎧',
+    subtext: 'Beautiful illustrations with calm narration.',
+    image: '/images/categories/cozy-and-calm.jpg',
+  },
+];
 
 export default function LandingPage() {
   return (
@@ -23,7 +47,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <main className="max-w-7xl mx-auto px-6 pt-16 pb-24">
+      <main className="max-w-7xl mx-auto px-6 pt-10 pb-20">
         <div className="text-center max-w-3xl mx-auto">
           <div
             className="inline-block px-5 py-2 mb-6"
@@ -55,7 +79,7 @@ export default function LandingPage() {
           </h2>
 
           <p
-            className="max-w-2xl mx-auto mb-10"
+            className="max-w-2xl mx-auto mb-8"
             style={{
               fontFamily: 'var(--font-body)',
               fontSize: '1.15rem',
@@ -67,7 +91,7 @@ export default function LandingPage() {
             beautiful illustrated storybook with narration, music, and page-turn animations.
           </p>
 
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex items-center justify-center gap-4 mb-16">
             <Link
               href="/signup"
               className="btn-primary"
@@ -85,103 +109,109 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Features */}
-        <div className="mt-28 grid md:grid-cols-3 gap-6">
-          {[
-            {
-              emoji: '&#127912;',
-              title: 'Choose a theme',
-              desc: 'Superheroes, underwater adventures, magical kitchens, and more. Pick the perfect story world for your child.',
-              glow: 'var(--gold-glow)',
-              border: 'rgba(245,200,66,0.20)',
-            },
-            {
-              emoji: '&#10024;',
-              title: 'Personalize everything',
-              desc: 'Your child becomes the hero. Add their name, traits, and photo for custom illustrations that look like them.',
-              glow: 'var(--purple-glow)',
-              border: 'rgba(155,125,212,0.20)',
-            },
-            {
-              emoji: '&#128214;',
-              title: 'Read, listen & share',
-              desc: 'An interactive book reader with voice narration, background music, and beautiful page-flip animations.',
-              glow: 'var(--cyan-glow)',
-              border: 'rgba(126,200,227,0.20)',
-            },
-          ].map((feature) => (
-            <div
-              key={feature.title}
-              className="glass"
-              style={{
-                borderRadius: 'var(--radius-md)',
-                padding: '32px',
-                border: `1px solid ${feature.border}`,
-              }}
-            >
+        {/* Video placeholder */}
+        {/* TODO: Replace with actual demo video — Yossi will provide */}
+        <div className="max-w-[900px] mx-auto mb-20">
+          <button
+            onClick={() => console.log('video play clicked')}
+            className="group relative w-full overflow-hidden transition-all duration-300"
+            style={{
+              aspectRatio: '16 / 9',
+              borderRadius: '1rem',
+              border: '1px solid rgba(255,255,255,0.10)',
+              background: 'rgba(255,255,255,0.05)',
+              backdropFilter: 'blur(12px)',
+              cursor: 'pointer',
+            }}
+          >
+            {/* Play icon */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <div
-                className="w-14 h-14 flex items-center justify-center mb-5"
+                className="flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
                 style={{
-                  background: feature.glow,
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '28px',
+                  width: 72,
+                  height: 72,
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.10)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  backdropFilter: 'blur(8px)',
                 }}
-                dangerouslySetInnerHTML={{ __html: feature.emoji }}
-              />
-              <h3
-                className="text-xl font-bold mb-2"
-                style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}
               >
-                {feature.title}
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', lineHeight: 1.7 }}>
-                {feature.desc}
-              </p>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(255,255,255,0.80)">
+                  <path d="M6 4l15 8-15 8V4z" />
+                </svg>
+              </div>
+              <span
+                className="transition-colors duration-300 group-hover:text-white"
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '0.88rem',
+                  color: 'rgba(255,255,255,0.50)',
+                }}
+              >
+                Watch how it works
+              </span>
             </div>
-          ))}
+          </button>
         </div>
 
-        {/* How it works */}
-        <div className="mt-28 text-center">
-          <h2
-            className="text-3xl font-bold mb-14"
-            style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontStyle: 'italic' }}
-          >
-            How it works
-          </h2>
-          <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-4">
-            {[
-              { num: '1', title: 'Pick a theme', desc: 'Choose from 10+ magical story worlds' },
-              { num: '2', title: 'Add your child', desc: 'Name, photo, and personality traits' },
-              { num: '3', title: 'Read the magic', desc: 'AI creates a beautiful illustrated book' },
-            ].map((step, i) => (
-              <div key={step.num} className="flex items-center gap-4">
-                {i > 0 && (
-                  <div className="hidden md:block w-16" style={{ borderTop: '2px dotted rgba(155,125,212,0.30)' }} />
-                )}
-                <div className="text-center">
-                  <div
-                    className="w-14 h-14 flex items-center justify-center mx-auto mb-3 btn-primary"
-                    style={{
-                      borderRadius: '50%',
-                      fontFamily: 'var(--font-display)',
-                      fontWeight: 800,
-                      fontSize: '22px',
-                      padding: 0,
-                    }}
-                  >
-                    {step.num}
-                  </div>
-                  <h4 className="font-bold mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '18px' }}>
-                    {step.title}
-                  </h4>
-                  <p style={{ color: 'var(--text-faint)', fontFamily: 'var(--font-body)', fontSize: '14px' }}>
-                    {step.desc}
-                  </p>
-                </div>
+        {/* Feature cards — image-led, matching category card style */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {FEATURE_CARDS.map((card) => (
+            <Link
+              key={card.title}
+              href="/signup"
+              className="group relative overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:brightness-110"
+              style={{
+                height: 280,
+                borderRadius: '1rem',
+                border: '1px solid rgba(255,255,255,0.10)',
+                display: 'block',
+              }}
+            >
+              <Image
+                src={card.image}
+                alt={card.title}
+                fill
+                sizes="(max-width: 768px) 100vw, 33vw"
+                className="object-cover"
+              />
+
+              {/* Gradient overlay */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.20) 45%, transparent 70%)',
+                }}
+              />
+
+              {/* Text */}
+              <div className="absolute bottom-0 left-0 right-0 p-5">
+                <h3
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: '1.3rem',
+                    fontWeight: 700,
+                    color: '#ffffff',
+                    marginBottom: 2,
+                    textShadow: '0 2px 8px rgba(0,0,0,0.50)',
+                  }}
+                >
+                  {card.emoji} {card.title}
+                </h3>
+                <p
+                  style={{
+                    fontSize: '0.84rem',
+                    color: 'rgba(255,255,255,0.75)',
+                    lineHeight: 1.4,
+                    textShadow: '0 1px 4px rgba(0,0,0,0.40)',
+                  }}
+                >
+                  {card.subtext}
+                </p>
               </div>
-            ))}
-          </div>
+            </Link>
+          ))}
         </div>
       </main>
 
