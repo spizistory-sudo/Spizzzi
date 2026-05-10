@@ -35,9 +35,8 @@ export default function LandingPage() {
             alt="Spizzzy"
             width={40}
             height={40}
-            className="h-10 w-10 sm:h-10 sm:w-10"
-            style={{ height: 40, width: 40 }}
             priority
+            className="h-10 w-auto"
           />
         </Link>
         <div className="flex items-center gap-4">
@@ -57,21 +56,6 @@ export default function LandingPage() {
       {/* Hero */}
       <main className="max-w-7xl mx-auto px-6 pt-10 pb-20">
         <div className="text-center max-w-3xl mx-auto">
-          <div
-            className="inline-block px-5 py-2 mb-6"
-            style={{
-              background: 'rgba(155,125,212,0.12)',
-              border: '1px solid rgba(155,125,212,0.25)',
-              borderRadius: 'var(--radius-pill)',
-              color: 'var(--purple)',
-              fontFamily: 'var(--font-body)',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-            }}
-          >
-            &#10024; AI-powered personalized storybooks
-          </div>
-
           <h2
             className="leading-tight mb-6"
             style={{
@@ -117,53 +101,8 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Video placeholder */}
-        {/* TODO: Replace with actual demo video — Yossi will provide */}
-        <div className="max-w-[900px] mx-auto mb-20">
-          <button
-            onClick={() => console.log('video play clicked')}
-            className="group relative w-full overflow-hidden transition-all duration-300"
-            style={{
-              aspectRatio: '16 / 9',
-              borderRadius: '1rem',
-              border: '1px solid rgba(255,255,255,0.10)',
-              background: 'rgba(255,255,255,0.05)',
-              backdropFilter: 'blur(12px)',
-              cursor: 'pointer',
-            }}
-          >
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <div
-                className="flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
-                style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: '50%',
-                  background: 'rgba(255,255,255,0.10)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  backdropFilter: 'blur(8px)',
-                }}
-              >
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(255,255,255,0.80)">
-                  <path d="M6 4l15 8-15 8V4z" />
-                </svg>
-              </div>
-              <span
-                className="transition-colors duration-300 group-hover:text-white"
-                style={{
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '0.88rem',
-                  color: 'rgba(255,255,255,0.50)',
-                }}
-              >
-                Watch how it works
-              </span>
-            </div>
-          </button>
-        </div>
-
         {/* Feature cards — image-led, matching category card style */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-20">
           {FEATURE_CARDS.map((card) => (
             <Link
               key={card.title}
@@ -219,6 +158,51 @@ export default function LandingPage() {
               </div>
             </Link>
           ))}
+        </div>
+
+        {/* Video placeholder */}
+        {/* TODO: Replace with actual demo video — Yossi will provide */}
+        <div className="max-w-[640px] mx-auto">
+          <button
+            onClick={() => console.log('video play clicked')}
+            className="group relative w-full overflow-hidden transition-all duration-300"
+            style={{
+              aspectRatio: '16 / 9',
+              borderRadius: '1rem',
+              border: '1px solid rgba(255,255,255,0.10)',
+              background: 'rgba(255,255,255,0.05)',
+              backdropFilter: 'blur(12px)',
+              cursor: 'pointer',
+            }}
+          >
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <div
+                className="flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.10)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  backdropFilter: 'blur(8px)',
+                }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="rgba(255,255,255,0.80)">
+                  <path d="M6 4l15 8-15 8V4z" />
+                </svg>
+              </div>
+              <span
+                className="transition-colors duration-300 group-hover:text-white"
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '0.84rem',
+                  color: 'rgba(255,255,255,0.50)',
+                }}
+              >
+                Watch how it works
+              </span>
+            </div>
+          </button>
         </div>
       </main>
 
