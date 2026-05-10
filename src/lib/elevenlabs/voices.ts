@@ -103,9 +103,10 @@ export const DEFAULT_VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah
 // Voice settings tuned for calm storybook narration
 export const STORYMAGIC_VOICE_SETTINGS = {
   stability: 0.65,
-  similarityBoost: 0.75,
+  similarity_boost: 0.75,
   style: 0.10,
-  useSpeakerBoost: true,
+  speed: 0.90,
+  use_speaker_boost: true,
 };
 
 // Multilingual v2 — best quality for long-form narration

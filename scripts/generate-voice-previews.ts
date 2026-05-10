@@ -14,6 +14,8 @@ import * as path from 'path';
 import dotenv from 'dotenv';
 dotenv.config({ path: path.join(__dirname, '..', '.env.local') });
 
+console.log('Key:', process.env.ELEVENLABS_API_KEY?.length, process.env.ELEVENLABS_API_KEY?.slice(0,6), process.env.ELEVENLABS_API_KEY?.slice(-4));
+
 import { createClient } from '@supabase/supabase-js';
 
 // Import voice config — can't use @ alias in scripts, so use relative path
@@ -60,6 +62,7 @@ async function ensureBucket() {
 }
 
 async function generatePreview(voiceId: string, voiceName: string): Promise<Buffer> {
+  console.log('Sending key:', process.env.ELEVENLABS_API_KEY?.slice(0,6), process.env.ELEVENLABS_API_KEY?.slice(-4));
   const res = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
     {
