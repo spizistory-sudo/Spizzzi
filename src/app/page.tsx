@@ -43,10 +43,10 @@ export default function LandingPage() {
           <Image
             src="/images/logo/spizzzy-logo.png"
             alt="Spizzzy"
-            width={288}
-            height={288}
+            width={192}
+            height={192}
             priority
-            className="h-72 w-auto"
+            className="h-48 w-auto"
           />
         </Link>
         <div className="flex items-center gap-4">
