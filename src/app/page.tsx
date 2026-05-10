@@ -38,7 +38,7 @@ export default function LandingPage() {
   return (
     <div style={{ minHeight: '100vh' }}>
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-5 max-w-7xl mx-auto">
+      <nav className="flex items-center justify-between px-6 pt-2 pb-5 max-w-7xl mx-auto">
         <Link href="/">
           <Image
             src="/images/logo/spizzzy-logo.png"
