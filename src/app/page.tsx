@@ -29,9 +29,17 @@ export default function LandingPage() {
     <div style={{ minHeight: '100vh' }}>
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-5 max-w-7xl mx-auto">
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', fontWeight: 700, color: 'var(--gold)', fontStyle: 'italic' }}>
-          StoryMagic &#10024;
-        </h1>
+        <Link href="/">
+          <Image
+            src="/images/logo/spizzzy-logo.png"
+            alt="Spizzzy"
+            width={40}
+            height={40}
+            className="h-10 w-10 sm:h-10 sm:w-10"
+            style={{ height: 40, width: 40 }}
+            priority
+          />
+        </Link>
         <div className="flex items-center gap-4">
           <Link href="/login" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: '0.95rem' }}>
             Sign in
@@ -124,7 +132,6 @@ export default function LandingPage() {
               cursor: 'pointer',
             }}
           >
-            {/* Play icon */}
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <div
                 className="flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
@@ -160,7 +167,7 @@ export default function LandingPage() {
           {FEATURE_CARDS.map((card) => (
             <Link
               key={card.title}
-              href="/signup"
+              href="/create"
               className="group relative overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:brightness-110"
               style={{
                 height: 280,
@@ -218,7 +225,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }} className="py-8">
         <div className="max-w-7xl mx-auto px-6 text-center" style={{ color: 'var(--text-faint)', fontFamily: 'var(--font-body)', fontSize: '14px' }}>
-          &copy; {new Date().getFullYear()} StoryMagic. Where stories come alive. &#10024;
+          &copy; {new Date().getFullYear()} Spizzzy. Where stories come alive. &#10024;
         </div>
       </footer>
     </div>

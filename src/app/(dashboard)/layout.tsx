@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
           }}>
-            &#10022; StoryMagic
+            &#10022; Spizzzy
           </span>
         </Link>
 

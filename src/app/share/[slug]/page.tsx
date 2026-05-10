@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
     .single();
 
   if (!book) {
-    return { title: 'Book not found — StoryMagic' };
+    return { title: 'Book not found — Spizzzy' };
   }
 
   const selectedCover = (book.cover_options as CoverOption[] | null)?.find(
@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
   const coverUrl = selectedCover?.image_url;
 
   return {
-    title: `${book.title} — A StoryMagic Book`,
+    title: `${book.title} — A Spizzzy Book`,
     description: `A personalized children's book created for ${book.child_name}. Read it now!`,
     openGraph: {
       title: book.title,
@@ -99,7 +99,7 @@ export default async function SharePage({ params }: SharePageProps) {
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
         <Link href="/" className="text-2xl font-bold text-purple-800">
-          StoryMagic
+          Spizzzy
         </Link>
         <Link
           href="/signup"
@@ -182,7 +182,7 @@ export default async function SharePage({ params }: SharePageProps) {
           <p className="text-gray-400 text-sm">
             Created with{' '}
             <Link href="/" className="text-purple-500 font-medium hover:underline">
-              StoryMagic
+              Spizzzy
             </Link>
           </p>
         </div>

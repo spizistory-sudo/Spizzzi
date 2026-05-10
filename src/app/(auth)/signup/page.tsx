@@ -48,7 +48,7 @@ export default function SignupPage() {
       <div className="w-full max-w-md glass" style={{ padding: '40px 36px', borderRadius: 'var(--radius-lg)' }}>
         <div className="text-center mb-8">
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700, color: 'var(--gold)' }}>
-            StoryMagic &#10024;
+            Spizzzy &#10024;
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', marginTop: 8 }}>
             Create magical stories for your child

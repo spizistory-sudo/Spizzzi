@@ -315,7 +315,7 @@ export async function POST(req: Request) {
           React.createElement(
             Text,
             { style: styles.brandingText },
-            'Made with StoryMagic'
+            'Made with Spizzzy'
           ),
           React.createElement(
             Text,

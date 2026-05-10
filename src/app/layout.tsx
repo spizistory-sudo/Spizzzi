@@ -17,7 +17,7 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "StoryMagic — Personalized Children's Books",
+  title: "Spizzzy — Personalized Children's Books",
   description:
     "Create magical, personalized, illustrated storybooks for your child with AI-generated stories, illustrations, and narration.",
 };

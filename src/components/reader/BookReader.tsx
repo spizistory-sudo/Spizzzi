@@ -444,9 +444,9 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
           </div>
           <div style={{ width: '50%', height: '100%', background: 'linear-gradient(135deg, #1a1035, #0f0a2a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center', padding: '24px' }}>
-              <p style={{ color: '#c4b5fd', fontSize: '24px', fontWeight: 'bold', fontFamily: 'Georgia, serif', marginBottom: '8px' }}>StoryMagic</p>
+              <p style={{ color: '#c4b5fd', fontSize: '24px', fontWeight: 'bold', fontFamily: 'Georgia, serif', marginBottom: '8px' }}>Spizzzy</p>
               <div style={{ width: '40px', height: '1px', background: 'rgba(139,92,246,0.3)', margin: '12px auto' }} />
-              <p style={{ color: 'rgba(167,139,250,0.6)', fontSize: '14px' }}>storymagic.app</p>
+              <p style={{ color: 'rgba(167,139,250,0.6)', fontSize: '14px' }}>spizzzi.vercel.app</p>
             </div>
           </div>
         </div>
