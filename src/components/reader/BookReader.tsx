@@ -8,6 +8,7 @@ import { useAudioController } from './AudioController';
 import ShareModal from '../share/ShareModal';
 import ReaderSettings from './ReaderSettings';
 import { FALLBACK_TRACKS } from '@/lib/music/tracks';
+import Image from 'next/image';
 import CoverImage from './CoverImage';
 import { MagicReaderBackground } from '../ui/MagicReaderBackground';
 import AnimatePromptModal from './AnimatePromptModal';
@@ -444,7 +445,13 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
           </div>
           <div style={{ width: '50%', height: '100%', background: 'linear-gradient(135deg, #1a1035, #0f0a2a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center', padding: '24px' }}>
-              <p style={{ color: '#c4b5fd', fontSize: '24px', fontWeight: 'bold', fontFamily: 'Georgia, serif', marginBottom: '8px' }}>Spizzzy</p>
+              <Image
+                src="/images/logo/spizzzy-logo.png"
+                alt="Spizzzy"
+                width={120}
+                height={120}
+                className="h-auto w-24 mb-2"
+              />
               <div style={{ width: '40px', height: '1px', background: 'rgba(139,92,246,0.3)', margin: '12px auto' }} />
               <p style={{ color: 'rgba(167,139,250,0.6)', fontSize: '14px' }}>spizzzi.vercel.app</p>
             </div>

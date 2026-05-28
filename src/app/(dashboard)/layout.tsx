@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
@@ -55,17 +56,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }}>
         {/* Logo */}
         <Link href="/library" style={{ textDecoration: 'none', marginBottom: 28, display: 'block' }}>
-          <span style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '1.4rem',
-            fontWeight: 600,
-            background: 'linear-gradient(135deg, #F5C842, #7EC8E3)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}>
-            &#10022; Spizzzy
-          </span>
+          <Image
+            src="/images/logo/spizzzy-logo.png"
+            alt="Spizzzy"
+            width={140}
+            height={140}
+            priority
+            className="h-auto w-32"
+          />
         </Link>
 
         {/* Separator */}
