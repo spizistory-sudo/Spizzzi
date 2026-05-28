@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useCreationWizard } from '@/stores/creation-wizard';
 import WizardProgress from '@/components/wizard/WizardProgress';
 import type { CoverOption } from '@/types/book';
+import { ART_STYLES, type ArtStyleKey } from '@/lib/ai/prompts/style-references';
 
-const styleLabels: Record<string, { name: string; desc: string }> = {
-  watercolor: { name: 'Watercolor Dream', desc: 'Soft, dreamy watercolors with gentle pastel tones' },
-  cartoon: { name: 'Bold & Bright', desc: 'Fun, colorful cartoon with bold outlines' },
-  storybook: { name: 'Classic Storybook', desc: 'Rich, warm classic storybook feel' },
-};
+function getStyleLabel(key: string): { name: string; desc: string } {
+  const style = ART_STYLES[key as ArtStyleKey];
+  if (style) return { name: style.name, desc: style.previewDescription };
+  return { name: key, desc: '' };
+}
 
 export default function PreviewPage() {
   const router = useRouter();
@@ -281,7 +282,7 @@ export default function PreviewPage() {
             <div className="animate-spin w-6 h-6 rounded-full" style={{ border: '3px solid rgba(126,200,227,0.25)', borderTopColor: 'rgba(126,200,227,0.80)' }} />
             <div>
               <p style={{ color: 'rgba(255,255,255,0.90)', fontWeight: 500 }}>Generating cover art...</p>
-              <p style={{ color: 'rgba(255,255,255,0.50)', fontSize: '0.85rem' }}>Creating 3 unique styles for you to choose from</p>
+              <p style={{ color: 'rgba(255,255,255,0.50)', fontSize: '0.85rem' }}>Creating 8 unique styles for you to choose from</p>
             </div>
           </div>
         </div>
@@ -292,9 +293,9 @@ export default function PreviewPage() {
         <div className="mb-8">
           <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '1.3rem', marginBottom: 8 }}>Choose your book&apos;s style</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: 16 }}>This style will be used for all illustrations in the book.</p>
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {coverOptions.map((cover: CoverOption) => {
-              const style = styleLabels[cover.style_name] || { name: cover.style_name, desc: '' };
+              const style = getStyleLabel(cover.style_name);
               const isSelected = selectedCoverId === cover.id;
               return (
                 <button

@@ -57,10 +57,14 @@ const ALL_PROMPTS: PromptEntry[] = [
   { key: 'cover_illustration', label: 'Cover Illustration Prompt', category: 'Illustration Prompts', defaultValue: COVER_PROMPT_TEMPLATE, description: 'Template for generating cover images. Variables: {stylePrompt}, {bookTitle}, {characterDescription}, {themeDescription}' },
   { key: 'page_illustration', label: 'Page Illustration Prompt', category: 'Illustration Prompts', defaultValue: PAGE_PROMPT_TEMPLATE, description: 'Template for generating page illustrations. Variables: {pageNumber}, {stylePrompt}, {characterDescription}, {illustrationPrompt}, {mood}' },
   { key: 'photo_analysis', label: 'Photo Analysis Prompt', category: 'Illustration Prompts', defaultValue: PHOTO_ANALYSIS_PROMPT, description: 'Prompt sent to Gemini Vision when analyzing a child photo.' },
-  // Art style descriptions
-  { key: 'style_watercolor', label: 'Watercolor Dream — Style Description', category: 'Art Styles', defaultValue: ART_STYLES.watercolor.stylePrompt, description: 'Injected into {stylePrompt} when user selects Watercolor.' },
-  { key: 'style_cartoon', label: 'Bold & Bright — Style Description', category: 'Art Styles', defaultValue: ART_STYLES.cartoon.stylePrompt, description: 'Injected into {stylePrompt} when user selects Cartoon.' },
-  { key: 'style_storybook', label: 'Classic Storybook — Style Description', category: 'Art Styles', defaultValue: ART_STYLES.storybook.stylePrompt, description: 'Injected into {stylePrompt} when user selects Storybook.' },
+  // Art style descriptions — dynamically generated from all styles
+  ...Object.entries(ART_STYLES).map(([key, style]) => ({
+    key: `style_${key}`,
+    label: `${style.name} — Style Description`,
+    category: 'Art Styles' as const,
+    defaultValue: style.stylePrompt,
+    description: `Injected into {stylePrompt} when user selects ${style.name}.`,
+  })),
 ];
 
 interface SavedPrompt {
