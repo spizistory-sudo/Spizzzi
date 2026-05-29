@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import type { GeneratedStory } from '@/types/ai';
 import type { CoverOption } from '@/types/book';
+import type { ArtStyleKey } from '@/lib/ai/prompts/style-references';
 
-export type WizardStep = 'theme' | 'details' | 'stories' | 'photos' | 'preview' | 'finalize';
+export type WizardStep = 'details' | 'style' | 'category' | 'photos' | 'finalize' | 'preview' | 'theme' | 'stories';
 
 interface UploadedPhoto {
   id: string;
@@ -30,7 +31,10 @@ interface WizardState {
   childInterests: string[];    // interest IDs (e.g. 'horses', 'art_and_creativity')
   traitDetails: Record<string, string>;
 
-  // Step 2 (new flow): Story selection
+  // Step 2 (new flow): Art style
+  selectedStyleKey: ArtStyleKey | null;
+
+  // Step 3 (new flow): Story selection
   storyId: string | null;      // selected story template ID from catalog
   curationResult: unknown;     // cached CurationResult from /api/curate-stories
   curationCachedFor: string | null; // hash key to invalidate cache if profile changes
@@ -84,6 +88,7 @@ interface WizardState {
   setCategoryId: (id: string | null) => void;
   setTopicId: (id: string | null) => void;
   setStoryMode: (mode: 'structured' | 'custom') => void;
+  setSelectedStyle: (key: ArtStyleKey) => void;
   reset: () => void;
 }
 
@@ -99,6 +104,7 @@ const initialState = {
   childTraits: [],
   childInterests: [] as string[],
   traitDetails: {} as Record<string, string>,
+  selectedStyleKey: null as ArtStyleKey | null,
   storyId: null as string | null,
   curationResult: null as unknown,
   curationCachedFor: null as string | null,
@@ -177,6 +183,8 @@ export const useCreationWizard = create<WizardState>((set) => ({
   setCategoryId: (id) => set({ categoryId: id }),
   setTopicId: (id) => set({ topicId: id }),
   setStoryMode: (mode) => set({ storyMode: mode }),
+
+  setSelectedStyle: (key) => set({ selectedStyleKey: key }),
 
   reset: () => set(initialState),
 }));

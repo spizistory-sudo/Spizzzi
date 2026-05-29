@@ -2,7 +2,15 @@
 
 import { type WizardStep } from '@/stores/creation-wizard';
 
-const steps: { key: WizardStep; label: string }[] = [
+const enSteps: { key: WizardStep; label: string }[] = [
+  { key: 'details', label: 'Details' },
+  { key: 'style', label: 'Style' },
+  { key: 'category', label: 'Category' },
+  { key: 'finalize', label: 'Narrator & Music' },
+  { key: 'preview', label: 'Generate' },
+];
+
+const heSteps: { key: WizardStep; label: string }[] = [
   { key: 'details', label: 'Details' },
   { key: 'stories', label: 'Categories' },
   { key: 'photos', label: 'Photos' },
@@ -12,9 +20,12 @@ const steps: { key: WizardStep; label: string }[] = [
 
 export default function WizardProgress({
   currentStep,
+  language = 'en',
 }: {
   currentStep: WizardStep;
+  language?: 'en' | 'he';
 }) {
+  const steps = language === 'he' ? heSteps : enSteps;
   const currentIndex = steps.findIndex((s) => s.key === currentStep);
 
   return (

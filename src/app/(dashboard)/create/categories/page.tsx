@@ -1,24 +1,26 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCreationWizard } from '@/stores/creation-wizard';
 import WizardProgress from '@/components/wizard/WizardProgress';
 import { CATEGORIES } from '@/lib/ai/prompts/en/story-catalog';
-import Image from 'next/image';
+import { Compass, PawPrint, Heart, Rocket, Users, Globe, Moon } from 'lucide-react';
 
-const CATEGORY_IMAGES: Record<string, string> = {
-  big_adventures: '/images/categories/big-adventures.jpg',
-  animal_friends: '/images/categories/animal-friends.jpg',
-  all_my_feelings: '/images/categories/all-my-feelings.jpg',
-  i_can_do_it: '/images/categories/i-can-do-it.jpg',
-  family_and_friends: '/images/categories/family-and-friends.jpg',
-  wonders_of_the_world: '/images/categories/wonders-of-the-world.jpg',
-  cozy_and_calm: '/images/categories/cozy-and-calm.jpg',
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  big_adventures: <Compass size={32} />,
+  animal_friends: <PawPrint size={32} />,
+  all_my_feelings: <Heart size={32} />,
+  i_can_do_it: <Rocket size={32} />,
+  family_and_friends: <Users size={32} />,
+  wonders_of_the_world: <Globe size={32} />,
+  cozy_and_calm: <Moon size={32} />,
 };
 
 export default function CategoriesPage() {
   const router = useRouter();
-  const { childName, childAge, childGender } = useCreationWizard();
+  const { childName, childAge, childGender, categoryId, setCategoryId, setStep } = useCreationWizard();
+  const [selected, setSelected] = useState<string | null>(categoryId);
 
   if (!childName || !childAge || !childGender) {
     router.replace('/create/details');
@@ -27,9 +29,20 @@ export default function CategoriesPage() {
 
   const activeCategories = CATEGORIES.filter((c) => c.status === 'active');
 
+  function handleSelect(id: string) {
+    setSelected(id);
+    setCategoryId(id);
+  }
+
+  function handleContinue() {
+    if (!selected) return;
+    setStep('finalize');
+    router.push('/create/finalize');
+  }
+
   return (
     <div>
-      <WizardProgress currentStep="stories" />
+      <WizardProgress currentStep="category" />
 
       <div className="mb-8">
         <h1
@@ -49,93 +62,55 @@ export default function CategoriesPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {activeCategories.map((cat) => (
-          <button
-            key={cat.id}
-            onClick={() => router.push(`/create/categories/${cat.id}`)}
-            className="group relative overflow-hidden text-left transition-all duration-300"
-            style={{
-              borderRadius: '1.25rem',
-              border: '1px solid rgba(255,255,255,0.10)',
-              background: 'rgba(255,255,255,0.04)',
-              cursor: 'pointer',
-              aspectRatio: '3 / 2',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px) scale(1.01)';
-              e.currentTarget.style.borderColor = 'rgba(245,200,66,0.45)';
-              e.currentTarget.style.boxShadow =
-                '0 0 0 1px rgba(245,200,66,0.20), 0 16px 48px rgba(0,0,0,0.35)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0) scale(1)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            {CATEGORY_IMAGES[cat.id] && (
-              <Image
-                src={CATEGORY_IMAGES[cat.id]}
-                alt={cat.name}
-                fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-            )}
-
-            {/* Gradient overlay for text readability */}
-            <div
-              className="absolute inset-0"
+        {activeCategories.map((cat) => {
+          const isSelected = selected === cat.id;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => handleSelect(cat.id)}
+              className="text-left transition-all duration-300"
               style={{
-                background:
-                  'linear-gradient(to top, rgba(0,0,0,0.70) 0%, rgba(0,0,0,0.25) 40%, transparent 70%)',
+                borderRadius: '1rem',
+                border: isSelected ? '2px solid rgba(155,125,212,0.70)' : '1px solid rgba(255,255,255,0.10)',
+                background: isSelected ? 'rgba(155,125,212,0.10)' : 'rgba(255,255,255,0.04)',
+                backdropFilter: 'blur(12px)',
+                boxShadow: isSelected ? '0 0 0 1px rgba(155,125,212,0.40), 0 0 20px rgba(155,125,212,0.15)' : 'none',
+                padding: '24px',
+                cursor: 'pointer',
+                minHeight: 140,
               }}
-            />
-
-            {/* Category name + description */}
-            <div className="absolute bottom-0 left-0 right-0 p-5">
-              <h2
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '1.35rem',
-                  fontWeight: 700,
-                  color: '#ffffff',
-                  marginBottom: 4,
-                  textShadow: '0 2px 8px rgba(0,0,0,0.50)',
-                }}
-              >
+              onMouseEnter={(e) => { if (!isSelected) { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.borderColor = 'rgba(155,125,212,0.40)'; } }}
+              onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.borderColor = isSelected ? 'rgba(155,125,212,0.70)' : 'rgba(255,255,255,0.10)'; } }}
+            >
+              <div style={{ color: isSelected ? 'rgba(200,180,255,0.90)' : 'rgba(255,255,255,0.30)', marginBottom: 12 }}>
+                {CATEGORY_ICONS[cat.id] || <Compass size={32} />}
+              </div>
+              <h2 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '1.15rem',
+                fontWeight: 600,
+                color: isSelected ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.85)',
+                marginBottom: 4,
+              }}>
                 {cat.emoji} {cat.name}
               </h2>
-              <p
-                style={{
-                  fontSize: '0.82rem',
-                  color: 'rgba(255,255,255,0.80)',
-                  lineHeight: 1.4,
-                  textShadow: '0 1px 4px rgba(0,0,0,0.40)',
-                }}
-              >
+              <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.50)', lineHeight: 1.4 }}>
                 {cat.description}
               </p>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Back button */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          paddingTop: 24,
-          paddingBottom: 32,
-        }}
-      >
-        <button
-          onClick={() => router.push('/create/details')}
-          className="btn-secondary"
-        >
+      {/* Actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 24, paddingBottom: 32 }}>
+        <button onClick={() => router.push('/create/style')} className="btn-secondary">
           &larr; Back
+        </button>
+        <button onClick={handleContinue} className="btn-primary" disabled={!selected}
+          style={{ opacity: selected ? 1 : 0.5, cursor: selected ? 'pointer' : 'not-allowed' }}
+        >
+          Continue &rarr;
         </button>
       </div>
     </div>

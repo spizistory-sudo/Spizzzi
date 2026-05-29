@@ -31,6 +31,7 @@ export default function FinalizePage() {
     selectedMusicId,
     setSelectedVoice,
     setSelectedMusic,
+    setStep,
     language,
   } = useCreationWizard();
 
@@ -50,12 +51,12 @@ export default function FinalizePage() {
   const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
   const [playingMusicId, setPlayingMusicId] = useState<string | null>(null);
 
-  // Redirect if no book
+  // Redirect if no child details
   useEffect(() => {
-    if (!bookId || !generatedStory) {
-      router.replace('/create/category');
+    if (!childName) {
+      router.replace('/create/details');
     }
-  }, [bookId, generatedStory, router]);
+  }, [childName, router]);
 
   // Fetch music tracks from Supabase (fall back to hardcoded)
   useEffect(() => {
@@ -176,7 +177,7 @@ export default function FinalizePage() {
     };
   }, [phase, selectedMusicId]);
 
-  if (!bookId || !generatedStory) return null;
+  if (!childName) return null;
 
   const categories = ['All', ...new Set(musicTracks.map((t) => t.category))];
   const filteredTracks = musicCategory === 'All' ? musicTracks : musicTracks.filter((t) => t.category === musicCategory);
@@ -317,7 +318,7 @@ export default function FinalizePage() {
 
       <div className="mb-8">
         <h1 style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '2.2rem', fontWeight: 500, color: 'var(--text-primary)' }}>Finalize your book</h1>
-        <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>Choose a narrator voice and background music for &ldquo;{generatedStory.title}&rdquo;</p>
+        <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>Choose a narrator voice and background music for {childName}&apos;s story</p>
       </div>
 
       {/* Voice selector */}
@@ -462,10 +463,21 @@ export default function FinalizePage() {
 
       {/* Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 32 }}>
-        <button onClick={() => router.push('/create/preview')} className="btn-secondary">Back</button>
-        <button onClick={handleCreateBook} disabled={!selectedVoiceId} className="btn-primary">
-          &#10022; Create My Book
-        </button>
+        <button onClick={() => router.push('/create/categories')} className="btn-secondary">Back</button>
+        {bookId && generatedStory ? (
+          <button onClick={handleCreateBook} disabled={!selectedVoiceId} className="btn-primary">
+            &#10022; Create My Book
+          </button>
+        ) : (
+          <button
+            onClick={() => { setStep('preview'); router.push('/create/preview'); }}
+            disabled={!selectedVoiceId}
+            className="btn-primary"
+            style={{ opacity: selectedVoiceId ? 1 : 0.5, cursor: selectedVoiceId ? 'pointer' : 'not-allowed' }}
+          >
+            Continue &rarr;
+          </button>
+        )}
       </div>
     </div>
   );

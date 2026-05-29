@@ -338,7 +338,7 @@ export default function PreviewPage() {
 
       {/* Bottom actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 32, paddingBottom: 32 }}>
-        <button onClick={() => router.push('/create/photos')} className="btn-secondary">Back</button>
+        <button onClick={() => router.push('/create/finalize')} className="btn-secondary">Back</button>
       </div>
 
       {/* Generate covers button if no photos were uploaded */}

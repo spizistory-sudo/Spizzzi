@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCreationWizard } from '@/stores/creation-wizard';
 import WizardProgress from '@/components/wizard/WizardProgress';
+import PhotoUpload from '@/components/wizard/PhotoUpload';
 import { PERSONALITY_TRAITS } from '@/lib/personality-traits-en';
 import { INTERESTS, type Interest } from '@/lib/interests-en';
 
@@ -69,7 +70,7 @@ const GENDER_OPTIONS: { value: 'boy' | 'girl' | 'nonbinary'; label: string }[] =
 export default function DetailsPage() {
   const router = useRouter();
   const {
-    childName, childAge, childGender, childTraits, childInterests,
+    childName, childAge, childGender, childTraits, childInterests, uploadedPhotos,
     setChildDetails, setChildGender, setChildInterests, setStep,
   } = useCreationWizard();
 
@@ -79,6 +80,9 @@ export default function DetailsPage() {
   const [traits, setTraits] = useState<string[]>(childTraits);
   const [interests, setInterests] = useState<string[]>(childInterests);
   const [error, setError] = useState<string | null>(null);
+  const [showOptional, setShowOptional] = useState(childTraits.length > 0 || childInterests.length > 0);
+
+  const hasChildPhoto = uploadedPhotos.some((p) => p.label === 'child');
 
   function toggleTrait(id: string) {
     setTraits(prev => prev.includes(id) ? prev.filter(t => t !== id) : prev.length < 4 ? [...prev, id] : prev);
@@ -94,17 +98,16 @@ export default function DetailsPage() {
     if (!name.trim()) { setError("Please enter your child's name"); return; }
     if (!age || age < 3 || age > 12) { setError('Please select an age (3-12)'); return; }
     if (!gender) { setError('Please select a gender'); return; }
-    if (traits.length === 0) { setError('Please select at least one personality trait'); return; }
-    if (interests.length === 0) { setError('Please select at least one interest'); return; }
+    if (!hasChildPhoto) { setError('Please upload at least one photo of your child'); return; }
 
     setChildDetails(name.trim(), age, traits);
     setChildGender(gender);
     setChildInterests(interests);
-    setStep('stories');
-    router.push('/create/categories');
+    setStep('style');
+    router.push('/create/style');
   }
 
-  const isValid = name.trim() && age && gender && traits.length > 0 && interests.length > 0;
+  const isValid = name.trim() && age && gender && hasChildPhoto;
 
   return (
     <div>
@@ -115,7 +118,7 @@ export default function DetailsPage() {
           Tell us about your child
         </h1>
         <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
-          These details help us find the perfect story and make it truly personal.
+          These details help us create a story that feels truly personal.
         </p>
       </div>
 
@@ -158,55 +161,84 @@ export default function DetailsPage() {
           </div>
         </div>
 
-        {/* Personality Traits */}
+        {/* Optional: Personality + Interests (collapsible) */}
         <div>
-          <label style={labelStyle}>
-            What&apos;s your child like?
-            <span style={{ textTransform: 'none', letterSpacing: 'normal', fontWeight: 400, color: 'rgba(255,255,255,0.35)', marginLeft: 6 }}>
-              (pick up to 4)
-            </span>
-          </label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {PERSONALITY_TRAITS.map((trait) => (
-              <button key={trait.id} type="button" onClick={() => toggleTrait(trait.id)}
-                style={pillStyle(traits.includes(trait.id), traits.length >= 4)}
-                title={trait.description}
-              >
-                {trait.label}
-              </button>
-            ))}
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowOptional(!showOptional)}
+            className="flex items-center gap-2 transition-colors"
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+              color: 'rgba(255,255,255,0.55)', fontFamily: 'var(--font-body)', fontSize: '0.88rem', fontWeight: 500,
+            }}
+          >
+            <span style={{ fontSize: '0.7rem', transition: 'transform 0.2s', transform: showOptional ? 'rotate(90deg)' : 'rotate(0deg)', display: 'inline-block' }}>&#9654;</span>
+            Tell us more (optional)
+          </button>
+
+          {showOptional && (
+            <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 24 }}>
+              {/* Personality Traits */}
+              <div>
+                <label style={labelStyle}>
+                  What&apos;s your child like?
+                  <span style={{ textTransform: 'none', letterSpacing: 'normal', fontWeight: 400, color: 'rgba(255,255,255,0.35)', marginLeft: 6 }}>
+                    (pick up to 4)
+                  </span>
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {PERSONALITY_TRAITS.map((trait) => (
+                    <button key={trait.id} type="button" onClick={() => toggleTrait(trait.id)}
+                      style={pillStyle(traits.includes(trait.id), traits.length >= 4)}
+                      title={trait.description}
+                    >
+                      {trait.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Interests */}
+              <div>
+                <label style={labelStyle}>
+                  What does your child love?
+                  <span style={{ textTransform: 'none', letterSpacing: 'normal', fontWeight: 400, color: 'rgba(255,255,255,0.35)', marginLeft: 6 }}>
+                    (pick up to 5)
+                  </span>
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {INTEREST_GROUPS.map((group) => {
+                    const groupInterests = INTERESTS.filter(i => i.group === group.key);
+                    return (
+                      <div key={group.key}>
+                        <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: '0.75rem', fontWeight: 500, marginBottom: 6, fontFamily: 'var(--font-body)' }}>
+                          {group.label}
+                        </p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {groupInterests.map((interest) => (
+                            <button key={interest.id} type="button" onClick={() => toggleInterest(interest.id)}
+                              style={interestPillStyle(interests.includes(interest.id), interests.length >= 5)}
+                            >
+                              {interest.emoji} {interest.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Interests */}
+        {/* Photo upload */}
         <div>
-          <label style={labelStyle}>
-            What does your child love?
-            <span style={{ textTransform: 'none', letterSpacing: 'normal', fontWeight: 400, color: 'rgba(255,255,255,0.35)', marginLeft: 6 }}>
-              (pick up to 5)
-            </span>
-          </label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {INTEREST_GROUPS.map((group) => {
-              const groupInterests = INTERESTS.filter(i => i.group === group.key);
-              return (
-                <div key={group.key}>
-                  <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: '0.75rem', fontWeight: 500, marginBottom: 6, fontFamily: 'var(--font-body)' }}>
-                    {group.label}
-                  </p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {groupInterests.map((interest) => (
-                      <button key={interest.id} type="button" onClick={() => toggleInterest(interest.id)}
-                        style={interestPillStyle(interests.includes(interest.id), interests.length >= 5)}
-                      >
-                        {interest.emoji} {interest.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <label style={labelStyle}>Add a photo of your child</label>
+          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.84rem', marginBottom: 12, fontFamily: 'var(--font-body)' }}>
+            We use it to create illustrations that look like them.
+          </p>
+          <PhotoUpload />
         </div>
 
         {error && (
@@ -215,7 +247,7 @@ export default function DetailsPage() {
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 8, paddingBottom: 32 }}>
           <button type="submit" className="btn-primary" disabled={!isValid}
             style={{ opacity: isValid ? 1 : 0.5, cursor: isValid ? 'pointer' : 'not-allowed' }}
           >
