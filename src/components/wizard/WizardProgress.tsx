@@ -6,6 +6,7 @@ const enSteps: { key: WizardStep; label: string }[] = [
   { key: 'details', label: 'Details' },
   { key: 'style', label: 'Style' },
   { key: 'category', label: 'Category' },
+  { key: 'stories', label: 'Story' },
   { key: 'finalize', label: 'Narrator & Music' },
   { key: 'preview', label: 'Generate' },
 ];
