@@ -210,7 +210,7 @@ export default function FinalizePage() {
     setPlayingMusicId(track.id);
   }
 
-  // Create My Book — trigger illustrations + narration in parallel, switch to building view
+  // Create My Book — analyze photo, then fire illustrations + narration + covers
   async function handleCreateBook() {
     if (!selectedVoiceId) { setError('Please select a narrator voice'); return; }
 
@@ -228,18 +228,52 @@ export default function FinalizePage() {
       }).eq('id', bookId);
     } catch { /* continue */ }
 
-    // Start illustrations (fire and forget)
+    // Switch to building UI immediately
+    setBuildProgress({ illustrationsComplete: 0, narrationsComplete: 0, total: (generatedStory?.pages.length || 0) * 2 });
+    setPhase('building');
+
+    // Step 1: Analyze the uploaded child photo (MUST complete before illustrations)
+    try {
+      const { data: photos } = await supabase
+        .from('photos')
+        .select('storage_path')
+        .eq('book_id', bookId)
+        .eq('label', 'child')
+        .limit(1);
+
+      if (photos && photos.length > 0) {
+        console.log('[finalize] Analyzing child photo before illustrations');
+        const analyzeRes = await fetch('/api/analyze-photo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookId, storagePath: photos[0].storage_path }),
+        });
+        if (!analyzeRes.ok) {
+          console.warn('[finalize] Photo analysis failed, continuing anyway');
+        } else {
+          console.log('[finalize] Photo analyzed successfully');
+        }
+      } else {
+        console.warn('[finalize] No child photo found, skipping analysis');
+      }
+    } catch (err) {
+      console.error('[finalize] Photo analysis error:', err);
+    }
+
+    // Step 2: Fire-and-forget cover generation
+    fetch('/api/generate-cover', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId }),
+    }).catch((err) => console.error('Failed to start cover generation:', err));
+
+    // Step 3: Fire-and-forget illustrations
     fetch('/api/generate-illustrations', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId }),
     }).catch((err) => console.error('Failed to start illustrations:', err));
 
-    // Start narration (fire and forget)
+    // Step 4: Fire-and-forget narration
     fetch('/api/generate-narration', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId, voiceId: selectedVoiceId, language }),
     }).catch((err) => console.error('Failed to start narration:', err));
-
-    setBuildProgress({ illustrationsComplete: 0, narrationsComplete: 0, total: (generatedStory?.pages.length || 0) * 2 });
-    setPhase('building');
   }
 
   // ── Full-screen immersive building / done overlay ──

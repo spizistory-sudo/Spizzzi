@@ -116,6 +116,16 @@ export async function POST(req: Request) {
     }
     console.log(`[generate-cover] ${coverResults.length}/${ART_STYLE_KEYS.length} covers succeeded`);
 
+    // Auto-select the first cover so the new flow has a cover to display
+    if (coverResults.length > 0) {
+      const firstCoverId = coverResults[0].id;
+      await supabase
+        .from('cover_options')
+        .update({ is_selected: true })
+        .eq('id', firstCoverId);
+      console.log(`[generate-cover] Auto-selected first cover ${firstCoverId}`);
+    }
+
     if (coverResults.length === 0) {
       return NextResponse.json(
         { error: 'Failed to generate any covers', details: errors },

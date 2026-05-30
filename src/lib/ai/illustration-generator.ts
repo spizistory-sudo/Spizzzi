@@ -106,7 +106,7 @@ TECHNICAL RULES:
 - The illustration must fill the ENTIRE image canvas edge to edge
 - No white borders, no margins, no book-related visual elements whatsoever
 - Think of this as a movie poster or a painting on a wall — NOT a page in a book
-- CRITICAL: Do NOT include any text, title, words, letters, numbers, or writing ANYWHERE in the image. Generate ONLY the illustration with NO text whatsoever. We will add the title separately with CSS.`;
+- ABSOLUTELY NO TEXT IN THE IMAGE. The illustration must contain ZERO words, ZERO letters, ZERO numbers, ZERO signs, ZERO labels, ZERO speech bubbles, ZERO writing of any kind anywhere in the scene. No text on books, no text on signs, no text on clothing, no text in the background, no text in the foreground, no text anywhere. If the scene includes a book, sign, banner, or paper, those objects must be BLANK with no writing on them. This is critical — text in illustrations breaks the book. The illustration is PURE VISUAL ART with no written elements. We will add the title separately with CSS.`;
 
   // DEV_ILLUSTRATIONS=true: FLUX.2 Pro via fal.ai — cheap dev mode (~$0.03/image)
   if (isDevIllustrations()) {
@@ -217,7 +217,7 @@ TECHNICAL RULES:
 - Do NOT make it look like a photo of a printed page
 - Fill the entire canvas edge to edge — no white borders, no margins, no frames
 - Think of this as a movie frame or a painting on a wall — NOT a page in a book
-- Do NOT include any text, title, words, letters, numbers, or writing in the image
+- ABSOLUTELY NO TEXT IN THE IMAGE. The illustration must contain ZERO words, ZERO letters, ZERO numbers, ZERO signs, ZERO labels, ZERO speech bubbles, ZERO writing of any kind anywhere in the scene. No text on books, no text on signs, no text on clothing, no text in the background, no text in the foreground, no text anywhere. If the scene includes a book, sign, banner, or paper, those objects must be BLANK with no writing on them. This is critical — text in illustrations breaks the book. The illustration is PURE VISUAL ART with no written elements.
 - Mood: ${mood}`;
 
   console.log(`[PROMPT DEBUG] Full page illustration prompt:\n${promptText}`);
