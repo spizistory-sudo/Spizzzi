@@ -33,11 +33,20 @@ export async function POST(req: Request) {
       description = `A child around age 5-8 with a friendly, cheerful expression`;
     }
 
-    // Save to book metadata
+    // Save to book metadata (merge with existing to preserve other fields)
+    const { data: existingBook } = await supabase
+      .from('books')
+      .select('metadata')
+      .eq('id', bookId)
+      .eq('user_id', user.id)
+      .single();
+
+    const existingMeta = (existingBook?.metadata as Record<string, unknown>) || {};
+
     const { error: updateError } = await supabase
       .from('books')
       .update({
-        metadata: { character_description: description },
+        metadata: { ...existingMeta, character_description: description },
       })
       .eq('id', bookId)
       .eq('user_id', user.id);

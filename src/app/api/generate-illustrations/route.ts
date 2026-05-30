@@ -50,15 +50,37 @@ export async function POST(req: Request) {
       .single();
 
     const styleKey = (selectedCover?.style_name || 'storybook') as ArtStyleKey;
-    const bookMeta = (book.metadata || {}) as Record<string, string>;
-    const childGender = bookMeta.childGender || 'male';
-    const genderDesc = childGender === 'female'
-      ? `A ${book.child_age}-year-old girl (female child) named ${book.child_name}. She has typical feminine features.`
-      : `A ${book.child_age}-year-old boy (male child) named ${book.child_name}. He has short hair and wears typical boy clothing like a t-shirt and pants.`;
-    const characterDescription = bookMeta.character_description || genderDesc;
-    const characterBible = bookMeta.character_bible || '';
+    const bookMeta = (book.metadata || {}) as Record<string, unknown>;
+    // Resolve gender from child_profile (English flow) or childGender (Hebrew flow)
+    const childProfile = bookMeta.child_profile as Record<string, unknown> | undefined;
+    const childGender = (childProfile?.gender as string) || (bookMeta.childGender as string) || 'male';
+    // Normalize: 'boy'→'male', 'girl'→'female'
+    const normalizedGender = childGender === 'girl' || childGender === 'female' ? 'female' : childGender === 'boy' || childGender === 'male' ? 'male' : 'other';
 
-    // Load reference images for Nano Banana Pro
+    const photoDescription = (bookMeta.character_description as string) || '';
+    const storyBible = (bookMeta.character_bible as string) || '';
+
+    const genderLock = normalizedGender === 'female'
+      ? `THIS CHARACTER IS A GIRL — feminine face, feminine features. NOT a boy. The character is FEMALE. ${book.child_name} is a girl.`
+      : normalizedGender === 'male'
+      ? `THIS CHARACTER IS A BOY — masculine face, masculine features. NOT a girl. The character is MALE. ${book.child_name} is a boy.`
+      : `${book.child_name} is a child.`;
+
+    const fallbackDescription = normalizedGender === 'female'
+      ? `A ${book.child_age}-year-old girl named ${book.child_name}. She is clearly female with feminine facial features, feminine hair, and feminine body proportions. Her face is rounded with soft feminine features. She does NOT look like a boy.`
+      : normalizedGender === 'male'
+      ? `A ${book.child_age}-year-old boy named ${book.child_name}. He is clearly male with masculine facial features, short masculine hair, and masculine body proportions. His face has clear masculine features. He does NOT look like a girl.`
+      : `A ${book.child_age}-year-old child named ${book.child_name}.`;
+
+    const characterDescription = [
+      genderLock,
+      photoDescription || fallbackDescription,
+      storyBible,
+    ].filter(Boolean).join('\n\n');
+
+    const characterBible = '';
+
+    // Load reference images
     let childPhotoBase64: string | undefined;
     const { data: photos } = await supabase
       .from('photos')
@@ -72,6 +94,21 @@ export async function POST(req: Request) {
         childPhotoBase64 = await getImageBase64('photos', photos[0].storage_path);
       } catch { /* continue without */ }
     }
+
+    console.log('[generate-illustrations] CHARACTER LOCK:', {
+      bookId,
+      gender: normalizedGender,
+      photoDescLength: photoDescription.length,
+      storyBibleLength: storyBible.length,
+      combinedLength: characterDescription.length,
+      preview: characterDescription.substring(0, 300),
+    });
+
+    console.log('[generate-illustrations] PHOTO LOADED:', {
+      bookId,
+      photosFound: photos?.length || 0,
+      photoBase64Length: childPhotoBase64?.length || 0,
+    });
 
     let coverImageBase64: string | undefined;
     if (selectedCover?.image_url) {
