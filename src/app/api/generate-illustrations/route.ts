@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { generatePageIllustration } from '@/lib/ai/illustration-generator';
 import { uploadImage, getImageBase64 } from '@/lib/supabase/storage';
 import type { ArtStyleKey } from '@/lib/ai/prompts/style-references';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export const maxDuration = 300;
 
@@ -118,6 +120,17 @@ export async function POST(req: Request) {
       } catch { /* continue without */ }
     }
 
+    // Load style preview PNG
+    let stylePreviewBase64: string | undefined;
+    try {
+      const previewPath = path.join(process.cwd(), 'public', 'images', 'styles', `${styleKey}.png`);
+      if (fs.existsSync(previewPath)) {
+        const buffer = fs.readFileSync(previewPath);
+        stylePreviewBase64 = buffer.toString('base64');
+        console.log('[generate-illustrations] Style preview loaded:', { styleKey, sizeKB: Math.round(buffer.length / 1024) });
+      }
+    } catch { /* continue without */ }
+
     // Mark all pages as generating
     await supabase
       .from('pages')
@@ -138,6 +151,7 @@ export async function POST(req: Request) {
       characterBible,
       childPhotoBase64,
       coverImageBase64,
+      stylePreviewBase64,
     });
 
     return NextResponse.json({ status: 'complete', total: pages.length, results });
@@ -163,8 +177,9 @@ async function generateAllIllustrations(params: {
   characterBible: string;
   childPhotoBase64?: string;
   coverImageBase64?: string;
+  stylePreviewBase64?: string;
 }): Promise<Array<{ pageNumber: number; status: string; url?: string; error?: string }>> {
-  const { bookId, pages, styleKey, characterDescription, characterBible, childPhotoBase64, coverImageBase64 } = params;
+  const { bookId, pages, styleKey, characterDescription, characterBible, childPhotoBase64, coverImageBase64, stylePreviewBase64 } = params;
 
   const { createClient: createServiceClient } = await import('@supabase/supabase-js');
   const supabase = createServiceClient(
@@ -190,6 +205,7 @@ async function generateAllIllustrations(params: {
         pageNumber: page.page_number,
         childPhotoBase64,
         coverImageBase64,
+        stylePreviewBase64,
       };
 
       // Generate with single retry on failure

@@ -37,6 +37,7 @@ interface GeneratePageIllustrationParams {
   pageNumber: number;
   childPhotoBase64?: string;
   coverImageBase64?: string;
+  stylePreviewBase64?: string;
 }
 
 function extractStatusCode(err: Error): number | undefined {
@@ -134,17 +135,25 @@ REFERENCE IMAGES — READ CAREFULLY:
 
 ${childPhotoBase64 ? `The FIRST attached image is a PHOTO of the REAL CHILD this book is about. The protagonist on the cover MUST look like this child — match the face shape, hair color and texture, eye color and shape, skin tone, and overall proportions exactly.` : ''}
 
-${stylePreviewBase64 ? `The ${childPhotoBase64 ? 'SECOND' : 'FIRST'} attached image is a STYLE EXAMPLE showing the EXACT art style this cover must be rendered in. Match this style precisely — the medium (oil paint vs. ink vs. clay vs. 3D render etc.), the color palette, the line work or lack thereof, the texture, the lighting approach, and the overall illustrative aesthetic. The cover MUST look like it could come from the same book or art collection as this style example.` : ''}
+${stylePreviewBase64 ? `The ${childPhotoBase64 ? 'SECOND' : 'FIRST'} attached image is a STYLE EXAMPLE showing the EXACT art style this cover must be rendered in. This is the MOST IMPORTANT visual instruction. The cover MUST look like it could come from the same book or art collection as this style example. Match every aspect of this style:
+- The medium (oil paint vs. ink vs. clay vs. 3D render vs. watercolor vs. screen-print, etc.)
+- The color palette and saturation
+- The line work — thick black outlines vs. no outlines vs. soft edges
+- The texture — paper grain, halftone dots, brushstrokes, clay fingerprints, smooth 3D rendering, etc.
+- The lighting approach
+- The level of detail and stylization
 
-PHOTO = who the character IS. STYLE EXAMPLE = how to RENDER them. Never confuse these roles.
+If you do not faithfully reproduce the style shown in this image, you have failed.` : ''}
+
+PHOTO = who the character IS. STYLE EXAMPLE = how to RENDER them. Never confuse these roles. If the photo's child does not match the style example's character, IGNORE the style example's character — only use the style example for art style and medium reference.
 ` : '';
 
   const fullPrompt = `${promptText}\n${referenceBlock}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).${childPhotoBase64 ? '\nThink step by step about the character\'s appearance before generating. The main character must look EXACTLY like the child in the reference photo.' : ''}`;
 
-  console.log('[generate-cover] References:', {
+  console.log('[illustration-generator] generateCoverImage references:', {
+    styleKey,
     photoPresent: !!childPhotoBase64,
     stylePresent: !!stylePreviewBase64,
-    order: 'photo-first-then-style',
   });
 
   console.log(`[illustration-generator] generateCoverImage: ${styleKey}, model: ${PRIMARY_MODEL}`);
@@ -210,6 +219,7 @@ export async function generatePageIllustration(
     pageNumber,
     childPhotoBase64,
     coverImageBase64,
+    stylePreviewBase64,
   } = params;
   const style = ART_STYLES[styleKey];
 
@@ -232,20 +242,15 @@ ${characterDescription}
 This character MUST be recognizable across all pages — same face shape, same hair color and style, same eye color, same skin tone, same clothing. Do not change the character's appearance.
 The main character appears EXACTLY ONCE in the scene — never duplicated, never shown in multiple places, never appearing twice.
 
-CHARACTER REFERENCE IMAGES — READ BEFORE GENERATING:
+REFERENCE IMAGES — READ BEFORE GENERATING:
 
-The FIRST attached image is a PHOTO of the REAL CHILD this book is about. This is the single source of truth for the protagonist's appearance. The protagonist on this page MUST look like this child:
-- Face shape: match exactly
-- Hair color, length, and texture: match exactly
-- Eye color and shape: match exactly
-- Skin tone: match exactly
-- Overall proportions: match exactly
+The FIRST attached image is a PHOTO of the REAL CHILD this book is about. The protagonist on this page MUST look like this child — face shape, hair, eyes, skin tone, proportions all matching the photo.
 
-Other pages in this same book have been illustrated by referencing this same photo. To keep the character consistent across all pages, you MUST anchor on this photo.
+The SECOND attached image is a STYLE EXAMPLE showing the EXACT art style every page of this book uses. This is the MOST IMPORTANT visual instruction. The illustration MUST match this style precisely — medium, palette, line work, texture, lighting, level of stylization. If you do not faithfully reproduce the art style shown in this image, you have failed.
 
-The SECOND attached image is the COVER ILLUSTRATION of this book. USE IT ONLY FOR ART STYLE — the brushwork, the color palette, the texture, the overall illustrative approach. DO NOT use the cover as a character reference. Even if the cover's protagonist looks slightly different, IGNORE that — only the FIRST image (the photo) defines the protagonist's appearance.
+The THIRD attached image (if present) is the COVER of this same book. Use it for visual consistency with other pages — same character design choices, same color treatment. But the STYLE EXAMPLE (second image) is the authoritative style reference. If the cover and the style example differ, prioritize the STYLE EXAMPLE.
 
-In short: PHOTO = who the character IS. COVER = how to PAINT them. Never confuse these roles.
+PHOTO = who. STYLE EXAMPLE = how to render. COVER = consistency with other pages.
 
 REMINDER — THE PROTAGONIST IN THIS SCENE:
 ${characterDescription.substring(0, 300)}
@@ -284,16 +289,15 @@ ${ANTI_TEXT_RULES}${extraAntiText}
   }
 
   const fullPrompt = childPhotoBase64
-    ? `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).\nThink step by step about the character's appearance. The main character must look EXACTLY like the child in the reference photo (FIRST image). Use the cover (SECOND image) for art style ONLY.`
+    ? `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).\nThink step by step about the character's appearance. The main character must look EXACTLY like the child in the reference photo (FIRST image). Use the style example (SECOND image) for art style. Use the cover (THIRD image) for consistency.`
     : `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).`;
 
-  console.log('[illustration-generator] References:', {
+  console.log('[illustration-generator] Page references:', {
     pageNumber,
+    styleKey,
     photoPresent: !!childPhotoBase64,
-    photoLength: childPhotoBase64?.length || 0,
+    stylePresent: !!stylePreviewBase64,
     coverPresent: !!coverImageBase64,
-    coverLength: coverImageBase64?.length || 0,
-    order: 'photo-first-then-cover',
   });
 
   return generateWithRateLimit(async () => {
@@ -301,11 +305,15 @@ ${ANTI_TEXT_RULES}${extraAntiText}
 
     try {
       const parts: Part[] = [];
-      // Photo FIRST — character reference
+      // FIRST: child photo — character reference
       if (childPhotoBase64) {
         parts.push({ inlineData: { mimeType: 'image/jpeg', data: childPhotoBase64 } });
       }
-      // Cover SECOND — style reference only
+      // SECOND: style preview — art style reference
+      if (stylePreviewBase64) {
+        parts.push({ inlineData: { mimeType: 'image/png', data: stylePreviewBase64 } });
+      }
+      // THIRD: cover — consistency reference
       if (coverImageBase64) {
         parts.push({ inlineData: { mimeType: 'image/png', data: coverImageBase64 } });
       }

@@ -1,25 +1,21 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateCoverImage } from '@/lib/ai/illustration-generator';
-import { ART_STYLES, ART_STYLE_KEYS } from '@/lib/ai/prompts/style-references';
+import { ART_STYLES, ART_STYLE_KEYS, type ArtStyleKey } from '@/lib/ai/prompts/style-references';
 import { uploadImage, getImageBase64 } from '@/lib/supabase/storage';
 import * as fs from 'fs';
 import * as path from 'path';
 
+export const maxDuration = 300;
+
 export async function POST(req: Request) {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { bookId } = await req.json();
-    if (!bookId) {
-      return NextResponse.json({ error: 'bookId is required' }, { status: 400 });
-    }
+    if (!bookId) return NextResponse.json({ error: 'bookId is required' }, { status: 400 });
 
     const { data: book, error: bookError } = await supabase
       .from('books')
@@ -34,6 +30,17 @@ export async function POST(req: Request) {
     }
 
     const bookMeta = (book.metadata || {}) as Record<string, unknown>;
+
+    // Resolve chosen style from metadata
+    const rawStyleKey = (bookMeta.style_key as string) || (bookMeta.styleKey as string);
+    const validKeys = ART_STYLE_KEYS as string[];
+    const styleKey = (rawStyleKey && validKeys.includes(rawStyleKey) ? rawStyleKey : 'watercolor') as ArtStyleKey;
+    if (rawStyleKey && !validKeys.includes(rawStyleKey)) {
+      console.warn('[generate-cover] Invalid styleKey, defaulting to watercolor:', rawStyleKey);
+    }
+    console.log('[generate-cover] Generating single cover in style:', styleKey);
+
+    // Build character description with gender lock
     const childProfile = (bookMeta.child_profile as Record<string, unknown>) || {};
     const profileGender = (childProfile.gender as string) || (bookMeta.childGender as string) || 'male';
     const childGender = profileGender === 'boy' ? 'male' : profileGender === 'girl' ? 'female' : profileGender;
@@ -53,27 +60,18 @@ export async function POST(req: Request) {
       ? `A ${book.child_age}-year-old boy named ${book.child_name}. He is clearly male with masculine facial features, short masculine hair, and masculine body proportions.`
       : `A ${book.child_age}-year-old child named ${book.child_name}.`;
 
-    const characterDescription = [
-      genderLock,
-      photoDescription || fallbackDescription,
-      storyBible,
-    ].filter(Boolean).join('\n\n');
+    const characterDescription = [genderLock, photoDescription || fallbackDescription, storyBible].filter(Boolean).join('\n\n');
 
-    const rawThemeDescription =
-      (bookMeta.themeSlug as string) || 'adventure';
-    const themeDescription = storyBible
-      ? `${storyBible}\n\n${rawThemeDescription}`
-      : rawThemeDescription;
+    const rawThemeDescription = (bookMeta.themeSlug as string) || 'adventure';
+    const themeDescription = storyBible ? `${storyBible}\n\n${rawThemeDescription}` : rawThemeDescription;
 
     console.log('[generate-cover] GENDER LOCK:', {
-      bookId,
-      gender: childGender,
+      bookId, gender: childGender,
       photoDescLength: photoDescription.length,
       storyBibleLength: storyBible.length,
-      preview: characterDescription.substring(0, 200),
     });
 
-    // Load child photo as reference image
+    // Load child photo
     let childPhotoBase64: string | undefined;
     const { data: photos } = await supabase
       .from('photos')
@@ -85,92 +83,61 @@ export async function POST(req: Request) {
     if (photos?.[0]) {
       try {
         childPhotoBase64 = await getImageBase64('photos', photos[0].storage_path);
-        console.log('[generate-cover] Loaded child photo reference, length:', childPhotoBase64.length);
+        console.log('[generate-cover] Child photo loaded, length:', childPhotoBase64.length);
       } catch (err) {
-        console.warn('[generate-cover] Could not load child photo, continuing without:', err);
+        console.warn('[generate-cover] Could not load child photo:', err);
       }
     }
 
-    // Load style preview PNGs for reference
-    const stylePreviewCache: Record<string, string> = {};
-    for (const sk of ART_STYLE_KEYS) {
-      try {
-        const previewPath = path.join(process.cwd(), 'public', 'images', 'styles', `${sk}.png`);
-        if (fs.existsSync(previewPath)) {
-          stylePreviewCache[sk] = fs.readFileSync(previewPath).toString('base64');
-        }
-      } catch { /* skip */ }
+    // Load style preview PNG
+    let stylePreviewBase64: string | undefined;
+    try {
+      const previewPath = path.join(process.cwd(), 'public', 'images', 'styles', `${styleKey}.png`);
+      if (fs.existsSync(previewPath)) {
+        const buffer = fs.readFileSync(previewPath);
+        stylePreviewBase64 = buffer.toString('base64');
+        console.log('[generate-cover] Style preview loaded:', { styleKey, sizeKB: Math.round(buffer.length / 1024) });
+      } else {
+        console.warn('[generate-cover] Style preview not found:', previewPath);
+      }
+    } catch (err) {
+      console.warn('[generate-cover] Failed to load style preview:', err);
     }
-    console.log(`[generate-cover] Style previews loaded: ${Object.keys(stylePreviewCache).length}/${ART_STYLE_KEYS.length}`);
 
-    // Generate covers in parallel (Promise.allSettled — partial success is OK)
-    console.log(`[generate-cover] Starting ${ART_STYLE_KEYS.length} covers in parallel...`);
+    // Generate ONE cover in chosen style
+    const imageBuffer = await generateCoverImage({
+      styleKey,
+      bookTitle: book.title,
+      characterDescription,
+      themeDescription,
+      childPhotoBase64,
+      stylePreviewBase64,
+    });
 
-    const settled = await Promise.allSettled(
-      ART_STYLE_KEYS.map(async (styleKey) => {
-        console.log(`[generate-cover] Generating ${styleKey} cover...`);
-        const imageBuffer = await generateCoverImage({
-          styleKey,
-          bookTitle: book.title,
-          characterDescription,
-          themeDescription,
-          childPhotoBase64,
-          stylePreviewBase64: stylePreviewCache[styleKey],
-        });
+    const storagePath = `${bookId}/cover-${styleKey}.png`;
+    const imageUrl = await uploadImage('covers', storagePath, imageBuffer);
 
-        const storagePath = `${bookId}/cover-${styleKey}.png`;
-        const imageUrl = await uploadImage('covers', storagePath, imageBuffer);
-
-        const { data: cover, error: coverError } = await supabase
-          .from('cover_options')
-          .insert({
-            book_id: bookId,
-            style_name: styleKey,
-            image_url: imageUrl,
-            style_prompt: ART_STYLES[styleKey].stylePrompt,
-          })
-          .select()
-          .single();
-
-        if (coverError) throw coverError;
-        console.log(`[generate-cover] ${styleKey} saved, id:`, cover.id);
-        return cover;
+    const { data: cover, error: coverError } = await supabase
+      .from('cover_options')
+      .insert({
+        book_id: bookId,
+        style_name: styleKey,
+        image_url: imageUrl,
+        style_prompt: ART_STYLES[styleKey].stylePrompt,
+        is_selected: true,
       })
-    );
+      .select()
+      .single();
 
-    const coverResults = settled
-      .filter((r): r is PromiseFulfilledResult<typeof settled extends Array<PromiseSettledResult<infer T>> ? T : never> => r.status === 'fulfilled')
-      .map((r) => r.value);
-
-    const errors = settled
-      .map((r, i) => r.status === 'rejected' ? { style: ART_STYLE_KEYS[i], error: r.reason instanceof Error ? r.reason.message : String(r.reason) } : null)
-      .filter(Boolean);
-
-    if (errors.length > 0) {
-      console.error('[generate-cover] Some styles failed:', errors);
-    }
-    console.log(`[generate-cover] ${coverResults.length}/${ART_STYLE_KEYS.length} covers succeeded`);
-
-    // Auto-select the first cover so the new flow has a cover to display
-    if (coverResults.length > 0) {
-      const firstCoverId = coverResults[0].id;
-      await supabase
-        .from('cover_options')
-        .update({ is_selected: true })
-        .eq('id', firstCoverId);
-      console.log(`[generate-cover] Auto-selected first cover ${firstCoverId}`);
+    if (coverError) {
+      console.error('[generate-cover] Failed to save cover:', coverError);
+      return NextResponse.json({ error: 'Failed to save cover' }, { status: 500 });
     }
 
-    if (coverResults.length === 0) {
-      return NextResponse.json(
-        { error: 'Failed to generate any covers', details: errors },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ covers: coverResults });
+    console.log('[generate-cover] Single cover generated and auto-selected:', { coverId: cover.id, styleKey });
+    return NextResponse.json({ covers: [cover] });
   } catch (err) {
     console.error('[generate-cover] Unhandled error:', err);
-    return NextResponse.json({ error: 'Failed to generate covers' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to generate cover' }, { status: 500 });
   }
 }
