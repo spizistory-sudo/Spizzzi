@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCreationWizard } from '@/stores/creation-wizard';
+import { createClient } from '@/lib/supabase/client';
 import WizardProgress from '@/components/wizard/WizardProgress';
 import { getStoriesByCategory, getStoryById } from '@/lib/ai/prompts/en/story-catalog';
 import type { CurationResult, StoryRecommendation } from '@/lib/ai/curation-en';
@@ -18,6 +19,7 @@ export default function StoriesPage() {
     setGeneratedStory, setIsGenerating,
     photoDescription,
     selectedStyleKey,
+    uploadedPhotos,
   } = useCreationWizard();
 
   const [loading, setLoading] = useState(false);
@@ -110,6 +112,27 @@ export default function StoriesPage() {
 
       const data = await res.json();
       setGeneratedStory(data.story, data.bookId);
+
+      // Save uploaded photos to the photos table with the new bookId
+      if (uploadedPhotos.length > 0 && data.bookId) {
+        try {
+          const supabase = createClient();
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const photoRows = uploadedPhotos.map((p) => ({
+              book_id: data.bookId,
+              user_id: user.id,
+              storage_path: p.storagePath,
+              label: p.label,
+            }));
+            await supabase.from('photos').insert(photoRows);
+            console.log('[stories] Saved', photoRows.length, 'photos to DB for book', data.bookId);
+          }
+        } catch (err) {
+          console.warn('[stories] Failed to save photos to DB:', err);
+        }
+      }
+
       setStep('finalize');
       router.push('/create/finalize');
     } catch (e) {

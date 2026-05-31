@@ -51,8 +51,16 @@ export async function POST(req: Request) {
       .eq('is_selected', true)
       .single();
 
-    const styleKey = (selectedCover?.style_name || 'storybook') as ArtStyleKey;
     const bookMeta = (book.metadata || {}) as Record<string, unknown>;
+
+    // Read styleKey from book metadata (set at story creation), with validation
+    const validStyleKeys = ['watercolor', 'comic', 'anime', 'claymation', 'minimalist', 'storybook', 'pixar', 'vintage'];
+    const rawStyleKey = (bookMeta.style_key as string) || (bookMeta.styleKey as string) || (selectedCover?.style_name as string);
+    const styleKey = (rawStyleKey && validStyleKeys.includes(rawStyleKey) ? rawStyleKey : 'watercolor') as ArtStyleKey;
+    if (rawStyleKey && !validStyleKeys.includes(rawStyleKey)) {
+      console.warn('[generate-illustrations] Invalid styleKey, defaulting to watercolor:', rawStyleKey);
+    }
+    console.log('[generate-illustrations] Using styleKey:', styleKey);
     // Resolve gender from child_profile (English flow) or childGender (Hebrew flow)
     const childProfile = bookMeta.child_profile as Record<string, unknown> | undefined;
     const childGender = (childProfile?.gender as string) || (bookMeta.childGender as string) || 'male';
