@@ -51,6 +51,13 @@ export async function POST(req: Request) {
       .eq('id', bookId)
       .eq('user_id', user.id);
 
+    console.log('[analyze-photo] Update result:', {
+      bookId,
+      descriptionLength: description.length,
+      descriptionPreview: description.substring(0, 100),
+      updateError: updateError?.message || null,
+    });
+
     if (updateError) {
       console.error('Error saving character description:', updateError);
       return NextResponse.json(
@@ -58,6 +65,19 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+
+    // Verify the write persisted
+    const { data: verifyBook } = await supabase
+      .from('books')
+      .select('metadata')
+      .eq('id', bookId)
+      .single();
+    const verifyMeta = (verifyBook?.metadata as Record<string, unknown>) || {};
+    console.log('[analyze-photo] Verify after write:', {
+      bookId,
+      charDescInMetadata: typeof verifyMeta.character_description === 'string' ? (verifyMeta.character_description as string).substring(0, 100) : 'MISSING',
+      fullMetaKeys: Object.keys(verifyMeta),
+    });
 
     return NextResponse.json({ description });
   } catch (err) {

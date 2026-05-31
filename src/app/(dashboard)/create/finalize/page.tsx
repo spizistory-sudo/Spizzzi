@@ -103,13 +103,24 @@ export default function FinalizePage() {
 
         if (pageCount > 0 && illComplete >= pageCount && narComplete >= pageCount) {
           clearInterval(interval);
-          setPhase('done');
+          // Don't setPhase('done') here — separate effect waits for cover too
         }
       } catch { /* keep polling */ }
     }, 3000);
 
     return () => clearInterval(interval);
   }, [phase, bookId]);
+
+  // Transition to 'done' when all generation is complete AND cover is loaded
+  useEffect(() => {
+    if (phase !== 'building') return;
+    const pageCount = generatedStory?.pages?.length || 0;
+    if (pageCount === 0) return;
+    const allDone = buildProgress.illustrationsComplete >= pageCount && buildProgress.narrationsComplete >= pageCount;
+    if (allDone && coverUrl) {
+      setPhase('done');
+    }
+  }, [phase, buildProgress, coverUrl, generatedStory]);
 
   // Fetch cover URL eagerly (as soon as we have a bookId) — no .single() to avoid throw on 0 rows
   useEffect(() => {
@@ -149,6 +160,28 @@ export default function FinalizePage() {
     }
     loadCover();
   }, [bookId, coverUrl, supabase]);
+
+  // Poll for cover during building phase (cover generates in parallel)
+  useEffect(() => {
+    if (phase !== 'building' || !bookId || coverUrl) return;
+
+    const coverPoll = setInterval(async () => {
+      const { data: covers } = await supabase
+        .from('cover_options')
+        .select('image_url')
+        .eq('book_id', bookId)
+        .eq('is_selected', true)
+        .limit(1);
+
+      if (covers && covers.length > 0 && covers[0].image_url) {
+        console.log('[finalize] Cover poll found:', covers[0].image_url);
+        setCoverUrl(covers[0].image_url);
+        clearInterval(coverPoll);
+      }
+    }, 3000);
+
+    return () => clearInterval(coverPoll);
+  }, [phase, bookId, coverUrl, supabase]);
 
   // Play background music during building phase
   useEffect(() => {
@@ -260,6 +293,9 @@ export default function FinalizePage() {
       console.error('[finalize] Photo analysis error:', err);
     }
 
+    // Brief delay to ensure metadata write propagates before downstream reads
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     // Step 2: Fire-and-forget cover generation
     fetch('/api/generate-cover', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId }),
@@ -311,9 +347,10 @@ export default function FinalizePage() {
                 } catch { /* continue */ }
                 router.push(`/reader/${bookId}?skipCover=true`);
               }}
-              className="px-10 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-lg font-semibold transition shadow-lg shadow-purple-900/40"
+              disabled={!coverUrl}
+              className="px-10 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-lg font-semibold transition shadow-lg shadow-purple-900/40 disabled:opacity-50 disabled:cursor-wait"
             >
-              Start Reading
+              {coverUrl ? 'Start Reading' : 'Almost ready...'}
             </button>
           </div>
         ) : (

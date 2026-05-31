@@ -31,24 +31,44 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Book not found' }, { status: 404 });
     }
 
-    const bookMeta = (book.metadata || {}) as Record<string, string>;
-    const childGender = bookMeta.childGender || 'male';
-    const genderDesc = childGender === 'female'
-      ? `A ${book.child_age}-year-old girl (female child) named ${book.child_name}. She has typical feminine features.`
-      : `A ${book.child_age}-year-old boy (male child) named ${book.child_name}. He has short hair and wears typical boy clothing like a t-shirt and pants.`;
-    const characterDescription = bookMeta.character_description || genderDesc;
+    const bookMeta = (book.metadata || {}) as Record<string, unknown>;
+    const childProfile = (bookMeta.child_profile as Record<string, unknown>) || {};
+    const profileGender = (childProfile.gender as string) || (bookMeta.childGender as string) || 'male';
+    const childGender = profileGender === 'boy' ? 'male' : profileGender === 'girl' ? 'female' : profileGender;
 
-    const characterBible = bookMeta.character_bible || '';
+    const photoDescription = (bookMeta.character_description as string) || '';
+    const storyBible = (bookMeta.character_bible as string) || '';
+
+    const genderLock = childGender === 'female'
+      ? `THIS CHARACTER IS A GIRL — feminine face, feminine features. NOT a boy. The character is FEMALE. ${book.child_name} is a girl.`
+      : childGender === 'male'
+      ? `THIS CHARACTER IS A BOY — masculine face, masculine features. NOT a girl. The character is MALE. ${book.child_name} is a boy.`
+      : `${book.child_name} is a child.`;
+
+    const fallbackDescription = childGender === 'female'
+      ? `A ${book.child_age}-year-old girl named ${book.child_name}. She is clearly female with feminine facial features, feminine hair, and feminine body proportions.`
+      : childGender === 'male'
+      ? `A ${book.child_age}-year-old boy named ${book.child_name}. He is clearly male with masculine facial features, short masculine hair, and masculine body proportions.`
+      : `A ${book.child_age}-year-old child named ${book.child_name}.`;
+
+    const characterDescription = [
+      genderLock,
+      photoDescription || fallbackDescription,
+      storyBible,
+    ].filter(Boolean).join('\n\n');
+
     const rawThemeDescription =
-      (book.metadata as Record<string, string>)?.themeSlug || 'adventure';
-    const themeDescription = characterBible
-      ? `${characterBible}\n\n${rawThemeDescription}`
+      (bookMeta.themeSlug as string) || 'adventure';
+    const themeDescription = storyBible
+      ? `${storyBible}\n\n${rawThemeDescription}`
       : rawThemeDescription;
 
-    console.log('[generate-cover] Starting for book:', {
+    console.log('[generate-cover] GENDER LOCK:', {
       bookId,
-      title: book.title,
-      characterDescription: characterDescription.substring(0, 80) + '...',
+      gender: childGender,
+      photoDescLength: photoDescription.length,
+      storyBibleLength: storyBible.length,
+      preview: characterDescription.substring(0, 200),
     });
 
     // Load child photo as reference image
