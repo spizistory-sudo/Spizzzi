@@ -16,6 +16,7 @@ export default function StoriesPage() {
     curationResult, curationCachedFor, setCurationResult,
     setStoryId, setStep,
     setGeneratedStory, setIsGenerating,
+    photoDescription,
   } = useCreationWizard();
 
   const [loading, setLoading] = useState(false);
@@ -96,6 +97,7 @@ export default function StoriesPage() {
           gender: childGender || 'boy',
           traits: childTraits,
           interests: childInterests,
+          photoDescription: photoDescription || undefined,
         }),
       });
 

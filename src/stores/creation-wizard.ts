@@ -42,6 +42,7 @@ interface WizardState {
   // Step 3: Photos
   uploadedPhotos: UploadedPhoto[];
   characterDescription: string | null;
+  photoDescription: string | null;
 
   // Step 4: Generated story + covers
   generatedStory: GeneratedStory | null;
@@ -89,6 +90,7 @@ interface WizardState {
   setTopicId: (id: string | null) => void;
   setStoryMode: (mode: 'structured' | 'custom') => void;
   setSelectedStyle: (key: ArtStyleKey) => void;
+  setPhotoDescription: (desc: string | null) => void;
   reset: () => void;
 }
 
@@ -110,6 +112,7 @@ const initialState = {
   curationCachedFor: null as string | null,
   uploadedPhotos: [] as UploadedPhoto[],
   characterDescription: null as string | null,
+  photoDescription: null as string | null,
   generatedStory: null,
   bookId: null,
   isGenerating: false,
@@ -185,6 +188,8 @@ export const useCreationWizard = create<WizardState>((set) => ({
   setStoryMode: (mode) => set({ storyMode: mode }),
 
   setSelectedStyle: (key) => set({ selectedStyleKey: key }),
+
+  setPhotoDescription: (desc) => set({ photoDescription: desc }),
 
   reset: () => set(initialState),
 }));

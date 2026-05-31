@@ -71,7 +71,7 @@ export default function DetailsPage() {
   const router = useRouter();
   const {
     childName, childAge, childGender, childTraits, childInterests, uploadedPhotos,
-    setChildDetails, setChildGender, setChildInterests, setStep,
+    setChildDetails, setChildGender, setChildInterests, setStep, setPhotoDescription,
   } = useCreationWizard();
 
   const [name, setName] = useState(childName);
@@ -81,6 +81,7 @@ export default function DetailsPage() {
   const [interests, setInterests] = useState<string[]>(childInterests);
   const [error, setError] = useState<string | null>(null);
   const [showOptional, setShowOptional] = useState(childTraits.length > 0 || childInterests.length > 0);
+  const [analyzing, setAnalyzing] = useState(false);
 
   const hasChildPhoto = uploadedPhotos.some((p) => p.label === 'child');
 
@@ -92,7 +93,7 @@ export default function DetailsPage() {
     setInterests(prev => prev.includes(id) ? prev.filter(i => i !== id) : prev.length < 5 ? [...prev, id] : prev);
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     if (!name.trim()) { setError("Please enter your child's name"); return; }
@@ -103,11 +104,36 @@ export default function DetailsPage() {
     setChildDetails(name.trim(), age, traits);
     setChildGender(gender);
     setChildInterests(interests);
+
+    // Analyze uploaded child photo before advancing
+    const childPhoto = uploadedPhotos.find((p) => p.label === 'child');
+    if (childPhoto) {
+      setAnalyzing(true);
+      try {
+        const res = await fetch('/api/analyze-photo-standalone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storagePath: childPhoto.storagePath }),
+        });
+        if (res.ok) {
+          const { description } = await res.json();
+          setPhotoDescription(description);
+          console.log('[details] Photo analyzed, stored in wizard state');
+        } else {
+          console.warn('[details] Photo analysis failed, continuing without');
+        }
+      } catch (err) {
+        console.warn('[details] Photo analysis error:', err);
+      } finally {
+        setAnalyzing(false);
+      }
+    }
+
     setStep('style');
     router.push('/create/style');
   }
 
-  const isValid = name.trim() && age && gender && hasChildPhoto;
+  const isValid = name.trim() && age && gender && hasChildPhoto && !analyzing;
 
   return (
     <div>
@@ -251,7 +277,14 @@ export default function DetailsPage() {
           <button type="submit" className="btn-primary" disabled={!isValid}
             style={{ opacity: isValid ? 1 : 0.5, cursor: isValid ? 'pointer' : 'not-allowed' }}
           >
-            Continue &rarr;
+            {analyzing ? (
+              <span className="flex items-center gap-2">
+                <span className="animate-spin inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+                Analyzing photo...
+              </span>
+            ) : (
+              <>Continue &rarr;</>
+            )}
           </button>
         </div>
       </form>

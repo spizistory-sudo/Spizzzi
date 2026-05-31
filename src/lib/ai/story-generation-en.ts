@@ -138,6 +138,7 @@ Be a real children's book author. Now you'll receive the child's details and the
 function buildGenerationMessage(
   child: ChildProfile,
   story: StoryTemplate,
+  photoDescription?: string,
 ): string {
   const traits = getTraitsByIds(child.traits);
   const interests = getInterestsByIds(child.interests);
@@ -152,12 +153,24 @@ function buildGenerationMessage(
   const beatsBlock = story.required_beats.map((b) => `- ${b}`).join('\n');
   const avoidBlock = story.things_to_avoid.map((b) => `- ${b}`).join('\n');
 
+  const photoBlock = photoDescription
+    ? `
+# Real child photo description
+
+IMPORTANT — The protagonist is based on a real child. Use the following visual description verbatim in your character_bible. Do NOT invent different hair color, eye color, or skin tone:
+
+${photoDescription}
+
+Your character_bible should incorporate these exact visual details for the protagonist. Only add the outfit and side-character details — keep all facial features, hair, eyes, and skin from the description above.
+`
+    : '';
+
   return `# This child
 
 Name: ${child.name}
 Age: ${child.age}
 Gender: ${child.gender}
-
+${photoBlock}
 # Personality traits
 
 ${traitsBlock}
@@ -202,6 +215,7 @@ export async function generateStory(
   storyId: string,
   apiKey: string,
   model: string = 'claude-opus-4-7',
+  photoDescription?: string,
 ): Promise<GeneratedStory> {
   const story = getStoryById(storyId);
   if (!story) {
@@ -221,7 +235,7 @@ export async function generateStory(
     model,
     max_tokens: 8000,
     system: STORY_SYSTEM_PROMPT_EN,
-    messages: [{ role: 'user', content: buildGenerationMessage(child, story) }],
+    messages: [{ role: 'user', content: buildGenerationMessage(child, story, photoDescription) }],
   });
 
   const text = response.content[0].type === 'text' ? response.content[0].text : '';

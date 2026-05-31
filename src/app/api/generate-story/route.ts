@@ -234,11 +234,14 @@ async function handleStructuredEnglishStory(
       interests: (body.interests as string[]) || [],
     };
 
+    const photoDesc = (body.photoDescription as string) || undefined;
+
     const result = await generateEnglishStory(
       childProfile,
       body.storyId as string,
       process.env.ANTHROPIC_API_KEY!,
       'claude-opus-4-7',
+      photoDesc,
     );
 
     // Insert book — mirrors Hebrew structured pattern
@@ -260,6 +263,7 @@ async function handleStructuredEnglishStory(
           main_theme: result.metadata?.main_theme,
           key_message: result.metadata?.key_message,
           character_bible: result.character_bible,
+          character_description: photoDesc || undefined,
         },
       })
       .select()

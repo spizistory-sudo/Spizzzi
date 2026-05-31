@@ -265,48 +265,14 @@ export default function FinalizePage() {
     setBuildProgress({ illustrationsComplete: 0, narrationsComplete: 0, total: (generatedStory?.pages.length || 0) * 2 });
     setPhase('building');
 
-    // Step 1: Analyze the uploaded child photo (MUST complete before illustrations)
-    try {
-      const { data: photos } = await supabase
-        .from('photos')
-        .select('storage_path')
-        .eq('book_id', bookId)
-        .eq('label', 'child')
-        .limit(1);
-
-      if (photos && photos.length > 0) {
-        console.log('[finalize] Analyzing child photo before illustrations');
-        const analyzeRes = await fetch('/api/analyze-photo', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookId, storagePath: photos[0].storage_path }),
-        });
-        if (!analyzeRes.ok) {
-          console.warn('[finalize] Photo analysis failed, continuing anyway');
-        } else {
-          console.log('[finalize] Photo analyzed successfully');
-        }
-      } else {
-        console.warn('[finalize] No child photo found, skipping analysis');
-      }
-    } catch (err) {
-      console.error('[finalize] Photo analysis error:', err);
-    }
-
-    // Brief delay to ensure metadata write propagates before downstream reads
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Step 2: Fire-and-forget cover generation
+    // Fire-and-forget: cover + illustrations + narration in parallel
     fetch('/api/generate-cover', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId }),
     }).catch((err) => console.error('Failed to start cover generation:', err));
 
-    // Step 3: Fire-and-forget illustrations
     fetch('/api/generate-illustrations', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId }),
     }).catch((err) => console.error('Failed to start illustrations:', err));
-
-    // Step 4: Fire-and-forget narration
     fetch('/api/generate-narration', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId, voiceId: selectedVoiceId, language }),
     }).catch((err) => console.error('Failed to start narration:', err));
@@ -324,13 +290,19 @@ export default function FinalizePage() {
         {/* Content above background — offset for sidebar */}
         <div className="relative z-10 flex flex-col items-center">
         {/* Cover image with title overlay — same component as reader */}
-        <div className="mb-8">
+        <div className="mb-8 relative">
           <CoverImage
             coverUrl={coverUrl}
             title={generatedStory?.title || ''}
             childName={childName}
             size="building"
           />
+          {!coverUrl && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ borderRadius: '1rem' }}>
+              <div className="w-10 h-10 mb-3 rounded-full border-4 border-white/30 border-t-white/90 animate-spin" />
+              <p className="text-sm font-medium text-white/80">Painting your cover...</p>
+            </div>
+          )}
         </div>
 
         {/* Phase content — fades between building and complete */}
