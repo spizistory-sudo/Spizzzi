@@ -70,7 +70,7 @@ export default function StylePage() {
               {/* Preview image or gradient fallback */}
               <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16 / 9' }}>
                 <Image
-                  src={`/images/styles/${key}.jpg`}
+                  src={`/images/styles/${key}.png`}
                   alt={style.name}
                   fill
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
