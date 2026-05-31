@@ -68,19 +68,15 @@ export default function StylePage() {
               onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.borderColor = isSelected ? 'rgba(155,125,212,0.70)' : 'rgba(255,255,255,0.10)'; } }}
             >
               {/* Preview image or gradient fallback */}
-              <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16 / 9' }}>
+              <div className="w-full overflow-hidden" style={{ aspectRatio: '1 / 1' }}>
                 <Image
                   src={`/images/styles/${key}.png`}
                   alt={style.name}
-                  fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  className="object-cover"
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  width={400}
+                  height={400}
+                  className="w-full h-full object-cover"
+                  unoptimized
                 />
-                {/* Gradient fallback behind image */}
-                <div className="absolute inset-0 -z-10" style={{
-                  background: 'linear-gradient(135deg, rgba(155,125,212,0.30), rgba(126,200,227,0.20))',
-                }} />
               </div>
 
               <div style={{ padding: '14px 16px' }}>

@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { generateCoverImage } from '@/lib/ai/illustration-generator';
 import { ART_STYLES, ART_STYLE_KEYS } from '@/lib/ai/prompts/style-references';
 import { uploadImage, getImageBase64 } from '@/lib/supabase/storage';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export async function POST(req: Request) {
   try {
@@ -89,7 +91,19 @@ export async function POST(req: Request) {
       }
     }
 
-    // Generate 3 covers in parallel (Promise.allSettled — partial success is OK)
+    // Load style preview PNGs for reference
+    const stylePreviewCache: Record<string, string> = {};
+    for (const sk of ART_STYLE_KEYS) {
+      try {
+        const previewPath = path.join(process.cwd(), 'public', 'images', 'styles', `${sk}.png`);
+        if (fs.existsSync(previewPath)) {
+          stylePreviewCache[sk] = fs.readFileSync(previewPath).toString('base64');
+        }
+      } catch { /* skip */ }
+    }
+    console.log(`[generate-cover] Style previews loaded: ${Object.keys(stylePreviewCache).length}/${ART_STYLE_KEYS.length}`);
+
+    // Generate covers in parallel (Promise.allSettled — partial success is OK)
     console.log(`[generate-cover] Starting ${ART_STYLE_KEYS.length} covers in parallel...`);
 
     const settled = await Promise.allSettled(
@@ -101,6 +115,7 @@ export async function POST(req: Request) {
           characterDescription,
           themeDescription,
           childPhotoBase64,
+          stylePreviewBase64: stylePreviewCache[styleKey],
         });
 
         const storagePath = `${bookId}/cover-${styleKey}.png`;

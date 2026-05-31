@@ -155,6 +155,11 @@ function buildGenerationMessage(
   const beatsBlock = story.required_beats.map((b) => `- ${b}`).join('\n');
   const avoidBlock = story.things_to_avoid.map((b) => `- ${b}`).join('\n');
 
+  const testPageCount = process.env.TEST_PAGE_COUNT ? parseInt(process.env.TEST_PAGE_COUNT, 10) : null;
+  const spreadOverride = testPageCount
+    ? `\nIMPORTANT OVERRIDE: Generate EXACTLY ${testPageCount} spreads. Ignore the spread count range above — this book must have exactly ${testPageCount} spreads.\n`
+    : '';
+
   const photoBlock = photoDescription
     ? `
 # Real child photo description
@@ -187,7 +192,7 @@ ${traitsBlock}
 ${interestsBlock}
 
 ${ageRulesToPromptFragment(ageRules)}
-
+${spreadOverride}
 # The story to write
 
 Title hint: "${story.title}" (you can keep, adapt, or replace this — but the new title should serve the child)

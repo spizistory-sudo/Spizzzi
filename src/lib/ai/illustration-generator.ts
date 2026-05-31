@@ -26,6 +26,7 @@ interface GenerateCoverParams {
   characterDescription: string;
   themeDescription: string;
   childPhotoBase64?: string;
+  stylePreviewBase64?: string;
 }
 
 interface GeneratePageIllustrationParams {
@@ -85,7 +86,7 @@ async function generateWithImagen(
 export async function generateCoverImage(
   params: GenerateCoverParams
 ): Promise<Buffer> {
-  const { styleKey, characterDescription, themeDescription, childPhotoBase64 } = params;
+  const { styleKey, characterDescription, themeDescription, childPhotoBase64, stylePreviewBase64 } = params;
   const style = ART_STYLES[styleKey];
 
   if (!characterDescription || characterDescription.length < 50) {
@@ -128,9 +129,23 @@ We will add the title separately with CSS.`;
     );
   }
 
-  const fullPrompt = childPhotoBase64
-    ? `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).\nThink step by step about the character's appearance before generating. The main character must look EXACTLY like the child in the reference photo.`
-    : `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).`;
+  const referenceBlock = (childPhotoBase64 || stylePreviewBase64) ? `
+REFERENCE IMAGES — READ CAREFULLY:
+
+${childPhotoBase64 ? `The FIRST attached image is a PHOTO of the REAL CHILD this book is about. The protagonist on the cover MUST look like this child — match the face shape, hair color and texture, eye color and shape, skin tone, and overall proportions exactly.` : ''}
+
+${stylePreviewBase64 ? `The ${childPhotoBase64 ? 'SECOND' : 'FIRST'} attached image is a STYLE EXAMPLE showing the EXACT art style this cover must be rendered in. Match this style precisely — the medium (oil paint vs. ink vs. clay vs. 3D render etc.), the color palette, the line work or lack thereof, the texture, the lighting approach, and the overall illustrative aesthetic. The cover MUST look like it could come from the same book or art collection as this style example.` : ''}
+
+PHOTO = who the character IS. STYLE EXAMPLE = how to RENDER them. Never confuse these roles.
+` : '';
+
+  const fullPrompt = `${promptText}\n${referenceBlock}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).${childPhotoBase64 ? '\nThink step by step about the character\'s appearance before generating. The main character must look EXACTLY like the child in the reference photo.' : ''}`;
+
+  console.log('[generate-cover] References:', {
+    photoPresent: !!childPhotoBase64,
+    stylePresent: !!stylePreviewBase64,
+    order: 'photo-first-then-style',
+  });
 
   console.log(`[illustration-generator] generateCoverImage: ${styleKey}, model: ${PRIMARY_MODEL}`);
 
@@ -143,6 +158,9 @@ We will add the title separately with CSS.`;
         const parts: Part[] = [];
         if (childPhotoBase64) {
           parts.push({ inlineData: { mimeType: 'image/jpeg', data: childPhotoBase64 } });
+        }
+        if (stylePreviewBase64) {
+          parts.push({ inlineData: { mimeType: 'image/png', data: stylePreviewBase64 } });
         }
         parts.push({ text: fullPrompt });
 

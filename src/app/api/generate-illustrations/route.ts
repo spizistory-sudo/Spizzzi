@@ -182,7 +182,7 @@ async function generateAllIllustrations(params: {
         ? `${characterBible}\n\n${rawPrompt}`
         : rawPrompt;
 
-      const imageBuffer = await generatePageIllustration({
+      const illustrationParams = {
         styleKey,
         characterDescription,
         illustrationPrompt,
@@ -190,7 +190,17 @@ async function generateAllIllustrations(params: {
         pageNumber: page.page_number,
         childPhotoBase64,
         coverImageBase64,
-      });
+      };
+
+      // Generate with single retry on failure
+      let imageBuffer: Buffer;
+      try {
+        imageBuffer = await generatePageIllustration(illustrationParams);
+      } catch (firstErr) {
+        console.warn(`[generate-illustrations] Page ${page.page_number} failed first attempt, retrying:`, (firstErr as Error).message);
+        await new Promise((r) => setTimeout(r, 2000));
+        imageBuffer = await generatePageIllustration(illustrationParams);
+      }
 
       const storagePath = `${bookId}/page-${page.page_number}.png`;
       const imageUrl = await uploadImage('illustrations', storagePath, imageBuffer);
