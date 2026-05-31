@@ -80,6 +80,7 @@ export default function DetailsPage() {
   const [traits, setTraits] = useState<string[]>(childTraits);
   const [interests, setInterests] = useState<string[]>(childInterests);
   const [error, setError] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [showOptional, setShowOptional] = useState(childTraits.length > 0 || childInterests.length > 0);
   const [analyzing, setAnalyzing] = useState(false);
 
@@ -118,8 +119,15 @@ export default function DetailsPage() {
         if (res.ok) {
           const { description } = await res.json();
           setPhotoDescription(description);
+          setPhotoError(null);
           console.log('[details] Photo analyzed, stored in wizard state');
         } else {
+          const errorData = await res.json().catch(() => ({}));
+          if (errorData.error === 'NO_PERSON_DETECTED') {
+            setPhotoError(errorData.message || "We couldn't find a person in this photo. Please upload a clear photo of the child.");
+            setAnalyzing(false);
+            return;
+          }
           console.warn('[details] Photo analysis failed, continuing without');
         }
       } catch (err) {
@@ -265,6 +273,11 @@ export default function DetailsPage() {
             We use it to create illustrations that look like them.
           </p>
           <PhotoUpload />
+          {photoError && (
+            <div style={{ marginTop: 12, padding: 12, background: 'rgba(220,50,50,0.15)', border: '1px solid rgba(220,50,50,0.30)', borderRadius: '0.75rem', color: 'rgba(255,150,150,0.95)', fontSize: '0.84rem' }}>
+              {photoError}
+            </div>
+          )}
         </div>
 
         {error && (

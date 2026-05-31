@@ -17,6 +17,7 @@ export default function StoriesPage() {
     setStoryId, setStep,
     setGeneratedStory, setIsGenerating,
     photoDescription,
+    selectedStyleKey,
   } = useCreationWizard();
 
   const [loading, setLoading] = useState(false);
@@ -98,6 +99,7 @@ export default function StoriesPage() {
           traits: childTraits,
           interests: childInterests,
           photoDescription: photoDescription || undefined,
+          styleKey: selectedStyleKey || undefined,
         }),
       });
 

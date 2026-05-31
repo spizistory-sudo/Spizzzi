@@ -19,6 +19,7 @@ import { StoryTemplate, getStoryById } from '@/lib/ai/prompts/en/story-catalog';
 import { getTraitsByIds, PersonalityTrait } from '@/lib/personality-traits-en';
 import { getInterestsByIds } from '@/lib/interests-en';
 import { getAgeRules, ageRulesToPromptFragment } from '@/lib/ai/prompts/en/age-rules';
+import { ART_STYLES, type ArtStyleKey } from '@/lib/ai/prompts/style-references';
 import { ChildProfile } from '@/lib/ai/curation-en';
 
 // -----------------------------------------------------------------------------
@@ -139,6 +140,7 @@ function buildGenerationMessage(
   child: ChildProfile,
   story: StoryTemplate,
   photoDescription?: string,
+  styleKey?: string,
 ): string {
   const traits = getTraitsByIds(child.traits);
   const interests = getInterestsByIds(child.interests);
@@ -163,6 +165,11 @@ ${photoDescription}
 
 Your character_bible should incorporate these exact visual details for the protagonist. Only add the outfit and side-character details — keep all facial features, hair, eyes, and skin from the description above.
 `
+    : '';
+
+  const styleTone = styleKey ? ART_STYLES[styleKey as ArtStyleKey]?.storyTonePrompt : null;
+  const toneSection = styleTone
+    ? `\n# Story tone — IMPORTANT\n\nThe parent has chosen the "${ART_STYLES[styleKey as ArtStyleKey]?.name}" art style for this book. Match the story's narrative tone to this style:\n\n${styleTone}\n\nApply this tone throughout the entire story — in word choices, sentence length, pacing, and emotional rhythm.\n`
     : '';
 
   return `# This child
@@ -195,7 +202,7 @@ ${beatsBlock}
 Things to avoid — these are the common ways this kind of story fails:
 ${avoidBlock}
 
-# Now write the story
+${toneSection}# Now write the story
 
 Write a complete, beautiful, age-appropriate children's book for ${child.name}. Follow every rule. Return only the JSON object.`;
 }
@@ -216,6 +223,7 @@ export async function generateStory(
   apiKey: string,
   model: string = 'claude-opus-4-7',
   photoDescription?: string,
+  styleKey?: string,
 ): Promise<GeneratedStory> {
   const story = getStoryById(storyId);
   if (!story) {
@@ -235,7 +243,7 @@ export async function generateStory(
     model,
     max_tokens: 8000,
     system: STORY_SYSTEM_PROMPT_EN,
-    messages: [{ role: 'user', content: buildGenerationMessage(child, story, photoDescription) }],
+    messages: [{ role: 'user', content: buildGenerationMessage(child, story, photoDescription, styleKey) }],
   });
 
   const text = response.content[0].type === 'text' ? response.content[0].text : '';

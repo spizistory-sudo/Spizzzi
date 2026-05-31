@@ -235,6 +235,7 @@ async function handleStructuredEnglishStory(
     };
 
     const photoDesc = (body.photoDescription as string) || undefined;
+    const styleKey = (body.styleKey as string) || undefined;
 
     const result = await generateEnglishStory(
       childProfile,
@@ -242,6 +243,7 @@ async function handleStructuredEnglishStory(
       process.env.ANTHROPIC_API_KEY!,
       'claude-opus-4-7',
       photoDesc,
+      styleKey,
     );
 
     // Insert book — mirrors Hebrew structured pattern
@@ -264,6 +266,7 @@ async function handleStructuredEnglishStory(
           key_message: result.metadata?.key_message,
           character_bible: result.character_bible,
           character_description: photoDesc || undefined,
+          style_key: styleKey || undefined,
         },
       })
       .select()

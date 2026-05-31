@@ -14,8 +14,32 @@ export async function POST(req: Request) {
     const { storagePath } = await req.json();
     if (!storagePath) return NextResponse.json({ error: 'Missing storagePath' }, { status: 400 });
 
-    console.log('[analyze-photo-standalone] Analyzing:', storagePath);
     const photoBase64 = await getImageBase64('photos', storagePath);
+
+    // Validate that the photo shows a person
+    const { getGeminiClient } = await import('@/lib/ai/gemini');
+    const ai = getGeminiClient();
+    const validationRes = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [{
+        role: 'user',
+        parts: [
+          { inlineData: { mimeType: 'image/jpeg', data: photoBase64 } },
+          { text: 'Does this photo clearly show a human person, especially a child? Answer with exactly one word: "YES" if a person is clearly visible, or "NO" if the photo shows something else (object, scenery, animal, blurred image, etc). One word only.' },
+        ],
+      }],
+    });
+    const validationText = (validationRes.text || '').trim().toUpperCase();
+    console.log('[analyze-photo-standalone] Validation result:', validationText);
+
+    if (!validationText.startsWith('YES')) {
+      return NextResponse.json(
+        { error: 'NO_PERSON_DETECTED', message: "We couldn't find a person in this photo. Please upload a clear photo of the child the story is about." },
+        { status: 400 }
+      );
+    }
+
+    console.log('[analyze-photo-standalone] Analyzing:', storagePath);
     const description = await analyzeChildPhoto(photoBase64);
     console.log('[analyze-photo-standalone] Got description, length:', description.length);
 

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "verify-catalog-en": "npx tsx scripts/verify-catalog-en.ts"
+    "verify-catalog-en": "npx tsx scripts/verify-catalog-en.ts",
+    "generate:style-previews": "tsx scripts/generate-style-previews.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
