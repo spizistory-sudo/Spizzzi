@@ -8,6 +8,18 @@ import { generateImageWithFlux } from './fal-client';
 const PRIMARY_MODEL = 'gemini-3-pro-image-preview';
 const FALLBACK_MODEL = 'imagen-4.0-generate-001';
 
+const ANTI_TEXT_RULES = `CRITICAL ANTI-TEXT RULE — READ CAREFULLY:
+The image MUST be pure visual art with absolutely no text of any kind. Specifically:
+- NO words, NO letters, NO numbers, NO punctuation marks, NO symbols
+- NO captions, NO labels, NO titles, NO signs, NO banners
+- NO writing on books, papers, signs, walls, clothing, or any object
+- NO speech bubbles, NO thought bubbles, NO sound effects ("zzz", "pow", etc.)
+- NO watermarks, NO signatures, NO page numbers
+- NO foreign characters, NO scribbles that look like text, NO calligraphy
+If your illustration includes a book, the book MUST be closed or its pages MUST be BLANK with zero visible text. If your illustration includes a sign, the sign MUST be blank. If your illustration includes paper, the paper MUST be blank. NEVER render any character in the image as if they are reading words or looking at writing.
+This is the single most important rule. Violating it makes the book unusable.
+The illustration is PURE VISUAL STORYTELLING — express everything through faces, body language, colors, and scene composition, NEVER through written text.`;
+
 interface GenerateCoverParams {
   styleKey: ArtStyleKey;
   bookTitle: string;
@@ -30,12 +42,10 @@ function extractStatusCode(err: Error): number | undefined {
   const asAny = err as Error & { status?: number; statusCode?: number };
   if (asAny.status) return asAny.status;
   if (asAny.statusCode) return asAny.statusCode;
-  // Try parsing from error message (some Google SDK errors embed JSON)
   try {
     const parsed = JSON.parse(err.message);
     return parsed?.error?.code;
   } catch { /* not JSON */ }
-  // Check for "503" in message text
   if (err.message.includes('503')) return 503;
   if (err.message.includes('429')) return 429;
   return undefined;
@@ -82,7 +92,9 @@ export async function generateCoverImage(
     console.warn('[illustration] WARNING: Cover character description is too short or missing:', characterDescription);
   }
 
-  const promptText = `MAIN CHARACTER (must appear EXACTLY ONCE in this illustration, looking EXACTLY as described):
+  const promptText = `PURE IMAGE OUTPUT — NO TEXT WHATSOEVER. Do not render any words, letters, numbers, or written symbols anywhere in this image.
+
+MAIN CHARACTER (must appear EXACTLY ONCE in this illustration, looking EXACTLY as described):
 ${characterDescription}
 This character MUST be recognizable — same face shape, same hair color and style, same eye color, same skin tone. Do not change the character's appearance.
 The main character appears EXACTLY ONCE — not duplicated, not mirrored.
@@ -106,9 +118,9 @@ TECHNICAL RULES:
 - The illustration must fill the ENTIRE image canvas edge to edge
 - No white borders, no margins, no book-related visual elements whatsoever
 - Think of this as a movie poster or a painting on a wall — NOT a page in a book
-- ABSOLUTELY NO TEXT IN THE IMAGE. The illustration must contain ZERO words, ZERO letters, ZERO numbers, ZERO signs, ZERO labels, ZERO speech bubbles, ZERO writing of any kind anywhere in the scene. No text on books, no text on signs, no text on clothing, no text in the background, no text in the foreground, no text anywhere. If the scene includes a book, sign, banner, or paper, those objects must be BLANK with no writing on them. This is critical — text in illustrations breaks the book. The illustration is PURE VISUAL ART with no written elements. We will add the title separately with CSS.`;
+${ANTI_TEXT_RULES}
+We will add the title separately with CSS.`;
 
-  // DEV_ILLUSTRATIONS=true: FLUX.2 Pro via fal.ai — cheap dev mode (~$0.03/image)
   if (isDevIllustrations()) {
     console.log(`[DEV_ILLUSTRATIONS] Using FLUX.2 Pro for cover (${styleKey})`);
     return generateWithRateLimit(() =>
@@ -116,7 +128,6 @@ TECHNICAL RULES:
     );
   }
 
-  // Production (default): Gemini 3 Pro with reference images, fallback to Imagen 4
   const fullPrompt = childPhotoBase64
     ? `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).\nThink step by step about the character's appearance before generating. The main character must look EXACTLY like the child in the reference photo.`
     : `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).`;
@@ -126,7 +137,6 @@ TECHNICAL RULES:
   return generateWithRateLimit(async () => {
     const ai = getGeminiClient();
 
-    // Retry Gemini 3 Pro on 503/429 (overloaded) before falling back to Imagen
     let geminiError: Error | null = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
@@ -146,7 +156,7 @@ TECHNICAL RULES:
         if (!imageBuffer) {
           console.warn(`[illustration-generator] ${PRIMARY_MODEL} returned no image on attempt ${attempt}`);
           geminiError = new Error('No image in response');
-          break; // No point retrying if model returned success but no image
+          break;
         }
 
         console.log(`[illustration-generator] Cover generated via ${PRIMARY_MODEL} (attempt ${attempt}), ${imageBuffer.length} bytes`);
@@ -160,11 +170,10 @@ TECHNICAL RULES:
           await new Promise(resolve => setTimeout(resolve, delayMs));
           continue;
         }
-        break; // Non-retryable error
+        break;
       }
     }
 
-    // Fallback to Imagen 4
     console.error(`[illustration-generator] ${PRIMARY_MODEL} cover FAILED after retries, trying Imagen fallback:`, {
       message: geminiError?.message,
     });
@@ -191,10 +200,39 @@ export async function generatePageIllustration(
     console.warn('[illustration] WARNING: Character description is too short or missing:', characterDescription);
   }
 
-  const promptText = `MAIN CHARACTER (must appear EXACTLY ONCE in this scene, looking EXACTLY the same as every other page):
+  // Check if scene involves text-related objects for extra anti-text reminder
+  const sceneInvolvesText = /\b(read|reading|book|sign|letter|note|paper|write|writing|page|library|chalkboard|menu)\b/i.test(illustrationPrompt);
+
+  const extraAntiText = sceneInvolvesText
+    ? `\n\nSPECIAL NOTE: This scene involves objects that typically contain text (books, signs, notes, papers). REMEMBER: ALL such objects in this illustration MUST be visually blank — no text, no letters, no markings of any kind. A book in this scene must be closed or have blank pages. A sign must be blank. Paper must be blank. The story's narrative text is rendered SEPARATELY on the page layout, never inside the illustration.`
+    : '';
+
+  const promptText = `PURE IMAGE OUTPUT — NO TEXT WHATSOEVER. Do not render any words, letters, numbers, or written symbols anywhere in this image.
+
+MAIN CHARACTER (must appear EXACTLY ONCE in this scene, looking EXACTLY the same as every other page):
 ${characterDescription}
 This character MUST be recognizable across all pages — same face shape, same hair color and style, same eye color, same skin tone, same clothing. Do not change the character's appearance.
 The main character appears EXACTLY ONCE in the scene — never duplicated, never shown in multiple places, never appearing twice.
+
+CHARACTER REFERENCE IMAGES — READ BEFORE GENERATING:
+
+The FIRST attached image is a PHOTO of the REAL CHILD this book is about. This is the single source of truth for the protagonist's appearance. The protagonist on this page MUST look like this child:
+- Face shape: match exactly
+- Hair color, length, and texture: match exactly
+- Eye color and shape: match exactly
+- Skin tone: match exactly
+- Overall proportions: match exactly
+
+Other pages in this same book have been illustrated by referencing this same photo. To keep the character consistent across all pages, you MUST anchor on this photo.
+
+The SECOND attached image is the COVER ILLUSTRATION of this book. USE IT ONLY FOR ART STYLE — the brushwork, the color palette, the texture, the overall illustrative approach. DO NOT use the cover as a character reference. Even if the cover's protagonist looks slightly different, IGNORE that — only the FIRST image (the photo) defines the protagonist's appearance.
+
+In short: PHOTO = who the character IS. COVER = how to PAINT them. Never confuse these roles.
+
+REMINDER — THE PROTAGONIST IN THIS SCENE:
+${characterDescription.substring(0, 300)}
+
+Now illustrate the following scene with that exact protagonist:
 
 SCENE TO ILLUSTRATE:
 ${illustrationPrompt}
@@ -217,12 +255,9 @@ TECHNICAL RULES:
 - Do NOT make it look like a photo of a printed page
 - Fill the entire canvas edge to edge — no white borders, no margins, no frames
 - Think of this as a movie frame or a painting on a wall — NOT a page in a book
-- ABSOLUTELY NO TEXT IN THE IMAGE. The illustration must contain ZERO words, ZERO letters, ZERO numbers, ZERO signs, ZERO labels, ZERO speech bubbles, ZERO writing of any kind anywhere in the scene. No text on books, no text on signs, no text on clothing, no text in the background, no text in the foreground, no text anywhere. If the scene includes a book, sign, banner, or paper, those objects must be BLANK with no writing on them. This is critical — text in illustrations breaks the book. The illustration is PURE VISUAL ART with no written elements.
+${ANTI_TEXT_RULES}${extraAntiText}
 - Mood: ${mood}`;
 
-  console.log(`[PROMPT DEBUG] Full page illustration prompt:\n${promptText}`);
-
-  // DEV_ILLUSTRATIONS=true: FLUX.2 Pro via fal.ai — cheap dev mode (~$0.03/image)
   if (isDevIllustrations()) {
     console.log(`[DEV_ILLUSTRATIONS] Using FLUX.2 Pro for page ${pageNumber}`);
     return generateWithRateLimit(() =>
@@ -230,19 +265,29 @@ TECHNICAL RULES:
     );
   }
 
-  // Production (default): Gemini 3 Pro with reference images
   const fullPrompt = childPhotoBase64
-    ? `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).\nThink step by step about the character's appearance. The main character must look EXACTLY like the child in the reference photo.`
+    ? `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).\nThink step by step about the character's appearance. The main character must look EXACTLY like the child in the reference photo (FIRST image). Use the cover (SECOND image) for art style ONLY.`
     : `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).`;
+
+  console.log('[illustration-generator] References:', {
+    pageNumber,
+    photoPresent: !!childPhotoBase64,
+    photoLength: childPhotoBase64?.length || 0,
+    coverPresent: !!coverImageBase64,
+    coverLength: coverImageBase64?.length || 0,
+    order: 'photo-first-then-cover',
+  });
 
   return generateWithRateLimit(async () => {
     const ai = getGeminiClient();
 
     try {
       const parts: Part[] = [];
+      // Photo FIRST — character reference
       if (childPhotoBase64) {
         parts.push({ inlineData: { mimeType: 'image/jpeg', data: childPhotoBase64 } });
       }
+      // Cover SECOND — style reference only
       if (coverImageBase64) {
         parts.push({ inlineData: { mimeType: 'image/png', data: coverImageBase64 } });
       }
