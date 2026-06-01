@@ -3,10 +3,10 @@ import { ART_STYLES, type ArtStyleKey } from './prompts/style-references';
 import { generateWithRateLimit } from './rate-limit';
 import type { Part } from '@google/genai';
 import { isDevIllustrations } from '@/lib/dev/config';
-import { generateImageWithFlux } from './fal-client';
+import { generateImageWithFlux, generateImageWithFlux2Pro, type ReferenceImage } from './fal-client';
 
 export const PRIMARY_MODEL = 'gemini-3-pro-image-preview';
-export const FALLBACK_MODEL = 'imagen-4.0-generate-001';
+export const FALLBACK_MODEL = 'flux-2-pro';
 
 export type GenerationResult = { buffer: Buffer; modelUsed: string };
 
@@ -207,11 +207,10 @@ PHOTO = who the character IS. STYLE EXAMPLE = how to RENDER them. Never confuse 
       }
     }
 
-    console.error(`[illustration-generator] ${PRIMARY_MODEL} cover FAILED after retries, trying Imagen fallback:`, {
+    console.error(`[illustration-generator] ${PRIMARY_MODEL} cover FAILED after retries — no fallback for covers:`, {
       message: geminiError?.message,
     });
-    const fallbackBuffer = await generateWithImagen(FALLBACK_MODEL, fullPrompt, `cover-${styleKey}`, '3:4');
-    return { buffer: fallbackBuffer, modelUsed: FALLBACK_MODEL };
+    throw geminiError || new Error('Cover generation failed after all retries');
   });
 }
 
@@ -363,18 +362,59 @@ Before generating, verify: Is the character's race, skin tone, hair color/style 
 
       const imageBuffer = extractImageFromResponse(response);
       if (!imageBuffer) {
-        console.warn(`[illustration-generator] ${PRIMARY_MODEL} returned no image for page ${pageNumber}, trying fallback`);
-        const fb = await generateWithImagen(FALLBACK_MODEL, fullPrompt, `page-${pageNumber}`, '3:4');
+        console.warn(`[illustration-generator] ${PRIMARY_MODEL} returned no image for page ${pageNumber}, trying FLUX.2 Pro fallback`);
+        const fb = await generateFlux2Fallback(fullPrompt, { characterCrops, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
         return { buffer: fb, modelUsed: FALLBACK_MODEL };
       }
 
       return { buffer: imageBuffer, modelUsed: PRIMARY_MODEL };
     } catch (err) {
-      console.error(`[illustration-generator] ${PRIMARY_MODEL} page ${pageNumber} FAILED, trying fallback:`, {
+      console.error(`[illustration-generator] ${PRIMARY_MODEL} page ${pageNumber} FAILED, trying FLUX.2 Pro fallback:`, {
         message: err instanceof Error ? err.message : String(err),
       });
-      const fb = await generateWithImagen(FALLBACK_MODEL, fullPrompt, `page-${pageNumber}`, '3:4');
+      const fb = await generateFlux2Fallback(fullPrompt, { characterCrops, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
       return { buffer: fb, modelUsed: FALLBACK_MODEL };
     }
+  });
+}
+
+async function generateFlux2Fallback(
+  prompt: string,
+  refs: {
+    characterCrops?: Array<{ name: string; base64: string }>;
+    coverImageBase64?: string;
+    childPhotoBase64?: string;
+    stylePreviewBase64?: string;
+  },
+): Promise<Buffer> {
+  const referenceImages: ReferenceImage[] = [];
+
+  // Protagonist crop first (strongest identity anchor)
+  if (refs.characterCrops?.[0]) {
+    referenceImages.push({ base64: refs.characterCrops[0].base64, role: 'protagonist' });
+  }
+  // Supporting character crops
+  for (const crop of (refs.characterCrops || []).slice(1)) {
+    if (referenceImages.length >= 8) break;
+    referenceImages.push({ base64: crop.base64, role: 'supporting_character' });
+  }
+  // Cover
+  if (refs.coverImageBase64 && referenceImages.length < 8) {
+    referenceImages.push({ base64: refs.coverImageBase64, role: 'cover' });
+  }
+  // Original photo
+  if (refs.childPhotoBase64 && referenceImages.length < 8) {
+    referenceImages.push({ base64: refs.childPhotoBase64, mimeType: 'image/jpeg', role: 'photo' });
+  }
+  // Style preview
+  if (refs.stylePreviewBase64 && referenceImages.length < 8) {
+    referenceImages.push({ base64: refs.stylePreviewBase64, role: 'style_preview' });
+  }
+
+  console.log(`[illustration-generator] FLUX.2 Pro fallback with ${referenceImages.length} reference images`);
+
+  return generateImageWithFlux2Pro(prompt, {
+    aspectRatio: 'portrait_4_3',
+    referenceImages,
   });
 }
