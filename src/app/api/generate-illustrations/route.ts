@@ -241,27 +241,24 @@ async function generateAllIllustrations(params: {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const results: Array<{ pageNumber: number; status: string; url?: string; error?: string }> = [];
-  let completedCount = 0;
-  let previousPageBase64: string | undefined;
+  const refsInfo = {
+    photo: { present: !!childPhotoBase64, sizeKB: childPhotoBase64 ? Math.round(childPhotoBase64.length * 3 / 4 / 1024) : 0 },
+    stylePreview: { present: !!stylePreviewBase64, sizeKB: stylePreviewBase64 ? Math.round(stylePreviewBase64.length * 3 / 4 / 1024) : 0 },
+    cover: { present: !!coverImageBase64, sizeKB: coverImageBase64 ? Math.round(coverImageBase64.length * 3 / 4 / 1024) : 0 },
+    visualBible: { present: !!visualBibleBlock, charCount: visualBibleBlock?.length || 0 },
+    characterCrops: { count: characterCrops?.length || 0, names: characterCrops?.map(c => c.name) || [] },
+  };
 
-  for (const page of pages) {
-    const rawPrompt = page.illustration_prompt || `Scene for page ${page.page_number}`;
-    const illustrationPrompt = characterBible
-      ? `${characterBible}\n\n${rawPrompt}`
-      : rawPrompt;
-    const pageStart = Date.now();
-    const pageRefsInfo = {
-      photo: { present: !!childPhotoBase64, sizeKB: childPhotoBase64 ? Math.round(childPhotoBase64.length * 3 / 4 / 1024) : 0 },
-      stylePreview: { present: !!stylePreviewBase64, sizeKB: stylePreviewBase64 ? Math.round(stylePreviewBase64.length * 3 / 4 / 1024) : 0 },
-      cover: { present: !!coverImageBase64, sizeKB: coverImageBase64 ? Math.round(coverImageBase64.length * 3 / 4 / 1024) : 0 },
-      visualBible: { present: !!visualBibleBlock, charCount: visualBibleBlock?.length || 0 },
-      characterCrops: { count: characterCrops?.length || 0, names: characterCrops?.map(c => c.name) || [] },
-      previousPage: { present: !!previousPageBase64, sizeKB: previousPageBase64 ? Math.round(previousPageBase64.length * 3 / 4 / 1024) : 0 },
-    };
-    let retryCount = 0;
+  // Generate ALL pages in parallel
+  const settled = await Promise.allSettled(
+    pages.map(async (page) => {
+      const rawPrompt = page.illustration_prompt || `Scene for page ${page.page_number}`;
+      const illustrationPrompt = characterBible
+        ? `${characterBible}\n\n${rawPrompt}`
+        : rawPrompt;
+      const pageStart = Date.now();
+      let retryCount = 0;
 
-    try {
       const illustrationParams = {
         styleKey,
         characterDescription,
@@ -273,10 +270,8 @@ async function generateAllIllustrations(params: {
         stylePreviewBase64,
         visualBibleBlock,
         characterCrops,
-        previousPageBase64,
       };
 
-      // Generate with single retry on failure + logging
       let genResult;
       try {
         genResult = await generatePageIllustration(illustrationParams);
@@ -296,7 +291,7 @@ async function generateAllIllustrations(params: {
         modelUsed: genResult.modelUsed,
         fallbackTriggered: genResult.modelUsed !== PRIMARY_MODEL,
         fallbackReason: genResult.modelUsed !== PRIMARY_MODEL ? 'primary model failed or returned no image' : undefined,
-        referencesAttached: pageRefsInfo,
+        referencesAttached: refsInfo,
         promptLength: illustrationPrompt.length,
         durationMs: Date.now() - pageStart,
         retryCount,
@@ -308,23 +303,22 @@ async function generateAllIllustrations(params: {
 
       await supabase
         .from('pages')
-        .update({
-          illustration_url: imageUrl,
-          illustration_status: 'complete',
-        })
+        .update({ illustration_url: imageUrl, illustration_status: 'complete' })
         .eq('id', page.id);
 
-      completedCount++;
-      results.push({ pageNumber: page.page_number, status: 'complete', url: imageUrl });
+      return { pageNumber: page.page_number, status: 'complete' as const, url: imageUrl };
+    })
+  );
 
-      // Capture this page for use as previousPage reference for next page
-      previousPageBase64 = genResult.buffer.toString('base64');
-
-      if (completedCount < pages.length) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
-    } catch (err) {
-      console.error(`Failed to generate illustration for page ${page.page_number}:`, err);
+  const results: Array<{ pageNumber: number; status: string; url?: string; error?: string }> = [];
+  for (let i = 0; i < settled.length; i++) {
+    const s = settled[i];
+    const page = pages[i];
+    if (s.status === 'fulfilled') {
+      results.push(s.value);
+    } else {
+      const errMsg = s.reason instanceof Error ? s.reason.message : String(s.reason);
+      console.error(`Failed to generate illustration for page ${page.page_number}:`, errMsg);
       await logGeneration({
         bookId,
         imageType: 'page',
@@ -333,18 +327,18 @@ async function generateAllIllustrations(params: {
         modelAttempted: PRIMARY_MODEL,
         modelUsed: 'none',
         fallbackTriggered: false,
-        referencesAttached: pageRefsInfo,
-        promptLength: illustrationPrompt.length,
-        durationMs: Date.now() - pageStart,
-        retryCount,
+        referencesAttached: refsInfo,
+        promptLength: 0,
+        durationMs: 0,
+        retryCount: 0,
         success: false,
-        errorMessage: err instanceof Error ? err.message : String(err),
+        errorMessage: errMsg,
       });
       await supabase
         .from('pages')
         .update({ illustration_status: 'error' })
         .eq('id', page.id);
-      results.push({ pageNumber: page.page_number, status: 'error', error: err instanceof Error ? err.message : String(err) });
+      results.push({ pageNumber: page.page_number, status: 'error', error: errMsg });
     }
   }
 
