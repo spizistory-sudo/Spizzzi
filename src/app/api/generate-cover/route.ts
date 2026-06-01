@@ -4,6 +4,7 @@ import { generateCoverImage, PRIMARY_MODEL } from '@/lib/ai/illustration-generat
 import { ART_STYLES, ART_STYLE_KEYS, type ArtStyleKey } from '@/lib/ai/prompts/style-references';
 import { logGeneration } from '@/lib/ai/generation-logger';
 import { extractVisualBible } from '@/lib/ai/visual-bible';
+import { extractCharacterBoundingBoxes, cropAndUploadCharacters } from '@/lib/ai/character-cropper';
 import { uploadImage, getImageBase64 } from '@/lib/supabase/storage';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -224,6 +225,41 @@ export async function POST(req: Request) {
       }
     } catch (bibleErr) {
       console.error('[generate-cover] Visual Bible extraction error (non-fatal):', bibleErr);
+    }
+
+    // Extract character crops from cover (non-blocking)
+    try {
+      // Re-read metadata to get the visual_bible we just saved
+      const { data: updatedBook } = await supabase
+        .from('books')
+        .select('metadata')
+        .eq('id', bookId)
+        .single();
+      const updatedMeta = (updatedBook?.metadata as Record<string, unknown>) || {};
+      const vb = updatedMeta.visual_bible as { protagonist?: { name?: string }; supportingCharacters?: Array<{ name: string; hair?: string }> } | undefined;
+
+      const characterList = [book.child_name];
+      if (vb?.supportingCharacters) {
+        for (const sc of vb.supportingCharacters) {
+          if (sc.name && sc.hair !== 'not visible on cover') {
+            characterList.push(sc.name);
+          }
+        }
+      }
+
+      const coverBase64ForCrop = coverResult.buffer.toString('base64');
+      const boxes = await extractCharacterBoundingBoxes(coverBase64ForCrop, characterList);
+      const crops = await cropAndUploadCharacters(coverResult.buffer, boxes, bookId);
+
+      if (crops.length > 0) {
+        const cropMeta = crops.map(c => ({ name: c.name, storagePath: c.storagePath, publicUrl: c.publicUrl }));
+        const { data: metaBook } = await supabase.from('books').select('metadata').eq('id', bookId).single();
+        const existMeta = (metaBook?.metadata as Record<string, unknown>) || {};
+        await supabase.from('books').update({ metadata: { ...existMeta, character_crops: cropMeta } }).eq('id', bookId);
+        console.log('[generate-cover] Character crops saved:', crops.length);
+      }
+    } catch (cropErr) {
+      console.error('[generate-cover] Character cropping error (non-fatal):', cropErr);
     }
 
     return NextResponse.json({ covers: [cover] });

@@ -41,6 +41,8 @@ interface GeneratePageIllustrationParams {
   coverImageBase64?: string;
   stylePreviewBase64?: string;
   visualBibleBlock?: string;
+  characterCrops?: Array<{ name: string; base64: string }>;
+  previousPageBase64?: string;
 }
 
 function extractStatusCode(err: Error): number | undefined {
@@ -226,42 +228,53 @@ export async function generatePageIllustration(
     coverImageBase64,
     stylePreviewBase64,
     visualBibleBlock,
+    characterCrops,
+    previousPageBase64,
   } = params;
   const style = ART_STYLES[styleKey];
 
-  console.log('[illustration-generator] Character description:', characterDescription?.substring(0, 100));
   if (!characterDescription || characterDescription.length < 50) {
     console.warn('[illustration] WARNING: Character description is too short or missing:', characterDescription);
   }
 
-  // Check if scene involves text-related objects for extra anti-text reminder
   const sceneInvolvesText = /\b(read|reading|book|sign|letter|note|paper|write|writing|page|library|chalkboard|menu)\b/i.test(illustrationPrompt);
-
   const extraAntiText = sceneInvolvesText
-    ? `\n\nSPECIAL NOTE: This scene involves objects that typically contain text (books, signs, notes, papers). REMEMBER: ALL such objects in this illustration MUST be visually blank — no text, no letters, no markings of any kind. A book in this scene must be closed or have blank pages. A sign must be blank. Paper must be blank. The story's narrative text is rendered SEPARATELY on the page layout, never inside the illustration.`
+    ? `\nSPECIAL NOTE: This scene involves objects that typically contain text. ALL such objects MUST be visually blank — no text, no letters, no markings. Books must be closed or have blank pages. Signs must be blank.`
     : '';
 
-  const promptText = `${visualBibleBlock || ''}PURE IMAGE OUTPUT — NO TEXT WHATSOEVER. Do not render any words, letters, numbers, or written symbols anywhere in this image.
+  // Build reference image descriptions for the prompt
+  const refDescriptions: string[] = [];
+  let refIdx = 1;
+  const protagonistCrop = characterCrops?.find(c => c.name === characterDescription.split('\n')[0]?.match(/\b[A-Z][a-z]+\b/)?.[0]) || characterCrops?.[0];
+  if (protagonistCrop) refDescriptions.push(`- Image ${refIdx++}: ${protagonistCrop.name}'s portrait extracted from the cover. The character on this page MUST look like this portrait — same face, hair, skin tone, outfit.`);
+  const otherCrops = characterCrops?.filter(c => c !== protagonistCrop) || [];
+  for (const crop of otherCrops) {
+    if (refIdx > 8) break;
+    refDescriptions.push(`- Image ${refIdx++}: ${crop.name}'s portrait — must match this appearance on this page.`);
+  }
+  if (previousPageBase64) refDescriptions.push(`- Image ${refIdx++}: The previous page of this book — for visual continuity, world and style must match.`);
+  if (coverImageBase64) refDescriptions.push(`- Image ${refIdx++}: The full cover — for overall scene/style reference.`);
+  if (childPhotoBase64) refDescriptions.push(`- Image ${refIdx++}: The child's original photo — identity backup.`);
+  if (stylePreviewBase64) refDescriptions.push(`- Image ${refIdx++}: Style swatch — rendering technique ONLY, not layout or character.`);
 
-MAIN CHARACTER (must appear EXACTLY ONCE in this scene, looking EXACTLY the same as every other page):
-${characterDescription}
-This character MUST be recognizable across all pages — same face shape, same hair color and style, same eye color, same skin tone, same clothing. Do not change the character's appearance.
-The main character appears EXACTLY ONCE in the scene — never duplicated, never shown in multiple places, never appearing twice.
+  const promptText = `=== ABSOLUTE IDENTITY LOCK — READ FIRST ===
 
-REFERENCE IMAGES — READ BEFORE GENERATING:
+The protagonist of this book is ${characterDescription.match(/\b[A-Z][a-z]+\b/)?.[0] || 'the child'}.
+${characterDescription.substring(0, 200)}
 
-The FIRST attached image is a PHOTO of the REAL CHILD this book is about. The protagonist on this page MUST look like this child — face shape, hair, eyes, skin tone, proportions all matching the photo.
+These traits are FIXED and NON-NEGOTIABLE across every page of this book.
+DO NOT change the protagonist's race based on the scene.
+DO NOT change skin tone to match the background or setting.
+DO NOT let the art style override the character's identity.
+DO NOT draw a different-looking child even if the scene suggests one.
 
-The SECOND attached image is a STYLE EXAMPLE showing the EXACT art style every page of this book uses. This is the MOST IMPORTANT visual instruction. The illustration MUST match this style precisely — medium, palette, line work, texture, lighting, level of stylization. If you do not faithfully reproduce the art style shown in this image, you have failed.
+=== END IDENTITY LOCK ===
 
-The THIRD attached image (if present) is the COVER of this same book. Use it for visual consistency with other pages — same character design choices, same color treatment. But the STYLE EXAMPLE (second image) is the authoritative style reference. If the cover and the style example differ, prioritize the STYLE EXAMPLE.
+${visualBibleBlock || ''}PURE IMAGE OUTPUT — NO TEXT WHATSOEVER. Do not render any words, letters, numbers, or written symbols anywhere in this image.
 
-PHOTO = who. STYLE EXAMPLE = how to render. COVER = consistency with other pages.
-
-REMINDER — THE PROTAGONIST IN THIS SCENE:
-${characterDescription.substring(0, 300)}
-
-Now illustrate the following scene with that exact protagonist:
+=== REFERENCE IMAGES ATTACHED ===
+${refDescriptions.join('\n')}
+=== END REFERENCES ===
 
 SCENE TO ILLUSTRATE:
 ${illustrationPrompt}
@@ -272,20 +285,20 @@ ${style.stylePrompt}
 CHARACTER CONSISTENCY RULES:
 - The main character must look identical to the description above — same face, hair, eyes, skin, clothes on EVERY page
 - The main character appears ONCE per illustration — not duplicated, not mirrored, not shown from two angles
-- All side characters (animals, friends, creatures) must remain visually identical to how they appeared in earlier pages — same species, same colors, same size, same features
-- EVERY person in the scene must have a complete, clearly drawn, friendly face with visible eyes, nose, and mouth
-- NEVER draw faceless people, blurred faces, featureless silhouettes, or people with missing facial features — this is a children's book and faceless figures are scary
-- Background characters must also have complete faces — no blank ovals or smudged features
+- All side characters must remain visually identical to how they appeared on earlier pages
+- EVERY person must have a complete, clearly drawn face with visible eyes, nose, and mouth
 
 TECHNICAL RULES:
 - Generate ONLY the scene as a flat digital painting
 - Do NOT draw a book, book pages, page edges, binding, spine, or any book frame
 - Do NOT add any border, frame, vignette, or edge effects
-- Do NOT make it look like a photo of a printed page
 - Fill the entire canvas edge to edge — no white borders, no margins, no frames
-- Think of this as a movie frame or a painting on a wall — NOT a page in a book
 ${ANTI_TEXT_RULES}${extraAntiText}
-- Mood: ${mood}`;
+- Mood: ${mood}
+
+=== FINAL CHECK BEFORE GENERATING ===
+Before generating, verify: Is the character's race, skin tone, hair color/style the same as the Identity Lock above and the portrait references? If not, the image is WRONG — regenerate with the correct identity.
+=== END FINAL CHECK ===`;
 
   if (isDevIllustrations()) {
     console.log(`[DEV_ILLUSTRATIONS] Using FLUX.2 Pro for page ${pageNumber}`);
@@ -295,16 +308,16 @@ ${ANTI_TEXT_RULES}${extraAntiText}
     return { buffer, modelUsed: 'flux-pro-v1.1' };
   }
 
-  const fullPrompt = childPhotoBase64
-    ? `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).\nThink step by step about the character's appearance. The main character must look EXACTLY like the child in the reference photo (FIRST image). Use the style example (SECOND image) for art style. Use the cover (THIRD image) for consistency.`
-    : `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).`;
+  const fullPrompt = `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).`;
 
   console.log('[illustration-generator] Page references:', {
     pageNumber,
     styleKey,
+    cropCount: characterCrops?.length || 0,
+    hasPreviousPage: !!previousPageBase64,
+    coverPresent: !!coverImageBase64,
     photoPresent: !!childPhotoBase64,
     stylePresent: !!stylePreviewBase64,
-    coverPresent: !!coverImageBase64,
   });
 
   return generateWithRateLimit(async () => {
@@ -312,17 +325,33 @@ ${ANTI_TEXT_RULES}${extraAntiText}
 
     try {
       const parts: Part[] = [];
-      // FIRST: child photo — character reference
-      if (childPhotoBase64) {
-        parts.push({ inlineData: { mimeType: 'image/jpeg', data: childPhotoBase64 } });
+      // Order: character crops → previous page → cover → photo → style preview
+      // Cap at 10 images total
+      let imgCount = 0;
+      if (protagonistCrop && imgCount < 10) {
+        parts.push({ inlineData: { mimeType: 'image/png', data: protagonistCrop.base64 } });
+        imgCount++;
       }
-      // SECOND: style preview — art style reference
-      if (stylePreviewBase64) {
-        parts.push({ inlineData: { mimeType: 'image/png', data: stylePreviewBase64 } });
+      for (const crop of otherCrops) {
+        if (imgCount >= 10) break;
+        parts.push({ inlineData: { mimeType: 'image/png', data: crop.base64 } });
+        imgCount++;
       }
-      // THIRD: cover — consistency reference
-      if (coverImageBase64) {
+      if (previousPageBase64 && imgCount < 10) {
+        parts.push({ inlineData: { mimeType: 'image/png', data: previousPageBase64 } });
+        imgCount++;
+      }
+      if (coverImageBase64 && imgCount < 10) {
         parts.push({ inlineData: { mimeType: 'image/png', data: coverImageBase64 } });
+        imgCount++;
+      }
+      if (childPhotoBase64 && imgCount < 10) {
+        parts.push({ inlineData: { mimeType: 'image/jpeg', data: childPhotoBase64 } });
+        imgCount++;
+      }
+      if (stylePreviewBase64 && imgCount < 10) {
+        parts.push({ inlineData: { mimeType: 'image/png', data: stylePreviewBase64 } });
+        imgCount++;
       }
       parts.push({ text: fullPrompt });
 

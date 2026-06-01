@@ -100,6 +100,19 @@ export async function POST(req: Request) {
       blockLength: visualBibleBlock?.length || 0,
     });
 
+    // Load character crops if available
+    const cropMeta = bookMeta.character_crops as Array<{ name: string; storagePath: string; publicUrl: string }> | undefined;
+    const characterCrops: Array<{ name: string; base64: string }> = [];
+    if (cropMeta && cropMeta.length > 0) {
+      for (const crop of cropMeta) {
+        try {
+          const cropBase64 = await getImageBase64('covers', crop.storagePath);
+          characterCrops.push({ name: crop.name, base64: cropBase64 });
+        } catch { /* skip failed crops */ }
+      }
+      console.log('[generate-illustrations] Character crops loaded:', characterCrops.length);
+    }
+
     // Load reference images
     let childPhotoBase64: string | undefined;
     const { data: photos } = await supabase
@@ -190,6 +203,7 @@ export async function POST(req: Request) {
       coverImageBase64,
       stylePreviewBase64,
       visualBibleBlock,
+      characterCrops,
     });
 
     return NextResponse.json({ status: 'complete', total: pages.length, results });
@@ -217,8 +231,9 @@ async function generateAllIllustrations(params: {
   coverImageBase64?: string;
   stylePreviewBase64?: string;
   visualBibleBlock?: string;
+  characterCrops?: Array<{ name: string; base64: string }>;
 }): Promise<Array<{ pageNumber: number; status: string; url?: string; error?: string }>> {
-  const { bookId, pages, styleKey, characterDescription, characterBible, childPhotoBase64, coverImageBase64, stylePreviewBase64, visualBibleBlock } = params;
+  const { bookId, pages, styleKey, characterDescription, characterBible, childPhotoBase64, coverImageBase64, stylePreviewBase64, visualBibleBlock, characterCrops } = params;
 
   const { createClient: createServiceClient } = await import('@supabase/supabase-js');
   const supabase = createServiceClient(
@@ -228,6 +243,7 @@ async function generateAllIllustrations(params: {
 
   const results: Array<{ pageNumber: number; status: string; url?: string; error?: string }> = [];
   let completedCount = 0;
+  let previousPageBase64: string | undefined;
 
   for (const page of pages) {
     const rawPrompt = page.illustration_prompt || `Scene for page ${page.page_number}`;
@@ -240,6 +256,8 @@ async function generateAllIllustrations(params: {
       stylePreview: { present: !!stylePreviewBase64, sizeKB: stylePreviewBase64 ? Math.round(stylePreviewBase64.length * 3 / 4 / 1024) : 0 },
       cover: { present: !!coverImageBase64, sizeKB: coverImageBase64 ? Math.round(coverImageBase64.length * 3 / 4 / 1024) : 0 },
       visualBible: { present: !!visualBibleBlock, charCount: visualBibleBlock?.length || 0 },
+      characterCrops: { count: characterCrops?.length || 0, names: characterCrops?.map(c => c.name) || [] },
+      previousPage: { present: !!previousPageBase64, sizeKB: previousPageBase64 ? Math.round(previousPageBase64.length * 3 / 4 / 1024) : 0 },
     };
     let retryCount = 0;
 
@@ -254,6 +272,8 @@ async function generateAllIllustrations(params: {
         coverImageBase64,
         stylePreviewBase64,
         visualBibleBlock,
+        characterCrops,
+        previousPageBase64,
       };
 
       // Generate with single retry on failure + logging
@@ -296,6 +316,9 @@ async function generateAllIllustrations(params: {
 
       completedCount++;
       results.push({ pageNumber: page.page_number, status: 'complete', url: imageUrl });
+
+      // Capture this page for use as previousPage reference for next page
+      previousPageBase64 = genResult.buffer.toString('base64');
 
       if (completedCount < pages.length) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
