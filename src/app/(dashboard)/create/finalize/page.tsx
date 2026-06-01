@@ -265,14 +265,26 @@ export default function FinalizePage() {
     setBuildProgress({ illustrationsComplete: 0, narrationsComplete: 0, total: (generatedStory?.pages.length || 0) * 2 });
     setPhase('building');
 
-    // Fire-and-forget: cover + illustrations + narration in parallel
-    fetch('/api/generate-cover', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId }),
-    }).catch((err) => console.error('Failed to start cover generation:', err));
+    // Step 1: Generate cover FIRST (pages need it as a reference image)
+    try {
+      console.log('[finalize] Starting cover generation...');
+      const coverRes = await fetch('/api/generate-cover', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId }),
+      });
+      if (!coverRes.ok) {
+        console.error('[finalize] Cover generation failed:', coverRes.status);
+      } else {
+        console.log('[finalize] Cover generated successfully');
+      }
+    } catch (err) {
+      console.error('[finalize] Cover generation error:', err);
+    }
 
+    // Step 2: Fire pages + narration in parallel (cover is now in DB)
     fetch('/api/generate-illustrations', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId }),
     }).catch((err) => console.error('Failed to start illustrations:', err));
+
     fetch('/api/generate-narration', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId, voiceId: selectedVoiceId, language }),
     }).catch((err) => console.error('Failed to start narration:', err));

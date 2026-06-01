@@ -121,12 +121,31 @@ export async function POST(req: Request) {
       photoBase64Length: childPhotoBase64?.length || 0,
     });
 
+    // Load cover image as reference (REQUIRED — cover must exist before pages generate)
     let coverImageBase64: string | undefined;
+    console.log('[generate-illustrations] Loading cover reference:', {
+      selectedCoverExists: !!selectedCover,
+      coverImageUrl: selectedCover?.image_url?.substring(0, 80) || 'none',
+      coverStyleName: selectedCover?.style_name || 'none',
+    });
+
     if (selectedCover?.image_url) {
       try {
         const coverPath = `${bookId}/cover-${styleKey}.png`;
         coverImageBase64 = await getImageBase64('covers', coverPath);
-      } catch { /* continue without */ }
+        console.log('[generate-illustrations] Cover loaded:', {
+          sizeKB: Math.round((coverImageBase64?.length || 0) * 3 / 4 / 1024),
+        });
+      } catch (err) {
+        console.error('[generate-illustrations] Cover load FAILED:', {
+          path: `${bookId}/cover-${styleKey}.png`,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
+    if (!coverImageBase64) {
+      console.error('[generate-illustrations] CRITICAL: No cover reference available. Pages will generate without cover consistency.');
     }
 
     // Load style preview PNG
