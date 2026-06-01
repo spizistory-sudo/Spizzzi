@@ -40,6 +40,7 @@ interface GeneratePageIllustrationParams {
   childPhotoBase64?: string;
   coverImageBase64?: string;
   stylePreviewBase64?: string;
+  visualBibleBlock?: string;
 }
 
 function extractStatusCode(err: Error): number | undefined {
@@ -224,6 +225,7 @@ export async function generatePageIllustration(
     childPhotoBase64,
     coverImageBase64,
     stylePreviewBase64,
+    visualBibleBlock,
   } = params;
   const style = ART_STYLES[styleKey];
 
@@ -239,7 +241,7 @@ export async function generatePageIllustration(
     ? `\n\nSPECIAL NOTE: This scene involves objects that typically contain text (books, signs, notes, papers). REMEMBER: ALL such objects in this illustration MUST be visually blank — no text, no letters, no markings of any kind. A book in this scene must be closed or have blank pages. A sign must be blank. Paper must be blank. The story's narrative text is rendered SEPARATELY on the page layout, never inside the illustration.`
     : '';
 
-  const promptText = `PURE IMAGE OUTPUT — NO TEXT WHATSOEVER. Do not render any words, letters, numbers, or written symbols anywhere in this image.
+  const promptText = `${visualBibleBlock || ''}PURE IMAGE OUTPUT — NO TEXT WHATSOEVER. Do not render any words, letters, numbers, or written symbols anywhere in this image.
 
 MAIN CHARACTER (must appear EXACTLY ONCE in this scene, looking EXACTLY the same as every other page):
 ${characterDescription}

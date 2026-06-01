@@ -4,6 +4,7 @@ import { generatePageIllustration, PRIMARY_MODEL } from '@/lib/ai/illustration-g
 import { uploadImage, getImageBase64 } from '@/lib/supabase/storage';
 import type { ArtStyleKey } from '@/lib/ai/prompts/style-references';
 import { logGeneration } from '@/lib/ai/generation-logger';
+import { visualBibleToPromptBlock, type VisualBible } from '@/lib/ai/visual-bible';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -90,6 +91,14 @@ export async function POST(req: Request) {
     ].filter(Boolean).join('\n\n');
 
     const characterBible = '';
+
+    // Load Visual Bible if available
+    const rawVisualBible = bookMeta.visual_bible as VisualBible | undefined;
+    const visualBibleBlock = rawVisualBible ? visualBibleToPromptBlock(rawVisualBible) : undefined;
+    console.log('[generate-illustrations] Visual Bible:', {
+      present: !!rawVisualBible,
+      blockLength: visualBibleBlock?.length || 0,
+    });
 
     // Load reference images
     let childPhotoBase64: string | undefined;
@@ -180,6 +189,7 @@ export async function POST(req: Request) {
       childPhotoBase64,
       coverImageBase64,
       stylePreviewBase64,
+      visualBibleBlock,
     });
 
     return NextResponse.json({ status: 'complete', total: pages.length, results });
@@ -206,8 +216,9 @@ async function generateAllIllustrations(params: {
   childPhotoBase64?: string;
   coverImageBase64?: string;
   stylePreviewBase64?: string;
+  visualBibleBlock?: string;
 }): Promise<Array<{ pageNumber: number; status: string; url?: string; error?: string }>> {
-  const { bookId, pages, styleKey, characterDescription, characterBible, childPhotoBase64, coverImageBase64, stylePreviewBase64 } = params;
+  const { bookId, pages, styleKey, characterDescription, characterBible, childPhotoBase64, coverImageBase64, stylePreviewBase64, visualBibleBlock } = params;
 
   const { createClient: createServiceClient } = await import('@supabase/supabase-js');
   const supabase = createServiceClient(
@@ -228,6 +239,7 @@ async function generateAllIllustrations(params: {
       photo: { present: !!childPhotoBase64, sizeKB: childPhotoBase64 ? Math.round(childPhotoBase64.length * 3 / 4 / 1024) : 0 },
       stylePreview: { present: !!stylePreviewBase64, sizeKB: stylePreviewBase64 ? Math.round(stylePreviewBase64.length * 3 / 4 / 1024) : 0 },
       cover: { present: !!coverImageBase64, sizeKB: coverImageBase64 ? Math.round(coverImageBase64.length * 3 / 4 / 1024) : 0 },
+      visualBible: { present: !!visualBibleBlock, charCount: visualBibleBlock?.length || 0 },
     };
     let retryCount = 0;
 
@@ -241,6 +253,7 @@ async function generateAllIllustrations(params: {
         childPhotoBase64,
         coverImageBase64,
         stylePreviewBase64,
+        visualBibleBlock,
       };
 
       // Generate with single retry on failure + logging

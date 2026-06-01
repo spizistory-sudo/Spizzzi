@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { generateCoverImage, PRIMARY_MODEL } from '@/lib/ai/illustration-generator';
 import { ART_STYLES, ART_STYLE_KEYS, type ArtStyleKey } from '@/lib/ai/prompts/style-references';
 import { logGeneration } from '@/lib/ai/generation-logger';
+import { extractVisualBible } from '@/lib/ai/visual-bible';
 import { uploadImage, getImageBase64 } from '@/lib/supabase/storage';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -176,6 +177,55 @@ export async function POST(req: Request) {
     }
 
     console.log('[generate-cover] Single cover generated and auto-selected:', { coverId: cover.id, styleKey });
+
+    // Extract Visual Bible from cover (non-blocking — book still generates if this fails)
+    try {
+      const { data: pages } = await supabase
+        .from('pages')
+        .select('text_content')
+        .eq('book_id', bookId)
+        .order('page_number');
+
+      const storyText = pages?.map(p => p.text_content).join(' ') || '';
+
+      // Extract supporting character names from the character_bible text
+      const supportingCharacters: string[] = [];
+      if (storyBible) {
+        const nameMatches = storyBible.match(/(?:^|\.\s+)([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s+is\b/g);
+        if (nameMatches) {
+          for (const m of nameMatches) {
+            const name = m.replace(/^\.\s*/, '').replace(/\s+is$/, '').trim();
+            if (name !== book.child_name) supportingCharacters.push(name);
+          }
+        }
+      }
+
+      const coverBase64 = coverResult.buffer.toString('base64');
+      const visualBible = await extractVisualBible(coverBase64, {
+        protagonistName: book.child_name,
+        supportingCharacters,
+        storyText,
+      });
+
+      if (visualBible) {
+        const { data: currentBook } = await supabase
+          .from('books')
+          .select('metadata')
+          .eq('id', bookId)
+          .single();
+        const existingMeta = (currentBook?.metadata as Record<string, unknown>) || {};
+        await supabase
+          .from('books')
+          .update({ metadata: { ...existingMeta, visual_bible: visualBible } })
+          .eq('id', bookId);
+        console.log('[generate-cover] Visual Bible saved to metadata');
+      } else {
+        console.warn('[generate-cover] Visual Bible extraction returned null, continuing without');
+      }
+    } catch (bibleErr) {
+      console.error('[generate-cover] Visual Bible extraction error (non-fatal):', bibleErr);
+    }
+
     return NextResponse.json({ covers: [cover] });
   } catch (err) {
     console.error('[generate-cover] Unhandled error:', err);
