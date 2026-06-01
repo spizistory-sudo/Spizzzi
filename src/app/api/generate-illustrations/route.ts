@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { generatePageIllustration } from '@/lib/ai/illustration-generator';
+import { generatePageIllustration, PRIMARY_MODEL } from '@/lib/ai/illustration-generator';
 import { uploadImage, getImageBase64 } from '@/lib/supabase/storage';
 import type { ArtStyleKey } from '@/lib/ai/prompts/style-references';
+import { logGeneration } from '@/lib/ai/generation-logger';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -199,12 +200,19 @@ async function generateAllIllustrations(params: {
   let completedCount = 0;
 
   for (const page of pages) {
-    try {
-      const rawPrompt = page.illustration_prompt || `Scene for page ${page.page_number}`;
-      const illustrationPrompt = characterBible
-        ? `${characterBible}\n\n${rawPrompt}`
-        : rawPrompt;
+    const rawPrompt = page.illustration_prompt || `Scene for page ${page.page_number}`;
+    const illustrationPrompt = characterBible
+      ? `${characterBible}\n\n${rawPrompt}`
+      : rawPrompt;
+    const pageStart = Date.now();
+    const pageRefsInfo = {
+      photo: { present: !!childPhotoBase64, sizeKB: childPhotoBase64 ? Math.round(childPhotoBase64.length * 3 / 4 / 1024) : 0 },
+      stylePreview: { present: !!stylePreviewBase64, sizeKB: stylePreviewBase64 ? Math.round(stylePreviewBase64.length * 3 / 4 / 1024) : 0 },
+      cover: { present: !!coverImageBase64, sizeKB: coverImageBase64 ? Math.round(coverImageBase64.length * 3 / 4 / 1024) : 0 },
+    };
+    let retryCount = 0;
 
+    try {
       const illustrationParams = {
         styleKey,
         characterDescription,
@@ -216,18 +224,35 @@ async function generateAllIllustrations(params: {
         stylePreviewBase64,
       };
 
-      // Generate with single retry on failure
-      let imageBuffer: Buffer;
+      // Generate with single retry on failure + logging
+      let genResult;
       try {
-        imageBuffer = await generatePageIllustration(illustrationParams);
+        genResult = await generatePageIllustration(illustrationParams);
       } catch (firstErr) {
         console.warn(`[generate-illustrations] Page ${page.page_number} failed first attempt, retrying:`, (firstErr as Error).message);
+        retryCount = 1;
         await new Promise((r) => setTimeout(r, 2000));
-        imageBuffer = await generatePageIllustration(illustrationParams);
+        genResult = await generatePageIllustration(illustrationParams);
       }
 
+      await logGeneration({
+        bookId,
+        imageType: 'page',
+        pageNumber: page.page_number,
+        styleKey,
+        modelAttempted: PRIMARY_MODEL,
+        modelUsed: genResult.modelUsed,
+        fallbackTriggered: genResult.modelUsed !== PRIMARY_MODEL,
+        fallbackReason: genResult.modelUsed !== PRIMARY_MODEL ? 'primary model failed or returned no image' : undefined,
+        referencesAttached: pageRefsInfo,
+        promptLength: illustrationPrompt.length,
+        durationMs: Date.now() - pageStart,
+        retryCount,
+        success: true,
+      });
+
       const storagePath = `${bookId}/page-${page.page_number}.png`;
-      const imageUrl = await uploadImage('illustrations', storagePath, imageBuffer);
+      const imageUrl = await uploadImage('illustrations', storagePath, genResult.buffer);
 
       await supabase
         .from('pages')
@@ -245,6 +270,21 @@ async function generateAllIllustrations(params: {
       }
     } catch (err) {
       console.error(`Failed to generate illustration for page ${page.page_number}:`, err);
+      await logGeneration({
+        bookId,
+        imageType: 'page',
+        pageNumber: page.page_number,
+        styleKey,
+        modelAttempted: PRIMARY_MODEL,
+        modelUsed: 'none',
+        fallbackTriggered: false,
+        referencesAttached: pageRefsInfo,
+        promptLength: illustrationPrompt.length,
+        durationMs: Date.now() - pageStart,
+        retryCount,
+        success: false,
+        errorMessage: err instanceof Error ? err.message : String(err),
+      });
       await supabase
         .from('pages')
         .update({ illustration_status: 'error' })

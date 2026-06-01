@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { generateCoverImage } from '@/lib/ai/illustration-generator';
+import { generateCoverImage, PRIMARY_MODEL } from '@/lib/ai/illustration-generator';
 import { ART_STYLES, ART_STYLE_KEYS, type ArtStyleKey } from '@/lib/ai/prompts/style-references';
+import { logGeneration } from '@/lib/ai/generation-logger';
 import { uploadImage, getImageBase64 } from '@/lib/supabase/storage';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -105,17 +106,57 @@ export async function POST(req: Request) {
     }
 
     // Generate ONE cover in chosen style
-    const imageBuffer = await generateCoverImage({
-      styleKey,
-      bookTitle: book.title,
-      characterDescription,
-      themeDescription,
-      childPhotoBase64,
-      stylePreviewBase64,
-    });
+    const coverStart = Date.now();
+    const refsInfo = {
+      photo: { present: !!childPhotoBase64, sizeKB: childPhotoBase64 ? Math.round(childPhotoBase64.length * 3 / 4 / 1024) : 0 },
+      stylePreview: { present: !!stylePreviewBase64, sizeKB: stylePreviewBase64 ? Math.round(stylePreviewBase64.length * 3 / 4 / 1024) : 0 },
+    };
+
+    let coverResult;
+    try {
+      coverResult = await generateCoverImage({
+        styleKey,
+        bookTitle: book.title,
+        characterDescription,
+        themeDescription,
+        childPhotoBase64,
+        stylePreviewBase64,
+      });
+
+      await logGeneration({
+        bookId,
+        imageType: 'cover',
+        styleKey,
+        modelAttempted: PRIMARY_MODEL,
+        modelUsed: coverResult.modelUsed,
+        fallbackTriggered: coverResult.modelUsed !== PRIMARY_MODEL,
+        fallbackReason: coverResult.modelUsed !== PRIMARY_MODEL ? 'primary model failed or returned no image' : undefined,
+        referencesAttached: refsInfo,
+        promptLength: characterDescription.length,
+        durationMs: Date.now() - coverStart,
+        retryCount: 0,
+        success: true,
+      });
+    } catch (coverErr) {
+      await logGeneration({
+        bookId,
+        imageType: 'cover',
+        styleKey,
+        modelAttempted: PRIMARY_MODEL,
+        modelUsed: 'none',
+        fallbackTriggered: false,
+        referencesAttached: refsInfo,
+        promptLength: characterDescription.length,
+        durationMs: Date.now() - coverStart,
+        retryCount: 0,
+        success: false,
+        errorMessage: coverErr instanceof Error ? coverErr.message : String(coverErr),
+      });
+      throw coverErr;
+    }
 
     const storagePath = `${bookId}/cover-${styleKey}.png`;
-    const imageUrl = await uploadImage('covers', storagePath, imageBuffer);
+    const imageUrl = await uploadImage('covers', storagePath, coverResult.buffer);
 
     const { data: cover, error: coverError } = await supabase
       .from('cover_options')

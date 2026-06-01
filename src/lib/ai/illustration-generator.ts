@@ -5,8 +5,10 @@ import type { Part } from '@google/genai';
 import { isDevIllustrations } from '@/lib/dev/config';
 import { generateImageWithFlux } from './fal-client';
 
-const PRIMARY_MODEL = 'gemini-3-pro-image-preview';
-const FALLBACK_MODEL = 'imagen-4.0-generate-001';
+export const PRIMARY_MODEL = 'gemini-3-pro-image-preview';
+export const FALLBACK_MODEL = 'imagen-4.0-generate-001';
+
+export type GenerationResult = { buffer: Buffer; modelUsed: string };
 
 const ANTI_TEXT_RULES = `CRITICAL ANTI-TEXT RULE — READ CAREFULLY:
 The image MUST be pure visual art with absolutely no text of any kind. Specifically:
@@ -86,7 +88,7 @@ async function generateWithImagen(
 
 export async function generateCoverImage(
   params: GenerateCoverParams
-): Promise<Buffer> {
+): Promise<GenerationResult> {
   const { styleKey, characterDescription, themeDescription, childPhotoBase64, stylePreviewBase64 } = params;
   const style = ART_STYLES[styleKey];
 
@@ -125,9 +127,10 @@ We will add the title separately with CSS.`;
 
   if (isDevIllustrations()) {
     console.log(`[DEV_ILLUSTRATIONS] Using FLUX.2 Pro for cover (${styleKey})`);
-    return generateWithRateLimit(() =>
+    const buffer = await generateWithRateLimit(() =>
       generateImageWithFlux(promptText, { aspectRatio: 'portrait_4_3' })
     );
+    return { buffer, modelUsed: 'flux-pro-v1.1' };
   }
 
   const referenceBlock = (childPhotoBase64 || stylePreviewBase64) ? `
@@ -187,7 +190,7 @@ PHOTO = who the character IS. STYLE EXAMPLE = how to RENDER them. Never confuse 
         }
 
         console.log(`[illustration-generator] Cover generated via ${PRIMARY_MODEL} (attempt ${attempt}), ${imageBuffer.length} bytes`);
-        return imageBuffer;
+        return { buffer: imageBuffer, modelUsed: PRIMARY_MODEL };
       } catch (err) {
         geminiError = err instanceof Error ? err : new Error(String(err));
         const status = extractStatusCode(geminiError);
@@ -204,13 +207,14 @@ PHOTO = who the character IS. STYLE EXAMPLE = how to RENDER them. Never confuse 
     console.error(`[illustration-generator] ${PRIMARY_MODEL} cover FAILED after retries, trying Imagen fallback:`, {
       message: geminiError?.message,
     });
-    return await generateWithImagen(FALLBACK_MODEL, fullPrompt, `cover-${styleKey}`, '3:4');
+    const fallbackBuffer = await generateWithImagen(FALLBACK_MODEL, fullPrompt, `cover-${styleKey}`, '3:4');
+    return { buffer: fallbackBuffer, modelUsed: FALLBACK_MODEL };
   });
 }
 
 export async function generatePageIllustration(
   params: GeneratePageIllustrationParams
-): Promise<Buffer> {
+): Promise<GenerationResult> {
   const {
     styleKey,
     characterDescription,
@@ -283,9 +287,10 @@ ${ANTI_TEXT_RULES}${extraAntiText}
 
   if (isDevIllustrations()) {
     console.log(`[DEV_ILLUSTRATIONS] Using FLUX.2 Pro for page ${pageNumber}`);
-    return generateWithRateLimit(() =>
+    const buffer = await generateWithRateLimit(() =>
       generateImageWithFlux(promptText, { aspectRatio: 'portrait_4_3' })
     );
+    return { buffer, modelUsed: 'flux-pro-v1.1' };
   }
 
   const fullPrompt = childPhotoBase64
@@ -328,15 +333,17 @@ ${ANTI_TEXT_RULES}${extraAntiText}
       const imageBuffer = extractImageFromResponse(response);
       if (!imageBuffer) {
         console.warn(`[illustration-generator] ${PRIMARY_MODEL} returned no image for page ${pageNumber}, trying fallback`);
-        return await generateWithImagen(FALLBACK_MODEL, fullPrompt, `page-${pageNumber}`, '3:4');
+        const fb = await generateWithImagen(FALLBACK_MODEL, fullPrompt, `page-${pageNumber}`, '3:4');
+        return { buffer: fb, modelUsed: FALLBACK_MODEL };
       }
 
-      return imageBuffer;
+      return { buffer: imageBuffer, modelUsed: PRIMARY_MODEL };
     } catch (err) {
       console.error(`[illustration-generator] ${PRIMARY_MODEL} page ${pageNumber} FAILED, trying fallback:`, {
         message: err instanceof Error ? err.message : String(err),
       });
-      return await generateWithImagen(FALLBACK_MODEL, fullPrompt, `page-${pageNumber}`, '3:4');
+      const fb = await generateWithImagen(FALLBACK_MODEL, fullPrompt, `page-${pageNumber}`, '3:4');
+      return { buffer: fb, modelUsed: FALLBACK_MODEL };
     }
   });
 }
