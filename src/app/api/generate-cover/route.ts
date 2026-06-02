@@ -5,6 +5,7 @@ import { ART_STYLES, ART_STYLE_KEYS, type ArtStyleKey } from '@/lib/ai/prompts/s
 import { logGeneration } from '@/lib/ai/generation-logger';
 import { extractVisualBible } from '@/lib/ai/visual-bible';
 import { extractCharacterBoundingBoxes, cropAndUploadCharacters } from '@/lib/ai/character-cropper';
+import { triggerFailureEmail } from '@/lib/email/book-completion-trigger';
 import { uploadImage, getImageBase64 } from '@/lib/supabase/storage';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -154,6 +155,7 @@ export async function POST(req: Request) {
         success: false,
         errorMessage: coverErr instanceof Error ? coverErr.message : String(coverErr),
       });
+      try { await triggerFailureEmail(bookId); } catch { /* non-fatal */ }
       throw coverErr;
     }
 

@@ -353,6 +353,9 @@ export default function FinalizePage() {
                 style={{ width: `${Math.min(smoothProgress, 100)}%` }}
               />
             </div>
+            <p className="text-white/25 text-xs mt-6 max-w-[320px] text-center leading-relaxed">
+              You&apos;re welcome to stick around, but no need to wait here. We&apos;ll send you an email as soon as your book is ready.
+            </p>
           </div>
         )}
 

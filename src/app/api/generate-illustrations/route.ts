@@ -5,6 +5,7 @@ import { uploadImage, getImageBase64 } from '@/lib/supabase/storage';
 import type { ArtStyleKey } from '@/lib/ai/prompts/style-references';
 import { logGeneration } from '@/lib/ai/generation-logger';
 import { visualBibleToPromptBlock, type VisualBible } from '@/lib/ai/visual-bible';
+import { checkBookFullyComplete, triggerSuccessEmail, triggerFailureEmail } from '@/lib/email/book-completion-trigger';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -205,6 +206,21 @@ export async function POST(req: Request) {
       visualBibleBlock,
       characterCrops,
     });
+
+    // Check if book is fully complete → trigger email
+    try {
+      const hasErrors = results.some(r => r.status === 'error');
+      if (hasErrors) {
+        await triggerFailureEmail(bookId);
+      } else {
+        const completion = await checkBookFullyComplete(bookId);
+        if (completion.isComplete && !completion.notificationAlreadySent) {
+          await triggerSuccessEmail(bookId);
+        }
+      }
+    } catch (emailErr) {
+      console.error('[generate-illustrations] Email trigger error (non-fatal):', emailErr);
+    }
 
     return NextResponse.json({ status: 'complete', total: pages.length, results });
   } catch (err) {

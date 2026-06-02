@@ -4,6 +4,7 @@ import { getElevenLabsClient } from '@/lib/elevenlabs/client';
 import { getVoiceById, resolveVoiceId, STORYMAGIC_VOICE_SETTINGS, STORYMAGIC_TTS_MODEL } from '@/lib/elevenlabs/voices';
 import { uploadAudio } from '@/lib/supabase/storage';
 import { isDevMode, isDevNarration } from '@/lib/dev/config';
+import { checkBookFullyComplete, triggerSuccessEmail } from '@/lib/email/book-completion-trigger';
 import { generateSilentMp3 } from '@/lib/dev/mock-data';
 
 export const maxDuration = 300;
@@ -201,6 +202,16 @@ export async function POST(req: Request) {
         },
       })
       .eq('id', bookId);
+
+    // Check if book is fully complete → trigger email
+    try {
+      const completion = await checkBookFullyComplete(bookId);
+      if (completion.isComplete && !completion.notificationAlreadySent) {
+        await triggerSuccessEmail(bookId);
+      }
+    } catch (emailErr) {
+      console.error('[narration] Email trigger error (non-fatal):', emailErr);
+    }
 
     return NextResponse.json({ results });
   } catch (err) {
