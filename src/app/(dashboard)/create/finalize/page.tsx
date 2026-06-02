@@ -11,14 +11,40 @@ import CoverImage from '@/components/reader/CoverImage';
 import VideoBackground from '@/components/ui/VideoBackground';
 
 type FinalizationPhase = 'select' | 'building' | 'done';
+type BuildPhase = 'cover_generating' | 'cover_processing' | 'pages' | 'narration' | 'done';
 
-function getBuildingMessage(percent: number): string {
-  if (percent < 30) return 'Painting your illustrations...';
-  if (percent < 60) return 'Adding colors and details...';
-  if (percent < 80) return 'Recording your narration...';
-  if (percent < 100) return 'Putting the finishing touches...';
-  return 'Your book is ready!';
-}
+const PHASE_TARGETS: Record<BuildPhase, number> = {
+  cover_generating: 25,
+  cover_processing: 70,
+  pages: 90,
+  narration: 98,
+  done: 100,
+};
+
+const PHASE_MESSAGES: Record<BuildPhase, { primary: string; rotating: string[] }> = {
+  cover_generating: {
+    primary: 'Designing your cover...',
+    rotating: ['Choosing the colors...', 'Sketching the scene...', 'Painting the characters...', 'Adding the finishing touches...'],
+  },
+  cover_processing: {
+    primary: 'Studying your character...',
+    rotating: ['So they look the same on every page', 'Memorizing every detail', 'Making sure the magic stays consistent'],
+  },
+  pages: {
+    primary: 'Painting the pages...',
+    rotating: [],
+  },
+  narration: {
+    primary: 'Recording the narration...',
+    rotating: ['Bringing the story to life', 'Almost ready'],
+  },
+  done: {
+    primary: 'Your book is ready!',
+    rotating: [],
+  },
+};
+
+const PAGE_FILLER = ['Sprinkling fairy dust on the pages...', 'Mixing the perfect colors...', 'Bringing the story to life...'];
 
 export default function FinalizePage() {
   const router = useRouter();
@@ -43,6 +69,9 @@ export default function FinalizePage() {
   // Building state
   const [buildProgress, setBuildProgress] = useState({ illustrationsComplete: 0, narrationsComplete: 0, total: 0 });
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [buildPhase, setBuildPhase] = useState<BuildPhase>('cover_generating');
+  const [smoothProgress, setSmoothProgress] = useState(0);
+  const [rotatingIdx, setRotatingIdx] = useState(0);
   const buildingMusicRef = useRef<HTMLAudioElement | null>(null);
 
   // Audio preview refs
@@ -82,7 +111,7 @@ export default function FinalizePage() {
     }
   }, [generatedStory, selectedMusicId, setSelectedMusic, musicTracks]);
 
-  // Poll for building progress
+  // Unified poll: book-status returns cover + page + narration state
   useEffect(() => {
     if (phase !== 'building' || !bookId) return;
 
@@ -93,95 +122,56 @@ export default function FinalizePage() {
         const data = await res.json();
 
         const pageCount = data.total || 0;
-        const illComplete = data.illustrationsComplete ?? data.complete ?? 0;
+        const illComplete = data.illustrationsComplete ?? 0;
         const narComplete = data.narrationsComplete ?? 0;
-        const totalSteps = pageCount * 2;
 
-        console.log('[finalize] Poll:', { pageCount, illComplete, narComplete, totalSteps });
+        setBuildProgress({ illustrationsComplete: illComplete, narrationsComplete: narComplete, total: pageCount * 2 });
 
-        setBuildProgress({ illustrationsComplete: illComplete, narrationsComplete: narComplete, total: totalSteps });
+        // Update cover URL when available
+        if (data.coverUrl && !coverUrl) {
+          setCoverUrl(data.coverUrl);
+        }
 
-        if (pageCount > 0 && illComplete >= pageCount && narComplete >= pageCount) {
+        // Derive build phase from backend state
+        const cs = data.coverStatus || 'generating_image';
+        if (cs === 'ready' && illComplete >= pageCount && narComplete >= pageCount) {
+          setBuildPhase('done');
+          setPhase('done');
           clearInterval(interval);
-          // Don't setPhase('done') here — separate effect waits for cover too
+        } else if (cs === 'ready' && illComplete >= pageCount) {
+          setBuildPhase('narration');
+        } else if (cs === 'ready') {
+          setBuildPhase('pages');
+        } else if (cs === 'processing') {
+          setBuildPhase('cover_processing');
+        } else {
+          setBuildPhase('cover_generating');
         }
       } catch { /* keep polling */ }
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [phase, bookId]);
+  }, [phase, bookId, coverUrl]);
 
-  // Transition to 'done' when all generation is complete AND cover is loaded
+  // Smooth progress bar tick
   useEffect(() => {
     if (phase !== 'building') return;
-    const pageCount = generatedStory?.pages?.length || 0;
-    if (pageCount === 0) return;
-    const allDone = buildProgress.illustrationsComplete >= pageCount && buildProgress.narrationsComplete >= pageCount;
-    if (allDone && coverUrl) {
-      setPhase('done');
-    }
-  }, [phase, buildProgress, coverUrl, generatedStory]);
+    const tick = setInterval(() => {
+      setSmoothProgress((prev) => {
+        const target = PHASE_TARGETS[buildPhase];
+        if (prev >= target) return prev;
+        return prev + Math.max(0.1, (target - prev) * 0.02);
+      });
+    }, 200);
+    return () => clearInterval(tick);
+  }, [phase, buildPhase]);
 
-  // Fetch cover URL eagerly (as soon as we have a bookId) — no .single() to avoid throw on 0 rows
+  // Rotating sub-text
   useEffect(() => {
-    if (!bookId || coverUrl) return;
-
-    async function loadCover() {
-      console.log('[finalize] Loading cover for bookId:', bookId);
-
-      // Try selected cover first
-      const { data: selectedCovers } = await supabase
-        .from('cover_options')
-        .select('image_url')
-        .eq('book_id', bookId)
-        .eq('is_selected', true)
-        .limit(1);
-
-      if (selectedCovers && selectedCovers.length > 0 && selectedCovers[0].image_url) {
-        console.log('[finalize] Found selected cover:', selectedCovers[0].image_url);
-        setCoverUrl(selectedCovers[0].image_url);
-        return;
-      }
-
-      // Fallback: any cover for this book
-      const { data: anyCovers } = await supabase
-        .from('cover_options')
-        .select('image_url')
-        .eq('book_id', bookId)
-        .order('created_at', { ascending: true })
-        .limit(1);
-
-      if (anyCovers && anyCovers.length > 0 && anyCovers[0].image_url) {
-        console.log('[finalize] Fallback cover:', anyCovers[0].image_url);
-        setCoverUrl(anyCovers[0].image_url);
-      } else {
-        console.log('[finalize] No covers found for book:', bookId);
-      }
-    }
-    loadCover();
-  }, [bookId, coverUrl, supabase]);
-
-  // Poll for cover during building phase (cover generates in parallel)
-  useEffect(() => {
-    if (phase !== 'building' || !bookId || coverUrl) return;
-
-    const coverPoll = setInterval(async () => {
-      const { data: covers } = await supabase
-        .from('cover_options')
-        .select('image_url')
-        .eq('book_id', bookId)
-        .eq('is_selected', true)
-        .limit(1);
-
-      if (covers && covers.length > 0 && covers[0].image_url) {
-        console.log('[finalize] Cover poll found:', covers[0].image_url);
-        setCoverUrl(covers[0].image_url);
-        clearInterval(coverPoll);
-      }
-    }, 3000);
-
-    return () => clearInterval(coverPoll);
-  }, [phase, bookId, coverUrl, supabase]);
+    if (phase !== 'building') return;
+    const rot = setInterval(() => setRotatingIdx((i) => i + 1), 3500);
+    return () => clearInterval(rot);
+  }, [phase]);
 
   // Play background music during building phase
   useEffect(() => {
@@ -292,23 +282,37 @@ export default function FinalizePage() {
 
   // ── Full-screen immersive building / done overlay ──
   if (phase === 'building' || phase === 'done') {
-    const completed = buildProgress.illustrationsComplete + buildProgress.narrationsComplete;
-    const percent = buildProgress.total > 0 ? Math.round((completed / buildProgress.total) * 100) : 0;
     const isComplete = phase === 'done';
+
+    // Build rotating sub-text
+    const msgs = PHASE_MESSAGES[buildPhase];
+    let subText = '';
+    if (buildPhase === 'pages') {
+      // Show real scene text from story pages, with filler fallback
+      const pageTexts = generatedStory?.pages?.map(p => {
+        const text = p.text || '';
+        return text.length > 80 ? text.substring(0, 77) + '...' : text;
+      }).filter(Boolean) || [];
+      const source = pageTexts.length > 0 ? pageTexts : PAGE_FILLER;
+      subText = source[rotatingIdx % source.length];
+    } else if (msgs.rotating.length > 0) {
+      subText = msgs.rotating[rotatingIdx % msgs.rotating.length];
+    }
 
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-4">
         <VideoBackground />
-        {/* Content above background — offset for sidebar */}
         <div className="relative z-10 flex flex-col items-center">
-        {/* Cover image with title overlay — same component as reader */}
+        {/* Cover with fade-in */}
         <div className="mb-8 relative">
-          <CoverImage
-            coverUrl={coverUrl}
-            title={generatedStory?.title || ''}
-            childName={childName}
-            size="building"
-          />
+          <div style={{ transition: 'opacity 0.6s ease-in-out', opacity: coverUrl ? 1 : 0.3 }}>
+            <CoverImage
+              coverUrl={coverUrl}
+              title={generatedStory?.title || ''}
+              childName={childName}
+              size="building"
+            />
+          </div>
           {!coverUrl && (
             <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ borderRadius: '1rem' }}>
               <div className="w-10 h-10 mb-3 rounded-full border-4 border-white/30 border-t-white/90 animate-spin" />
@@ -317,7 +321,6 @@ export default function FinalizePage() {
           )}
         </div>
 
-        {/* Phase content — fades between building and complete */}
         {isComplete ? (
           <div key="complete" className="text-center build-fade-in">
             <p className="text-white text-xl font-semibold mb-2" style={{ fontFamily: 'Georgia, serif' }}>Your book is ready!</p>
@@ -331,20 +334,23 @@ export default function FinalizePage() {
                 } catch { /* continue */ }
                 router.push(`/reader/${bookId}?skipCover=true`);
               }}
-              disabled={!coverUrl}
-              className="px-10 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-lg font-semibold transition shadow-lg shadow-purple-900/40 disabled:opacity-50 disabled:cursor-wait"
+              className="px-10 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-lg font-semibold transition shadow-lg shadow-purple-900/40"
             >
-              {coverUrl ? 'Start Reading' : 'Almost ready...'}
+              Start Reading
             </button>
           </div>
         ) : (
           <div key="building" className="w-[280px] md:w-[360px] text-center build-fade-in">
-            <p className="text-white text-lg font-medium mb-1">{getBuildingMessage(percent)}</p>
-            <p className="text-white/30 text-sm mb-4">{completed} of {buildProgress.total} steps complete</p>
+            <p className="text-white text-lg font-medium mb-1">{msgs.primary}</p>
+            {subText && (
+              <p className="text-white/40 text-sm mb-4 italic transition-opacity duration-500" key={subText.substring(0, 20)}>
+                {subText}
+              </p>
+            )}
             <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
               <div
-                className="h-full bg-purple-500 rounded-full transition-all duration-700 ease-out"
-                style={{ width: `${percent}%` }}
+                className="h-full bg-purple-500 rounded-full transition-all duration-200 ease-out"
+                style={{ width: `${Math.min(smoothProgress, 100)}%` }}
               />
             </div>
           </div>
