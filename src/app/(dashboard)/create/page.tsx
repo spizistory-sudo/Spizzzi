@@ -10,7 +10,7 @@ export default function CreatePage() {
 
   function handleGuided() {
     reset();
-    router.push('/create/details');
+    router.push('/create/style');
   }
 
   return (

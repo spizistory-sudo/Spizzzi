@@ -19,9 +19,13 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 
 export default function CategoriesPage() {
   const router = useRouter();
-  const { childName, childAge, childGender, categoryId, setCategoryId, setStep } = useCreationWizard();
+  const { childName, childAge, childGender, selectedStyleKey, categoryId, setCategoryId, setStep } = useCreationWizard();
   const [selected, setSelected] = useState<string | null>(categoryId);
 
+  if (!selectedStyleKey) {
+    router.replace('/create/style');
+    return null;
+  }
   if (!childName || !childAge || !childGender) {
     router.replace('/create/details');
     return null;
@@ -104,7 +108,7 @@ export default function CategoriesPage() {
 
       {/* Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 24, paddingBottom: 32 }}>
-        <button onClick={() => router.push('/create/style')} className="btn-secondary">
+        <button onClick={() => router.push('/create/details')} className="btn-secondary">
           &larr; Back
         </button>
         <button onClick={handleContinue} className="btn-primary" disabled={!selected}

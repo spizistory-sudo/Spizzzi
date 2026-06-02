@@ -11,13 +11,8 @@ const styleEntries = Object.entries(ART_STYLES) as [ArtStyleKey, (typeof ART_STY
 
 export default function StylePage() {
   const router = useRouter();
-  const { childName, childAge, childGender, selectedStyleKey, setSelectedStyle, setStep } = useCreationWizard();
+  const { selectedStyleKey, setSelectedStyle, setStep } = useCreationWizard();
   const [selected, setSelected] = useState<ArtStyleKey | null>(selectedStyleKey);
-
-  if (!childName || !childAge || !childGender) {
-    router.replace('/create/details');
-    return null;
-  }
 
   function handleSelect(key: ArtStyleKey) {
     setSelected(key);
@@ -26,14 +21,14 @@ export default function StylePage() {
 
   function handleContinue() {
     if (!selected) return;
-    setStep('category');
-    router.push('/create/categories');
+    setStep('details');
+    router.push('/create/details');
   }
 
   function handleSurprise() {
     setSelectedStyle('pixar');
-    setStep('category');
-    router.push('/create/categories');
+    setStep('details');
+    router.push('/create/details');
   }
 
   return (
@@ -97,7 +92,7 @@ export default function StylePage() {
 
       {/* Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 24, paddingBottom: 32 }}>
-        <button onClick={() => router.push('/create/details')} className="btn-secondary">
+        <button onClick={() => router.push('/create')} className="btn-secondary">
           &larr; Back
         </button>
         <button onClick={handleContinue} className="btn-primary" disabled={!selected}

@@ -71,8 +71,14 @@ export default function DetailsPage() {
   const router = useRouter();
   const {
     childName, childAge, childGender, childTraits, childInterests, uploadedPhotos,
+    selectedStyleKey,
     setChildDetails, setChildGender, setChildInterests, setStep, setPhotoDescription,
   } = useCreationWizard();
+
+  if (!selectedStyleKey) {
+    router.replace('/create/style');
+    return null;
+  }
 
   const [name, setName] = useState(childName);
   const [age, setAge] = useState<number | null>(childAge);
@@ -137,8 +143,8 @@ export default function DetailsPage() {
       }
     }
 
-    setStep('style');
-    router.push('/create/style');
+    setStep('category');
+    router.push('/create/categories');
   }
 
   const isValid = name.trim() && age && gender && hasChildPhoto && !analyzing;
@@ -287,6 +293,9 @@ export default function DetailsPage() {
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 8, paddingBottom: 32 }}>
+          <button type="button" onClick={() => router.push('/create/style')} className="btn-secondary">
+            &larr; Back
+          </button>
           <button type="submit" className="btn-primary" disabled={!isValid}
             style={{ opacity: isValid ? 1 : 0.5, cursor: isValid ? 'pointer' : 'not-allowed' }}
           >
