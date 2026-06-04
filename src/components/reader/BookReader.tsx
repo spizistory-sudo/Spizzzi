@@ -374,7 +374,7 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
       return (
         <div style={{ width: '100%', height: '100%', display: 'flex' }}>
           {/* Left page: text (editable in edit mode) */}
-          <div style={{ width: '50%', height: '100%', background: '#faf8f4', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '2rem 3rem', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ width: '50%', height: '100%', background: '#faf8f4', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '2rem 3rem', position: 'relative', overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'thin', scrollbarColor: 'rgba(155,125,212,0.3) transparent' }}>
             <div style={{ textAlign: 'center', position: 'absolute', top: '2rem', left: 0, right: 0 }}>
               <p style={{ fontSize: '12px', color: '#d1d5db', letterSpacing: '0.2em', textTransform: 'uppercase', fontFamily: 'Georgia, serif' }}>{book.title}</p>
             </div>

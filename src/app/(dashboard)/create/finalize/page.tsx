@@ -343,7 +343,7 @@ export default function FinalizePage() {
           <div key="building" className="w-[280px] md:w-[360px] text-center build-fade-in">
             <p className="text-white text-lg font-medium mb-1">{msgs.primary}</p>
             {subText && (
-              <p className="text-white/40 text-sm mb-4 italic transition-opacity duration-500" key={subText.substring(0, 20)}>
+              <p className="text-white/85 text-base mb-4 italic transition-opacity duration-500" key={subText.substring(0, 20)}>
                 {subText}
               </p>
             )}
@@ -353,7 +353,7 @@ export default function FinalizePage() {
                 style={{ width: `${Math.min(smoothProgress, 100)}%` }}
               />
             </div>
-            <p className="text-white/25 text-xs mt-6 max-w-[320px] text-center leading-relaxed">
+            <p className="text-white/70 text-sm mt-6 max-w-[420px] text-center leading-relaxed">
               You&apos;re welcome to stick around, but no need to wait here. We&apos;ll send you an email as soon as your book is ready.
             </p>
           </div>

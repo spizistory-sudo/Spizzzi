@@ -6,6 +6,7 @@ import type { ArtStyleKey } from '@/lib/ai/prompts/style-references';
 import { logGeneration } from '@/lib/ai/generation-logger';
 import { visualBibleToPromptBlock, type VisualBible } from '@/lib/ai/visual-bible';
 import { checkBookFullyComplete, triggerSuccessEmail, triggerFailureEmail } from '@/lib/email/book-completion-trigger';
+import { verifyPageIdentity } from '@/lib/ai/identity-verifier';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -205,6 +206,8 @@ export async function POST(req: Request) {
       stylePreviewBase64,
       visualBibleBlock,
       characterCrops,
+      rawVisualBible,
+      normalizedGender,
     });
 
     // Check if book is fully complete → trigger email
@@ -248,8 +251,10 @@ async function generateAllIllustrations(params: {
   stylePreviewBase64?: string;
   visualBibleBlock?: string;
   characterCrops?: Array<{ name: string; base64: string }>;
+  rawVisualBible?: VisualBible;
+  normalizedGender?: string;
 }): Promise<Array<{ pageNumber: number; status: string; url?: string; error?: string }>> {
-  const { bookId, pages, styleKey, characterDescription, characterBible, childPhotoBase64, coverImageBase64, stylePreviewBase64, visualBibleBlock, characterCrops } = params;
+  const { bookId, pages, styleKey, characterDescription, characterBible, childPhotoBase64, coverImageBase64, stylePreviewBase64, visualBibleBlock, characterCrops, rawVisualBible, normalizedGender } = params;
 
   const { createClient: createServiceClient } = await import('@supabase/supabase-js');
   const supabase = createServiceClient(
@@ -288,15 +293,64 @@ async function generateAllIllustrations(params: {
         characterCrops,
       };
 
+      // Generate with identity verification retry loop (up to 3 attempts)
+      const MAX_IDENTITY_ATTEMPTS = 3;
+      let identityAttempt = 0;
       let genResult;
-      try {
-        genResult = await generatePageIllustration(illustrationParams);
-      } catch (firstErr) {
-        console.warn(`[generate-illustrations] Page ${page.page_number} failed first attempt, retrying:`, (firstErr as Error).message);
-        retryCount = 1;
-        await new Promise((r) => setTimeout(r, 2000));
-        genResult = await generatePageIllustration(illustrationParams);
+      let lastVerification: { passes: boolean; reason?: string } | null = null;
+
+      while (identityAttempt < MAX_IDENTITY_ATTEMPTS) {
+        identityAttempt++;
+
+        try {
+          genResult = await generatePageIllustration(illustrationParams);
+        } catch (genErr) {
+          if (identityAttempt < MAX_IDENTITY_ATTEMPTS) {
+            console.warn(`[generate-illustrations] Page ${page.page_number} gen failed attempt ${identityAttempt}, retrying:`, (genErr as Error).message);
+            retryCount++;
+            await new Promise((r) => setTimeout(r, 2000));
+            continue;
+          }
+          throw genErr;
+        }
+
+        // Verify identity if Visual Bible is available
+        if (!rawVisualBible) break;
+
+        const verifyStart = Date.now();
+        lastVerification = await verifyPageIdentity({
+          pageImageBuffer: genResult.buffer,
+          visualBible: rawVisualBible,
+          childGender: normalizedGender || 'male',
+        });
+
+        await logGeneration({
+          bookId,
+          imageType: 'page' as const,
+          pageNumber: page.page_number,
+          styleKey,
+          modelAttempted: 'gemini-2.5-flash',
+          modelUsed: 'gemini-2.5-flash',
+          fallbackTriggered: false,
+          referencesAttached: {},
+          durationMs: Date.now() - verifyStart,
+          success: true,
+          errorMessage: lastVerification.passes ? undefined : lastVerification.reason,
+        });
+
+        if (lastVerification.passes) break;
+
+        if (identityAttempt < MAX_IDENTITY_ATTEMPTS) {
+          console.warn(`[generate-illustrations] Identity check failed page ${page.page_number} attempt ${identityAttempt}: ${lastVerification.reason}`);
+          retryCount++;
+        }
       }
+
+      if (lastVerification && !lastVerification.passes) {
+        console.error(`[generate-illustrations] Identity check FAILED ALL ${MAX_IDENTITY_ATTEMPTS} attempts on page ${page.page_number}. Accepting last attempt.`);
+      }
+
+      const finalResult = genResult!;
 
       await logGeneration({
         bookId,
@@ -304,9 +358,9 @@ async function generateAllIllustrations(params: {
         pageNumber: page.page_number,
         styleKey,
         modelAttempted: PRIMARY_MODEL,
-        modelUsed: genResult.modelUsed,
-        fallbackTriggered: genResult.modelUsed !== PRIMARY_MODEL,
-        fallbackReason: genResult.modelUsed !== PRIMARY_MODEL ? 'primary model failed or returned no image' : undefined,
+        modelUsed: finalResult.modelUsed,
+        fallbackTriggered: finalResult.modelUsed !== PRIMARY_MODEL,
+        fallbackReason: finalResult.modelUsed !== PRIMARY_MODEL ? 'primary model failed or returned no image' : undefined,
         referencesAttached: refsInfo,
         promptLength: illustrationPrompt.length,
         durationMs: Date.now() - pageStart,
@@ -315,7 +369,7 @@ async function generateAllIllustrations(params: {
       });
 
       const storagePath = `${bookId}/page-${page.page_number}.png`;
-      const imageUrl = await uploadImage('illustrations', storagePath, genResult.buffer);
+      const imageUrl = await uploadImage('illustrations', storagePath, finalResult.buffer);
 
       await supabase
         .from('pages')
