@@ -374,15 +374,17 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
       return (
         <div style={{ width: '100%', height: '100%', display: 'flex' }}>
           {/* Left page: text (editable in edit mode) */}
-          <div style={{ width: '50%', height: '100%', background: '#faf8f4', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '2rem 3rem', position: 'relative', overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'thin', scrollbarColor: 'rgba(155,125,212,0.3) transparent' }}>
-            <div style={{ textAlign: 'center', position: 'absolute', top: '2rem', left: 0, right: 0 }}>
+          <div style={{ width: '50%', height: '100%', background: '#faf8f4', position: 'relative', overflow: 'hidden' }}>
+            {/* Title — pinned top */}
+            <div style={{ textAlign: 'center', position: 'absolute', top: '2rem', left: 0, right: 0, zIndex: 1 }}>
               <p style={{ fontSize: '12px', color: '#d1d5db', letterSpacing: '0.2em', textTransform: 'uppercase', fontFamily: 'Georgia, serif' }}>{book.title}</p>
             </div>
             {/* Edited badge */}
             {isEditMode && dirtyPageIds.has(page.id) && (
               <span style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(245,200,66,0.20)', border: '1px solid rgba(245,200,66,0.50)', color: '#C8860A', fontSize: '0.65rem', fontWeight: 600, padding: '2px 8px', borderRadius: 9999, zIndex: 2 }}>Edited</span>
             )}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+            {/* Scrollable text area — absolute fill between title and page number */}
+            <div className="text-scroll" style={{ position: 'absolute', top: '4rem', bottom: '3rem', left: '3rem', right: '3rem', overflowY: 'auto', overflowX: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', scrollbarWidth: 'thin', scrollbarColor: 'rgba(155,125,212,0.4) transparent' }}>
               {isEditMode ? (
                 <textarea
                   value={editedTexts[page.id] ?? page.text_content}
@@ -402,7 +404,8 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
                 <p style={{ color: '#1f2937', fontSize: '20px', lineHeight: 1.8, textAlign: 'center', fontFamily: 'Georgia, serif' }} dir="auto">{page.text_content}</p>
               )}
             </div>
-            <div style={{ textAlign: 'center', position: 'absolute', bottom: '1.5rem', left: 0, right: 0 }}>
+            {/* Page number — pinned bottom */}
+            <div style={{ textAlign: 'center', position: 'absolute', bottom: '1.5rem', left: 0, right: 0, zIndex: 1 }}>
               <p style={{ fontSize: '12px', color: '#d1d5db' }}>{page.page_number}</p>
             </div>
           </div>
@@ -622,6 +625,9 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
 
       {/* Fix #2: Page-curl animation — only the right half peels away */}
       <style jsx global>{`
+        .text-scroll::-webkit-scrollbar { width: 6px; }
+        .text-scroll::-webkit-scrollbar-track { background: transparent; }
+        .text-scroll::-webkit-scrollbar-thumb { background: rgba(155, 125, 212, 0.4); border-radius: 3px; }
         @keyframes pageTurnNext {
           0%   { transform: rotateY(0deg); }
           100% { transform: rotateY(-180deg); }

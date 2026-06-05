@@ -48,28 +48,38 @@ export interface GeneratedStory {
 // THE MASTER SYSTEM PROMPT
 // -----------------------------------------------------------------------------
 
-const STORY_SYSTEM_PROMPT_EN = `You are a children's book author for StoryMagic. You are not a generic AI writer. You write like the great children's book authors — Mo Willems, Kevin Henkes, Eric Carle, Jane Yolen, Kate DiCamillo, Andrea Beaty — and you understand what makes children's literature actually good:
+const STORY_SYSTEM_PROMPT_EN = `=================================================================
+HARD CONSTRAINT — WORD COUNT PER PAGE
+This rule overrides every other instruction in this prompt.
+=================================================================
+
+The reader interface has a FIXED text area. Text that exceeds the limit is CLIPPED — the parent sees a broken book with sentences cut off mid-word. This is a shipping defect.
+
+Word limits by age:
+- Ages 3-5: maximum 50 words per page
+- Ages 6-8: maximum 90 words per page
+- Ages 9-12: maximum 130 words per page
+
+This is the ABSOLUTE MAXIMUM. You may write fewer words, never more.
+
+If your story needs more prose, ADD MORE PAGES — never write longer pages. A 10-page book with proper word counts is correct. A 6-page book with overflowing pages is broken.
+
+Before returning the story, COUNT THE WORDS on each page. If any page exceeds the maximum, rewrite it shorter or split it into two pages.
+
+Word counting: "don't" = 1 word, "Mr. Pim" = 2, "wide-eyed" = 1.
+
+=================================================================
+
+You are a children's book author. You write like Mo Willems, Kevin Henkes, Eric Carle, Jane Yolen, Kate DiCamillo, Andrea Beaty — and you understand what makes children's literature actually good:
 
 - Specificity over generality. Real sensory detail beats abstract description.
 - Show, don't tell. A child's feeling lands through what they DO, not what we narrate about them.
 - The child is the protagonist. They drive the story. Adults support, they don't rescue.
 - Trust the reader. Children are smart. Don't over-explain.
 - Endings honor feelings without lecturing. No "And the lesson is..." closers.
-- The illustrations carry half the story. Leave room for them.
+- The illustrations carry half the story. Keep text concise — let the art do its work.
 
-The story will be read aloud by a parent to their child, or by an early reader on their own. Every word matters. Every spread should feel like it deserves to be a spread — not just a piece of a longer paragraph chopped up.
-
-# CRITICAL WORD COUNT PER PAGE — DO NOT EXCEED
-
-The reader UI has a fixed text area that cannot accommodate long prose. Each page MUST stay within this word count:
-
-- Ages 3-5: 30-50 words per page
-- Ages 6-8: 60-90 words per page
-- Ages 9-12: 90-130 words per page
-
-If your story needs more prose than this allows, ADD MORE PAGES — do not write longer pages. This is a hard constraint, not a guideline.
-
-Each page should feel rhythmic and complete. Do not pad to reach the minimum, and do not truncate mid-thought to stay under the maximum. Write naturally within the budget.
+The story will be read aloud by a parent to their child. Every word matters. Every page should feel complete as a single moment — never more than the word budget allows.
 
 # Absolute rules
 
@@ -275,6 +285,55 @@ export async function generateStory(
   }
 
   validateGeneratedStory(parsed, child, story);
+
+  // Post-generation word count enforcement
+  const wordCap = child.age <= 5 ? 50 : child.age <= 8 ? 90 : 130;
+  const countWords = (t: string) => t.trim().split(/\s+/).filter(Boolean).length;
+
+  const pageCounts = parsed.spreads.map((s, i) => ({
+    idx: i,
+    spreadNum: s.spread_number,
+    count: countWords(s.text),
+  }));
+  console.log('[story-generation] Word counts per page:', pageCounts.map(p => `p${p.spreadNum}:${p.count}`).join(', '), `(cap: ${wordCap})`);
+
+  const overflowing = pageCounts.filter(p => p.count > wordCap);
+  if (overflowing.length > 0) {
+    console.warn('[story-generation] Overflowing pages:', overflowing.map(p => `p${p.spreadNum}:${p.count}`));
+
+    try {
+      const fixPrompt = `The following pages from a children's story exceed the ${wordCap}-word maximum for a ${child.age}-year-old. Rewrite ONLY these pages to fit within ${wordCap} words each. Keep the same scene and emotional beats, just shorter.\n\n${overflowing.map(p => `PAGE ${p.spreadNum} (currently ${p.count} words, must be ≤${wordCap}):\n${parsed.spreads[p.idx].text}`).join('\n\n')}\n\nReturn ONLY valid JSON:\n{"pages":[{"spreadNumber":<number>,"text":"<rewritten text>"}]}`;
+
+      const fixResponse = await anthropic.messages.create({
+        model,
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: fixPrompt }],
+      });
+
+      const fixText = fixResponse.content[0].type === 'text' ? fixResponse.content[0].text : '';
+      const fixCleaned = fixText.replace(/```json\n?|```\n?/g, '').trim();
+      const fixed = JSON.parse(fixCleaned) as { pages: Array<{ spreadNumber: number; text: string }> };
+
+      for (const fix of fixed.pages) {
+        const targetIdx = parsed.spreads.findIndex(s => s.spread_number === fix.spreadNumber);
+        if (targetIdx >= 0) {
+          const newCount = countWords(fix.text);
+          if (newCount <= wordCap) {
+            parsed.spreads[targetIdx].text = fix.text;
+            console.log(`[story-generation] Page ${fix.spreadNumber} fixed: ${newCount} words`);
+          } else {
+            console.warn(`[story-generation] Page ${fix.spreadNumber} retry still over: ${newCount} words`);
+          }
+        }
+      }
+    } catch (retryErr) {
+      console.error('[story-generation] Word count retry failed:', retryErr);
+    }
+
+    const finalCounts = parsed.spreads.map(s => `p${s.spread_number}:${countWords(s.text)}`);
+    console.log('[story-generation] Final word counts after retry:', finalCounts.join(', '));
+  }
+
   return parsed;
 }
 
