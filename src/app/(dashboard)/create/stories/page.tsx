@@ -23,7 +23,6 @@ export default function StoriesPage() {
   } = useCreationWizard();
 
   const [loading, setLoading] = useState(false);
-  const [generating, setGenerating] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   if (!childName || !childAge || !childGender) {
@@ -83,63 +82,10 @@ export default function StoriesPage() {
     stories = allCategoryStories.slice(0, 6).map((s) => ({ storyId: s.id }));
   }
 
-  async function handlePickStory(storyId: string) {
-    setError(null);
-    setGenerating(storyId);
+  function handlePickStory(storyId: string) {
     setStoryId(storyId);
-
-    try {
-      const res = await fetch('/api/generate-story', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          language: 'en',
-          storyId,
-          name: childName,
-          age: childAge,
-          gender: childGender || 'boy',
-          traits: childTraits,
-          interests: childInterests,
-          photoDescription: photoDescription || undefined,
-          styleKey: selectedStyleKey || undefined,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Story generation failed');
-      }
-
-      const data = await res.json();
-      setGeneratedStory(data.story, data.bookId);
-
-      // Save uploaded photos to the photos table with the new bookId
-      if (uploadedPhotos.length > 0 && data.bookId) {
-        try {
-          const supabase = createClient();
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const photoRows = uploadedPhotos.map((p) => ({
-              book_id: data.bookId,
-              user_id: user.id,
-              storage_path: p.storagePath,
-              label: p.label,
-            }));
-            await supabase.from('photos').insert(photoRows);
-            console.log('[stories] Saved', photoRows.length, 'photos to DB for book', data.bookId);
-          }
-        } catch (err) {
-          console.warn('[stories] Failed to save photos to DB:', err);
-        }
-      }
-
-      setStep('finalize');
-      router.push('/create/finalize');
-    } catch (e) {
-      console.error('[stories] Generation error:', e);
-      setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
-      setGenerating(null);
-    }
+    setStep('finalize');
+    router.push('/create/finalize');
   }
 
   return (
@@ -178,27 +124,23 @@ export default function StoriesPage() {
           {stories.map(({ storyId, reason }) => {
             const story = getStoryById(storyId);
             if (!story) return null;
-            const isGenerating = generating === storyId;
-            const isDisabled = generating !== null && !isGenerating;
 
             return (
               <button
                 key={storyId}
                 onClick={() => handlePickStory(storyId)}
-                disabled={isDisabled || isGenerating}
                 className="text-left transition-all duration-300"
                 style={{
                   padding: '24px',
-                  background: isGenerating ? 'rgba(155,125,212,0.12)' : 'rgba(255,255,255,0.04)',
+                  background: 'rgba(255,255,255,0.04)',
                   backdropFilter: 'blur(12px)',
-                  border: isGenerating ? '2px solid rgba(155,125,212,0.70)' : '1px solid rgba(255,255,255,0.10)',
+                  border: '1px solid rgba(255,255,255,0.10)',
                   borderRadius: '1.25rem',
-                  cursor: isDisabled ? 'not-allowed' : isGenerating ? 'wait' : 'pointer',
-                  opacity: isDisabled ? 0.4 : 1,
-                  boxShadow: isGenerating ? '0 0 20px rgba(155,125,212,0.15)' : 'inset 0 0 20px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.25)',
+                  cursor: 'pointer',
+                  boxShadow: 'inset 0 0 20px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.25)',
                 }}
-                onMouseEnter={(e) => { if (!isDisabled && !isGenerating) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = 'rgba(155,125,212,0.40)'; } }}
-                onMouseLeave={(e) => { if (!isDisabled && !isGenerating) { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; } }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = 'rgba(155,125,212,0.40)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; }}
               >
                 <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
                   {story.title}
@@ -210,12 +152,6 @@ export default function StoriesPage() {
                   <p style={{ fontSize: '0.75rem', color: 'rgba(126,200,227,0.70)', fontStyle: 'italic', lineHeight: 1.4 }}>
                     {reason}
                   </p>
-                )}
-                {isGenerating && (
-                  <div className="flex items-center gap-2 mt-3">
-                    <div className="animate-spin w-4 h-4 border-2 border-purple-300/30 border-t-purple-300 rounded-full" />
-                    <span style={{ fontSize: '0.82rem', color: 'rgba(200,180,255,0.80)' }}>Creating your story...</span>
-                  </div>
                 )}
               </button>
             );
@@ -230,7 +166,7 @@ export default function StoriesPage() {
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 24, paddingBottom: 32 }}>
-        <button onClick={() => router.push('/create/categories')} className="btn-secondary" disabled={generating !== null}>
+        <button onClick={() => router.push('/create/categories')} className="btn-secondary">
           &larr; Back
         </button>
       </div>

@@ -11,18 +11,23 @@ import CoverImage from '@/components/reader/CoverImage';
 import VideoBackground from '@/components/ui/VideoBackground';
 
 type FinalizationPhase = 'select' | 'building' | 'done';
-type BuildPhase = 'cover_generating' | 'cover_processing' | 'pages' | 'narration' | 'done' | 'failed';
+type BuildPhase = 'writing_story' | 'cover_generating' | 'cover_processing' | 'pages' | 'narration' | 'done' | 'failed';
 
 const PHASE_TARGETS: Record<BuildPhase, number> = {
-  cover_generating: 25,
-  cover_processing: 70,
-  pages: 90,
-  narration: 98,
+  writing_story: 15,
+  cover_generating: 30,
+  cover_processing: 60,
+  pages: 85,
+  narration: 95,
   done: 100,
   failed: 0,
 };
 
 const PHASE_MESSAGES: Record<BuildPhase, { primary: string; rotating: string[] }> = {
+  writing_story: {
+    primary: 'Writing your story...',
+    rotating: ['Finding the right words', 'Shaping the adventure', 'Giving it heart'],
+  },
   cover_generating: {
     primary: 'Designing your cover...',
     rotating: ['Choosing the colors...', 'Sketching the scene...', 'Painting the characters...', 'Adding the finishing touches...'],
@@ -58,10 +63,19 @@ export default function FinalizePage() {
     bookId,
     generatedStory,
     childName,
+    childAge,
+    childGender,
+    childTraits,
+    childInterests,
+    storyId,
+    selectedStyleKey,
+    photoDescription,
+    uploadedPhotos,
     selectedVoiceId,
     selectedMusicId,
     setSelectedVoice,
     setSelectedMusic,
+    setGeneratedStory,
     setStep,
     language,
   } = useCreationWizard();
@@ -85,12 +99,12 @@ export default function FinalizePage() {
   const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
   const [playingMusicId, setPlayingMusicId] = useState<string | null>(null);
 
-  // Redirect if story hasn't been generated yet
+  // Redirect if no story selected
   useEffect(() => {
-    if (!bookId || !generatedStory) {
+    if (!storyId || !childName) {
       router.replace('/create/details');
     }
-  }, [bookId, generatedStory, router]);
+  }, [storyId, childName, router]);
 
   // Fetch music tracks from Supabase (fall back to hardcoded)
   useEffect(() => {
@@ -252,7 +266,7 @@ export default function FinalizePage() {
     };
   }, [phase, selectedMusicId]);
 
-  if (!bookId || !generatedStory) return null;
+  if (!storyId || !childName) return null;
 
   const categories = ['All', ...new Set(musicTracks.map((t) => t.category))];
   const filteredTracks = musicCategory === 'All' ? musicTracks : musicTracks.filter((t) => t.category === musicCategory);
@@ -285,9 +299,10 @@ export default function FinalizePage() {
     setPlayingMusicId(track.id);
   }
 
-  // Create My Book — analyze photo, then fire illustrations + narration + covers
+  // Create My Book — generate story, then cover, then pages + narration
   async function handleCreateBook() {
     if (!selectedVoiceId) { setError('Please select a narrator voice'); return; }
+    if (!storyId) { setError('No story selected'); return; }
 
     // Stop previews
     voicePreviewRef.current?.pause();
@@ -295,23 +310,81 @@ export default function FinalizePage() {
     setPreviewingVoice(null);
     setPlayingMusicId(null);
 
-    // Save music selection + voice to metadata
-    try {
-      const { data: currentBook } = await supabase.from('books').select('metadata').eq('id', bookId).single();
-      await supabase.from('books').update({
-        metadata: { ...((currentBook?.metadata as Record<string, unknown>) || {}), selected_music_id: selectedMusicId, narrator_voice_id: selectedVoiceId, narrator_voice_name: getVoice(selectedVoiceId)?.name },
-      }).eq('id', bookId);
-    } catch { /* continue */ }
-
-    // Switch to building UI immediately
-    setBuildProgress({ illustrationsComplete: 0, narrationsComplete: 0, total: (generatedStory?.pages.length || 0) * 2 });
+    // Switch to building UI
     setPhase('building');
+    setBuildPhase('writing_story');
 
-    // Step 1: Generate cover FIRST (pages need it as a reference image)
+    // STEP 1: Generate story (Opus) — creates the book row + pages in DB
+    let newBookId: string;
+    try {
+      console.log('[finalize] Starting story generation...');
+      const storyRes = await fetch('/api/generate-story', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language: 'en',
+          storyId,
+          name: childName,
+          age: childAge,
+          gender: childGender || 'boy',
+          traits: childTraits,
+          interests: childInterests,
+          photoDescription: photoDescription || undefined,
+          styleKey: selectedStyleKey || undefined,
+        }),
+      });
+
+      if (!storyRes.ok) {
+        const errorData = await storyRes.json().catch(() => ({}));
+        console.error('[finalize] Story generation failed:', errorData);
+        setBuildPhase('failed');
+        return;
+      }
+
+      const storyData = await storyRes.json();
+      newBookId = storyData.bookId;
+      setGeneratedStory(storyData.story, newBookId);
+      console.log('[finalize] Story generated, bookId:', newBookId);
+
+      // Save uploaded photos to DB with the new bookId
+      if (uploadedPhotos.length > 0) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const photoRows = uploadedPhotos.map((p) => ({
+              book_id: newBookId,
+              user_id: user.id,
+              storage_path: p.storagePath,
+              label: p.label,
+            }));
+            await supabase.from('photos').insert(photoRows);
+          }
+        } catch { /* continue */ }
+      }
+
+      // Save music + voice selection to metadata
+      try {
+        const { data: currentBook } = await supabase.from('books').select('metadata').eq('id', newBookId).single();
+        await supabase.from('books').update({
+          metadata: { ...((currentBook?.metadata as Record<string, unknown>) || {}), selected_music_id: selectedMusicId, narrator_voice_id: selectedVoiceId, narrator_voice_name: getVoice(selectedVoiceId)?.name },
+        }).eq('id', newBookId);
+      } catch { /* continue */ }
+    } catch (err) {
+      console.error('[finalize] Story generation error:', err);
+      setBuildPhase('failed');
+      return;
+    }
+
+    // Update progress now that we know page count
+    const pageCount = generatedStory?.pages?.length || 3;
+    setBuildProgress({ illustrationsComplete: 0, narrationsComplete: 0, total: pageCount * 2 });
+
+    // STEP 2: Generate cover (pages need it as reference)
+    setBuildPhase('cover_generating');
     try {
       console.log('[finalize] Starting cover generation...');
       const coverRes = await fetch('/api/generate-cover', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId: newBookId }),
       });
       if (!coverRes.ok) {
         const errorData = await coverRes.json().catch(() => ({}));
@@ -320,7 +393,6 @@ export default function FinalizePage() {
           setBuildPhase('failed');
           return;
         }
-        console.error('[finalize] Cover generation failed:', coverRes.status);
         setBuildPhase('failed');
         return;
       }
@@ -331,13 +403,13 @@ export default function FinalizePage() {
       return;
     }
 
-    // Step 2: Fire pages + narration in parallel (cover is now in DB)
+    // STEP 3: Fire pages + narration in parallel (cover is now in DB)
     fetch('/api/generate-illustrations', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId: newBookId }),
     }).catch((err) => console.error('Failed to start illustrations:', err));
 
     fetch('/api/generate-narration', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId, voiceId: selectedVoiceId, language }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId: newBookId, voiceId: selectedVoiceId, language }),
     }).catch((err) => console.error('Failed to start narration:', err));
   }
 
@@ -395,7 +467,8 @@ export default function FinalizePage() {
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-4">
         <VideoBackground />
         <div className="relative z-10 flex flex-col items-center">
-        {/* Cover with fade-in */}
+        {/* Cover with fade-in — hidden during story writing */}
+        {buildPhase !== 'writing_story' && (
         <div className="mb-8 relative">
           <div style={{ transition: 'opacity 0.6s ease-in-out', opacity: coverUrl ? 1 : 0.3 }}>
             <CoverImage
@@ -412,6 +485,7 @@ export default function FinalizePage() {
             </div>
           )}
         </div>
+        )}
 
         {isComplete ? (
           <div key="complete" className="text-center build-fade-in">
@@ -474,7 +548,7 @@ export default function FinalizePage() {
 
       <div className="mb-8">
         <h1 style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '2.2rem', fontWeight: 500, color: 'var(--text-primary)' }}>Finalize your book</h1>
-        <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>Choose a narrator voice and background music for &ldquo;{generatedStory.title}&rdquo;</p>
+        <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>Choose a narrator voice and background music for {childName}&apos;s story</p>
       </div>
 
       {/* Voice selector */}
