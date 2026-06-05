@@ -63,6 +63,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Book not found' }, { status: 404 });
     }
 
+    if (book.status === 'failed') {
+      console.warn(`[narration] Book ${bookId} already failed, aborting`);
+      return NextResponse.json({ error: 'Book already marked failed' }, { status: 410 });
+    }
+
     let pagesQuery = supabase
       .from('pages')
       .select('*')

@@ -69,6 +69,8 @@ export async function GET(req: Request) {
       narrationsComplete,
       coverStatus,
       coverUrl: coverImageUrl,
+      failureReason: (bookMeta.failure_reason as string) ?? null,
+      failureDetail: (bookMeta.failure_detail as string) ?? null,
       pages: pages || [],
     });
   } catch (err) {

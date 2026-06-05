@@ -11,7 +11,7 @@ import CoverImage from '@/components/reader/CoverImage';
 import VideoBackground from '@/components/ui/VideoBackground';
 
 type FinalizationPhase = 'select' | 'building' | 'done';
-type BuildPhase = 'cover_generating' | 'cover_processing' | 'pages' | 'narration' | 'done';
+type BuildPhase = 'cover_generating' | 'cover_processing' | 'pages' | 'narration' | 'done' | 'failed';
 
 const PHASE_TARGETS: Record<BuildPhase, number> = {
   cover_generating: 25,
@@ -19,6 +19,7 @@ const PHASE_TARGETS: Record<BuildPhase, number> = {
   pages: 90,
   narration: 98,
   done: 100,
+  failed: 0,
 };
 
 const PHASE_MESSAGES: Record<BuildPhase, { primary: string; rotating: string[] }> = {
@@ -40,6 +41,10 @@ const PHASE_MESSAGES: Record<BuildPhase, { primary: string; rotating: string[] }
   },
   done: {
     primary: 'Your book is ready!',
+    rotating: [],
+  },
+  failed: {
+    primary: '',
     rotating: [],
   },
 };
@@ -130,6 +135,13 @@ export default function FinalizePage() {
         // Update cover URL when available
         if (data.coverUrl && !coverUrl) {
           setCoverUrl(data.coverUrl);
+        }
+
+        // Check for failed book
+        if (data.bookStatus === 'failed') {
+          setBuildPhase('failed');
+          clearInterval(interval);
+          return;
         }
 
         // Derive build phase from backend state
@@ -262,12 +274,21 @@ export default function FinalizePage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId }),
       });
       if (!coverRes.ok) {
+        const errorData = await coverRes.json().catch(() => ({}));
+        if (errorData.bookFailed) {
+          console.error('[finalize] Cover failed terminally:', errorData.detail);
+          setBuildPhase('failed');
+          return;
+        }
         console.error('[finalize] Cover generation failed:', coverRes.status);
-      } else {
-        console.log('[finalize] Cover generated successfully');
+        setBuildPhase('failed');
+        return;
       }
+      console.log('[finalize] Cover generated successfully');
     } catch (err) {
       console.error('[finalize] Cover generation error:', err);
+      setBuildPhase('failed');
+      return;
     }
 
     // Step 2: Fire pages + narration in parallel (cover is now in DB)
@@ -278,6 +299,37 @@ export default function FinalizePage() {
     fetch('/api/generate-narration', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId, voiceId: selectedVoiceId, language }),
     }).catch((err) => console.error('Failed to start narration:', err));
+  }
+
+  // ── Full-screen failure overlay ──
+  if (buildPhase === 'failed') {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-4">
+        <VideoBackground />
+        <div className="relative z-10 text-center max-w-md mx-auto">
+          <p className="text-white/85 text-xl font-semibold mb-4" style={{ fontFamily: 'Georgia, serif' }}>
+            We hit a snag with {childName}&apos;s book
+          </p>
+          <p className="text-white/60 text-base mb-8 leading-relaxed">
+            Sometimes the magic doesn&apos;t land on the first try. We&apos;ve sent you an email &mdash; or you can try again now.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => router.push('/create')}
+              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-full text-white font-semibold transition"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => router.push('/library')}
+              className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition"
+            >
+              Back to Library
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // ── Full-screen immersive building / done overlay ──

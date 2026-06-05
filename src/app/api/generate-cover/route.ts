@@ -108,55 +108,73 @@ export async function POST(req: Request) {
       console.warn('[generate-cover] Failed to load style preview:', err);
     }
 
-    // Generate ONE cover in chosen style
-    const coverStart = Date.now();
+    // Generate ONE cover with retry on transient failures
     const refsInfo = {
       photo: { present: !!childPhotoBase64, sizeKB: childPhotoBase64 ? Math.round(childPhotoBase64.length * 3 / 4 / 1024) : 0 },
       stylePreview: { present: !!stylePreviewBase64, sizeKB: stylePreviewBase64 ? Math.round(stylePreviewBase64.length * 3 / 4 / 1024) : 0 },
     };
 
-    let coverResult;
-    try {
-      coverResult = await generateCoverImage({
-        styleKey,
-        bookTitle: book.title,
-        characterDescription,
-        themeDescription,
-        childPhotoBase64,
-        stylePreviewBase64,
-      });
+    const MAX_COVER_ATTEMPTS = 3;
+    const BACKOFF_MS = [5000, 15000, 30000];
+    let coverResult: Awaited<ReturnType<typeof generateCoverImage>> | null = null;
+    let lastCoverError: Error | null = null;
 
-      await logGeneration({
-        bookId,
-        imageType: 'cover',
-        styleKey,
-        modelAttempted: PRIMARY_MODEL,
-        modelUsed: coverResult.modelUsed,
-        fallbackTriggered: coverResult.modelUsed !== PRIMARY_MODEL,
-        fallbackReason: coverResult.modelUsed !== PRIMARY_MODEL ? 'primary model failed or returned no image' : undefined,
-        referencesAttached: refsInfo,
-        promptLength: characterDescription.length,
-        durationMs: Date.now() - coverStart,
-        retryCount: 0,
-        success: true,
-      });
-    } catch (coverErr) {
-      await logGeneration({
-        bookId,
-        imageType: 'cover',
-        styleKey,
-        modelAttempted: PRIMARY_MODEL,
-        modelUsed: 'none',
-        fallbackTriggered: false,
-        referencesAttached: refsInfo,
-        promptLength: characterDescription.length,
-        durationMs: Date.now() - coverStart,
-        retryCount: 0,
-        success: false,
-        errorMessage: coverErr instanceof Error ? coverErr.message : String(coverErr),
-      });
+    for (let attempt = 1; attempt <= MAX_COVER_ATTEMPTS; attempt++) {
+      const attemptStart = Date.now();
+      try {
+        console.log(`[generate-cover] Attempt ${attempt}/${MAX_COVER_ATTEMPTS}`);
+        coverResult = await generateCoverImage({
+          styleKey,
+          bookTitle: book.title,
+          characterDescription,
+          themeDescription,
+          childPhotoBase64,
+          stylePreviewBase64,
+        });
+
+        await logGeneration({
+          bookId, imageType: 'cover', styleKey,
+          modelAttempted: PRIMARY_MODEL, modelUsed: coverResult.modelUsed,
+          fallbackTriggered: coverResult.modelUsed !== PRIMARY_MODEL,
+          referencesAttached: refsInfo, promptLength: characterDescription.length,
+          durationMs: Date.now() - attemptStart, retryCount: attempt - 1, success: true,
+        });
+
+        console.log(`[generate-cover] Attempt ${attempt} succeeded`);
+        break;
+      } catch (err) {
+        lastCoverError = err instanceof Error ? err : new Error(String(err));
+        const msg = lastCoverError.message.toLowerCase();
+        const isRetryable = ['503','429','500','502','504','timeout','unavailable','overload','high demand','econnreset','etimedout','fetch failed'].some(s => msg.includes(s));
+
+        console.warn(`[generate-cover] Attempt ${attempt} failed: ${lastCoverError.message} (retryable: ${isRetryable})`);
+
+        await logGeneration({
+          bookId, imageType: 'cover', styleKey,
+          modelAttempted: PRIMARY_MODEL, modelUsed: 'none', fallbackTriggered: false,
+          referencesAttached: refsInfo, promptLength: characterDescription.length,
+          durationMs: Date.now() - attemptStart, retryCount: attempt - 1,
+          success: false, errorMessage: lastCoverError.message,
+        });
+
+        if (!isRetryable || attempt === MAX_COVER_ATTEMPTS) break;
+        await new Promise(resolve => setTimeout(resolve, BACKOFF_MS[attempt - 1]));
+      }
+    }
+
+    // Terminal failure — mark book as failed
+    if (!coverResult) {
+      console.error(`[generate-cover] All ${MAX_COVER_ATTEMPTS} attempts failed. Marking book as failed.`);
+      await supabase.from('books').update({
+        status: 'failed',
+        metadata: { ...bookMeta, failure_reason: 'cover_generation_failed', failure_detail: lastCoverError?.message || 'unknown' },
+      }).eq('id', bookId);
       try { await triggerFailureEmail(bookId); } catch { /* non-fatal */ }
-      throw coverErr;
+      return NextResponse.json({
+        error: 'Cover generation failed',
+        detail: lastCoverError?.message || 'unknown',
+        bookFailed: true,
+      }, { status: 500 });
     }
 
     const storagePath = `${bookId}/cover-${styleKey}.png`;
