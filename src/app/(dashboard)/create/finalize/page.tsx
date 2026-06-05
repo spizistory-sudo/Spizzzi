@@ -137,33 +137,73 @@ export default function FinalizePage() {
           setCoverUrl(data.coverUrl);
         }
 
-        // Check for failed book
-        if (data.bookStatus === 'failed') {
-          setBuildPhase('failed');
-          clearInterval(interval);
-          return;
+        // Phase determination — priority order (highest first)
+        const cs = data.coverStatus || 'generating_image';
+        let newPhase: BuildPhase;
+
+        if (data.bookStatus === 'complete') {
+          // HIGHEST PRIORITY: book is done in DB — regardless of bible/crops state
+          newPhase = 'done';
+        } else if (data.bookStatus === 'failed') {
+          newPhase = 'failed';
+        } else if (pageCount > 0 && illComplete >= pageCount && narComplete >= pageCount && data.coverUrl) {
+          // All assets done but DB not yet updated — treat as done
+          newPhase = 'done';
+        } else if (illComplete >= pageCount && narComplete < pageCount) {
+          newPhase = 'narration';
+        } else if ((cs === 'ready' || cs === 'processing') && illComplete < pageCount && illComplete > 0) {
+          newPhase = 'pages';
+        } else if (cs === 'processing' || cs === 'ready') {
+          // Cover image exists, post-processing may or may not be done
+          // If pages haven't started yet, show processing; if they have, show pages
+          newPhase = illComplete > 0 ? 'pages' : 'cover_processing';
+        } else {
+          newPhase = 'cover_generating';
         }
 
-        // Derive build phase from backend state
-        const cs = data.coverStatus || 'generating_image';
-        if (cs === 'ready' && illComplete >= pageCount && narComplete >= pageCount) {
-          setBuildPhase('done');
+        console.log('[finalize] Phase determined:', newPhase, {
+          bookStatus: data.bookStatus, coverStatus: cs,
+          illComplete, narComplete, pageCount, hasCoverUrl: !!data.coverUrl,
+        });
+
+        setBuildPhase(newPhase);
+        if (newPhase === 'done') {
           setPhase('done');
           clearInterval(interval);
-        } else if (cs === 'ready' && illComplete >= pageCount) {
-          setBuildPhase('narration');
-        } else if (cs === 'ready') {
-          setBuildPhase('pages');
-        } else if (cs === 'processing') {
-          setBuildPhase('cover_processing');
-        } else {
-          setBuildPhase('cover_generating');
+        } else if (newPhase === 'failed') {
+          clearInterval(interval);
         }
       } catch { /* keep polling */ }
     }, 3000);
 
     return () => clearInterval(interval);
   }, [phase, bookId, coverUrl]);
+
+  // Hard 6-minute timeout safety net
+  useEffect(() => {
+    if (phase !== 'building' || !bookId) return;
+    const startTime = Date.now();
+    const HARD_TIMEOUT_MS = 6 * 60 * 1000;
+
+    const timeout = setInterval(async () => {
+      if (Date.now() - startTime > HARD_TIMEOUT_MS) {
+        console.warn('[finalize] Hard timeout reached (6min), force-checking completion');
+        try {
+          const res = await fetch(`/api/book-status?bookId=${bookId}`);
+          if (res.ok) {
+            const status = await res.json();
+            if (status.bookStatus === 'complete' || (status.illustrationsComplete === status.total && status.narrationsComplete === status.total)) {
+              setBuildPhase('done');
+              setPhase('done');
+            }
+          }
+        } catch { /* ignore */ }
+        clearInterval(timeout);
+      }
+    }, 30000);
+
+    return () => clearInterval(timeout);
+  }, [phase, bookId]);
 
   // Smooth progress bar tick
   useEffect(() => {
