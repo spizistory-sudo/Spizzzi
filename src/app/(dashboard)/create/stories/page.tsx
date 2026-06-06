@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useCreationWizard } from '@/stores/creation-wizard';
 import { createClient } from '@/lib/supabase/client';
 import WizardProgress from '@/components/wizard/WizardProgress';
-import { getStoriesByCategory, getStoryById } from '@/lib/ai/prompts/en/story-catalog';
+import { getStoriesByCategory, getStoryById, type StoryTemplate } from '@/lib/ai/prompts/en/story-catalog';
 import type { CurationResult, StoryRecommendation } from '@/lib/ai/curation-en';
+import { autoSelectFinalize } from '@/lib/auto-finalize';
 
 export default function StoriesPage() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function StoriesPage() {
     curationResult, curationCachedFor, setCurationResult,
     setStoryId, setStep,
     setGeneratedStory, setIsGenerating,
+    setSelectedVoice, setSelectedMusic,
     photoDescription,
     selectedStyleKey,
     uploadedPhotos,
@@ -24,6 +26,8 @@ export default function StoriesPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showFinishModal, setShowFinishModal] = useState(false);
+  const [pickedStory, setPickedStory] = useState<StoryTemplate | null>(null);
 
   if (!childName || !childAge || !childGender) {
     router.replace('/create/details');
@@ -83,9 +87,27 @@ export default function StoriesPage() {
   }
 
   function handlePickStory(storyId: string) {
+    const story = getStoryById(storyId);
+    if (!story) return;
     setStoryId(storyId);
+    setPickedStory(story);
+    setShowFinishModal(true);
+  }
+
+  function handleChooseMyself() {
+    setShowFinishModal(false);
     setStep('finalize');
     router.push('/create/finalize');
+  }
+
+  function handleAutoChoose() {
+    if (!pickedStory) return;
+    setShowFinishModal(false);
+    const selection = autoSelectFinalize(pickedStory);
+    setSelectedVoice(selection.voiceId);
+    setSelectedMusic(selection.musicId);
+    setStep('finalize');
+    router.push('/create/finalize?autostart=1');
   }
 
   return (
@@ -170,6 +192,49 @@ export default function StoriesPage() {
           &larr; Back
         </button>
       </div>
+
+      {/* Finish modal */}
+      {showFinishModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="max-w-md w-full mx-4 rounded-2xl border border-white/10 p-8 shadow-2xl" style={{ background: 'rgba(15,10,42,0.90)', backdropFilter: 'blur(24px)' }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>
+              How should we finish {childName}&apos;s book?
+            </h3>
+            <p style={{ color: 'rgba(255,255,255,0.55)', marginBottom: 28, fontSize: '0.92rem' }}>
+              Pick the narrator and music yourself, or let us choose what fits the story best.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleChooseMyself}
+                className="w-full px-6 py-4 rounded-xl text-left transition"
+                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
+              >
+                <p style={{ color: '#fff', fontWeight: 600, marginBottom: 2 }}>I&apos;ll choose</p>
+                <p style={{ color: 'rgba(255,255,255,0.50)', fontSize: '0.84rem' }}>Pick the narrator voice and background music</p>
+              </button>
+              <button
+                onClick={handleAutoChoose}
+                className="w-full px-6 py-4 rounded-xl text-left transition"
+                style={{ background: 'linear-gradient(135deg, rgba(155,125,212,0.85), rgba(120,90,190,0.85))' }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+              >
+                <p style={{ color: '#fff', fontWeight: 600, marginBottom: 2 }}>Choose the best for me &#10024;</p>
+                <p style={{ color: 'rgba(255,255,255,0.70)', fontSize: '0.84rem' }}>We&apos;ll match the voice and music to the story and start right away</p>
+              </button>
+            </div>
+            <button
+              onClick={() => setShowFinishModal(false)}
+              className="mt-4 w-full text-center text-sm"
+              style={{ color: 'rgba(255,255,255,0.35)', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

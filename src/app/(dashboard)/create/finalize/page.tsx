@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCreationWizard } from '@/stores/creation-wizard';
 import { createClient } from '@/lib/supabase/client';
 import WizardProgress from '@/components/wizard/WizardProgress';
@@ -56,9 +56,19 @@ const PHASE_MESSAGES: Record<BuildPhase, { primary: string; rotating: string[] }
 
 const PAGE_FILLER = ['Sprinkling fairy dust on the pages...', 'Mixing the perfect colors...', 'Bringing the story to life...'];
 
-export default function FinalizePage() {
+export default function FinalizePageWrapper() {
+  return (
+    <Suspense fallback={null}>
+      <FinalizePage />
+    </Suspense>
+  );
+}
+
+function FinalizePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+  const autoStartFired = useRef(false);
   const {
     bookId,
     generatedStory,
@@ -105,6 +115,22 @@ export default function FinalizePage() {
       router.replace('/create/details');
     }
   }, [storyId, childName, router]);
+
+  // Auto-start build if flagged (from "Choose the best for me" path)
+  useEffect(() => {
+    const shouldAutoStart = searchParams.get('autostart') === '1';
+    if (!shouldAutoStart) return;
+    if (autoStartFired.current) return;
+    if (!storyId || !selectedVoiceId || !selectedMusicId || !childName) {
+      console.warn('[finalize] autostart requested but missing data, falling back to manual UI');
+      return;
+    }
+    autoStartFired.current = true;
+    console.log('[finalize] Auto-start firing build with pre-selected voice/music');
+    // Small delay to ensure component is fully mounted
+    setTimeout(() => handleCreateBook(), 100);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storyId, selectedVoiceId, selectedMusicId, childName, searchParams]);
 
   // Fetch music tracks from Supabase (fall back to hardcoded)
   useEffect(() => {
