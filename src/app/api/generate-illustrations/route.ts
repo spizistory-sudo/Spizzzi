@@ -70,6 +70,11 @@ export async function POST(req: Request) {
       console.warn('[generate-illustrations] Invalid styleKey, defaulting to watercolor:', rawStyleKey);
     }
     console.log('[generate-illustrations] Using styleKey:', styleKey);
+
+    // Read per-book model lock (set by cover generation)
+    const lockedModel = (bookMeta.illustration_model as string) || 'gemini';
+    console.log('[generate-illustrations] Model lock:', lockedModel);
+
     // Resolve gender from child_profile (English flow) or childGender (Hebrew flow)
     const childProfile = bookMeta.child_profile as Record<string, unknown> | undefined;
     const childGender = (childProfile?.gender as string) || (bookMeta.childGender as string) || 'male';
@@ -213,6 +218,7 @@ export async function POST(req: Request) {
       characterCrops,
       rawVisualBible,
       normalizedGender,
+      lockedModel,
     });
 
     // Check if book is fully complete → trigger email
@@ -258,8 +264,9 @@ async function generateAllIllustrations(params: {
   characterCrops?: Array<{ name: string; base64: string }>;
   rawVisualBible?: VisualBible;
   normalizedGender?: string;
+  lockedModel?: string;
 }): Promise<Array<{ pageNumber: number; status: string; url?: string; error?: string }>> {
-  const { bookId, pages, styleKey, characterDescription, characterBible, childPhotoBase64, coverImageBase64, stylePreviewBase64, visualBibleBlock, characterCrops, rawVisualBible, normalizedGender } = params;
+  const { bookId, pages, styleKey, characterDescription, characterBible, childPhotoBase64, coverImageBase64, stylePreviewBase64, visualBibleBlock, characterCrops, rawVisualBible, normalizedGender, lockedModel } = params;
 
   const { createClient: createServiceClient } = await import('@supabase/supabase-js');
   const supabase = createServiceClient(
@@ -296,6 +303,7 @@ async function generateAllIllustrations(params: {
         stylePreviewBase64,
         visualBibleBlock,
         characterCrops,
+        useFluxDirectly: lockedModel === 'flux',
       };
 
       // Generate with identity verification retry loop (up to 3 attempts)

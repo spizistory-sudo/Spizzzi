@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { generateCoverImage, PRIMARY_MODEL } from '@/lib/ai/illustration-generator';
+import { generateCoverImage, PRIMARY_MODEL, FALLBACK_MODEL, ANTI_TEXT_RULES, type GenerationResult } from '@/lib/ai/illustration-generator';
+import { generateImageWithFlux2Pro, type ReferenceImage } from '@/lib/ai/fal-client';
 import { ART_STYLES, ART_STYLE_KEYS, type ArtStyleKey } from '@/lib/ai/prompts/style-references';
 import { logGeneration } from '@/lib/ai/generation-logger';
 import { extractVisualBible } from '@/lib/ai/visual-bible';
@@ -11,6 +12,25 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export const maxDuration = 300;
+
+async function withRetry<T>(label: string, fn: () => Promise<T | null>, attempts = 3): Promise<T | null> {
+  const backoff = [2000, 5000, 10000];
+  let lastErr: unknown;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      console.log(`[${label}] attempt ${i}/${attempts}`);
+      const result = await fn();
+      if (result !== null) return result;
+      console.warn(`[${label}] attempt ${i} returned null`);
+    } catch (err) {
+      lastErr = err;
+      console.warn(`[${label}] attempt ${i} failed:`, (err as Error).message);
+    }
+    if (i < attempts) await new Promise(r => setTimeout(r, backoff[i - 1]));
+  }
+  console.error(`[${label}] ALL ${attempts} attempts failed. Proceeding without.`, (lastErr as Error)?.message);
+  return null;
+}
 
 export async function POST(req: Request) {
   try {
@@ -108,74 +128,89 @@ export async function POST(req: Request) {
       console.warn('[generate-cover] Failed to load style preview:', err);
     }
 
-    // Generate ONE cover with retry on transient failures
+    // Generate ONE cover — Tier 1: Gemini, Tier 2: FLUX.2 Pro fallback
     const refsInfo = {
       photo: { present: !!childPhotoBase64, sizeKB: childPhotoBase64 ? Math.round(childPhotoBase64.length * 3 / 4 / 1024) : 0 },
       stylePreview: { present: !!stylePreviewBase64, sizeKB: stylePreviewBase64 ? Math.round(stylePreviewBase64.length * 3 / 4 / 1024) : 0 },
     };
 
-    const MAX_COVER_ATTEMPTS = 3;
-    const BACKOFF_MS = [5000, 15000, 30000];
-    let coverResult: Awaited<ReturnType<typeof generateCoverImage>> | null = null;
+    function isRetryable(err: unknown): boolean {
+      if (!(err instanceof Error)) return false;
+      const msg = err.message.toLowerCase();
+      return ['503','429','500','502','504','529','timeout','unavailable','overload','high demand','econnreset','etimedout','fetch failed'].some(s => msg.includes(s));
+    }
+
+    let coverResult: GenerationResult | null = null;
+    let chosenModel: 'gemini' | 'flux' = 'gemini';
     let lastCoverError: Error | null = null;
 
-    for (let attempt = 1; attempt <= MAX_COVER_ATTEMPTS; attempt++) {
+    // --- Tier 1: Gemini (2 short attempts) ---
+    const GEMINI_ATTEMPTS = 2;
+    const GEMINI_BACKOFF = [3000, 8000];
+    for (let attempt = 1; attempt <= GEMINI_ATTEMPTS; attempt++) {
       const attemptStart = Date.now();
       try {
-        console.log(`[generate-cover] Attempt ${attempt}/${MAX_COVER_ATTEMPTS}`);
-        coverResult = await generateCoverImage({
-          styleKey,
-          bookTitle: book.title,
-          characterDescription,
-          themeDescription,
-          childPhotoBase64,
-          stylePreviewBase64,
-        });
-
-        await logGeneration({
-          bookId, imageType: 'cover', styleKey,
-          modelAttempted: PRIMARY_MODEL, modelUsed: coverResult.modelUsed,
-          fallbackTriggered: coverResult.modelUsed !== PRIMARY_MODEL,
-          referencesAttached: refsInfo, promptLength: characterDescription.length,
-          durationMs: Date.now() - attemptStart, retryCount: attempt - 1, success: true,
-        });
-
-        console.log(`[generate-cover] Attempt ${attempt} succeeded`);
+        console.log(`[generate-cover] Gemini attempt ${attempt}/${GEMINI_ATTEMPTS}`);
+        coverResult = await generateCoverImage({ styleKey, bookTitle: book.title, characterDescription, themeDescription, childPhotoBase64, stylePreviewBase64 });
+        chosenModel = 'gemini';
+        await logGeneration({ bookId, imageType: 'cover', styleKey, modelAttempted: PRIMARY_MODEL, modelUsed: coverResult.modelUsed, fallbackTriggered: false, referencesAttached: refsInfo, promptLength: characterDescription.length, durationMs: Date.now() - attemptStart, retryCount: attempt - 1, success: true });
+        console.log(`[generate-cover] Gemini attempt ${attempt} succeeded`);
         break;
       } catch (err) {
         lastCoverError = err instanceof Error ? err : new Error(String(err));
-        const msg = lastCoverError.message.toLowerCase();
-        const isRetryable = ['503','429','500','502','504','timeout','unavailable','overload','high demand','econnreset','etimedout','fetch failed'].some(s => msg.includes(s));
-
-        console.warn(`[generate-cover] Attempt ${attempt} failed: ${lastCoverError.message} (retryable: ${isRetryable})`);
-
-        await logGeneration({
-          bookId, imageType: 'cover', styleKey,
-          modelAttempted: PRIMARY_MODEL, modelUsed: 'none', fallbackTriggered: false,
-          referencesAttached: refsInfo, promptLength: characterDescription.length,
-          durationMs: Date.now() - attemptStart, retryCount: attempt - 1,
-          success: false, errorMessage: lastCoverError.message,
-        });
-
-        if (!isRetryable || attempt === MAX_COVER_ATTEMPTS) break;
-        await new Promise(resolve => setTimeout(resolve, BACKOFF_MS[attempt - 1]));
+        await logGeneration({ bookId, imageType: 'cover', styleKey, modelAttempted: PRIMARY_MODEL, modelUsed: 'none', fallbackTriggered: false, referencesAttached: refsInfo, promptLength: characterDescription.length, durationMs: Date.now() - attemptStart, retryCount: attempt - 1, success: false, errorMessage: lastCoverError.message });
+        console.warn(`[generate-cover] Gemini attempt ${attempt} failed: ${lastCoverError.message} (retryable: ${isRetryable(err)})`);
+        if (!isRetryable(err) || attempt === GEMINI_ATTEMPTS) break;
+        await new Promise(r => setTimeout(r, GEMINI_BACKOFF[attempt - 1]));
       }
     }
 
-    // Terminal failure — mark book as failed
+    // --- Tier 2: FLUX.2 Pro fallback (off-Google) ---
     if (!coverResult) {
-      console.error(`[generate-cover] All ${MAX_COVER_ATTEMPTS} attempts failed. Marking book as failed.`);
+      console.warn('[generate-cover] Gemini exhausted. Falling back to FLUX.2 Pro.');
+      const FLUX_ATTEMPTS = 2;
+      for (let attempt = 1; attempt <= FLUX_ATTEMPTS; attempt++) {
+        const attemptStart = Date.now();
+        try {
+          console.log(`[generate-cover] FLUX attempt ${attempt}/${FLUX_ATTEMPTS}`);
+          const fluxRefs: ReferenceImage[] = [];
+          if (childPhotoBase64) fluxRefs.push({ base64: childPhotoBase64, mimeType: 'image/jpeg', role: 'photo' });
+          if (stylePreviewBase64) fluxRefs.push({ base64: stylePreviewBase64, role: 'style_preview' });
+          const style = ART_STYLES[styleKey];
+          const fluxPrompt = `${characterDescription}\n\nSCENE: A magical, warm cover scene for: ${themeDescription}\n\nART STYLE: ${style.stylePrompt}\n\n${ANTI_TEXT_RULES}`;
+          const fb = await generateImageWithFlux2Pro(fluxPrompt, { aspectRatio: 'portrait_4_3', referenceImages: fluxRefs });
+          coverResult = { buffer: fb, modelUsed: FALLBACK_MODEL };
+          chosenModel = 'flux';
+          await logGeneration({ bookId, imageType: 'cover', styleKey, modelAttempted: FALLBACK_MODEL, modelUsed: FALLBACK_MODEL, fallbackTriggered: true, fallbackReason: 'Gemini exhausted', referencesAttached: refsInfo, promptLength: fluxPrompt.length, durationMs: Date.now() - attemptStart, retryCount: attempt - 1, success: true });
+          console.log(`[generate-cover] FLUX attempt ${attempt} succeeded`);
+          break;
+        } catch (err) {
+          lastCoverError = err instanceof Error ? err : new Error(String(err));
+          await logGeneration({ bookId, imageType: 'cover', styleKey, modelAttempted: FALLBACK_MODEL, modelUsed: 'none', fallbackTriggered: true, referencesAttached: refsInfo, promptLength: 0, durationMs: Date.now() - attemptStart, retryCount: attempt - 1, success: false, errorMessage: lastCoverError.message });
+          console.warn(`[generate-cover] FLUX attempt ${attempt} failed: ${lastCoverError.message}`);
+          if (attempt < FLUX_ATTEMPTS) await new Promise(r => setTimeout(r, 5000));
+        }
+      }
+    }
+
+    // --- Both tiers failed → fallback_exhausted ---
+    if (!coverResult) {
+      console.error('[generate-cover] BOTH Gemini and FLUX failed. fallback_exhausted.');
+      const { data: metaRead } = await supabase.from('books').select('metadata').eq('id', bookId).limit(1);
       await supabase.from('books').update({
         status: 'failed',
-        metadata: { ...bookMeta, failure_reason: 'cover_generation_failed', failure_detail: lastCoverError?.message || 'unknown' },
+        metadata: { ...((metaRead?.[0]?.metadata as Record<string, unknown>) || {}), failure_reason: 'fallback_exhausted', failure_stage: 'cover', failure_detail: lastCoverError?.message || 'unknown' },
       }).eq('id', bookId);
       try { await triggerFailureEmail(bookId); } catch { /* non-fatal */ }
-      return NextResponse.json({
-        error: 'Cover generation failed',
-        detail: lastCoverError?.message || 'unknown',
-        bookFailed: true,
-      }, { status: 500 });
+      return NextResponse.json({ error: 'Cover generation failed on all models', bookFailed: true }, { status: 500 });
     }
+
+    // --- Persist model lock so pages use the same model ---
+    const { data: lockRead } = await supabase.from('books').select('metadata').eq('id', bookId).limit(1);
+    await supabase.from('books').update({
+      metadata: { ...((lockRead?.[0]?.metadata as Record<string, unknown>) || {}), illustration_model: chosenModel },
+    }).eq('id', bookId);
+    console.log(`[generate-cover] Book locked to model: ${chosenModel}`);
 
     const storagePath = `${bookId}/cover-${styleKey}.png`;
     const imageUrl = await uploadImage('covers', storagePath, coverResult.buffer);
@@ -222,11 +257,11 @@ export async function POST(req: Request) {
       }
 
       const coverBase64 = coverResult.buffer.toString('base64');
-      const visualBible = await extractVisualBible(coverBase64, {
+      const visualBible = await withRetry('visual-bible', () => extractVisualBible(coverBase64, {
         protagonistName: book.child_name,
         supportingCharacters,
         storyText,
-      });
+      }));
 
       if (visualBible) {
         const { data: currentBook } = await supabase
@@ -268,8 +303,8 @@ export async function POST(req: Request) {
       }
 
       const coverBase64ForCrop = coverResult.buffer.toString('base64');
-      const boxes = await extractCharacterBoundingBoxes(coverBase64ForCrop, characterList);
-      const crops = await cropAndUploadCharacters(coverResult.buffer, boxes, bookId);
+      const boxes = await withRetry('bounding-boxes', () => extractCharacterBoundingBoxes(coverBase64ForCrop, characterList));
+      const crops = boxes ? await cropAndUploadCharacters(coverResult.buffer, boxes, bookId) : [];
 
       if (crops.length > 0) {
         const cropMeta = crops.map(c => ({ name: c.name, storagePath: c.storagePath, publicUrl: c.publicUrl }));

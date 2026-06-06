@@ -10,7 +10,7 @@ export const FALLBACK_MODEL = 'flux-2-pro';
 
 export type GenerationResult = { buffer: Buffer; modelUsed: string };
 
-const ANTI_TEXT_RULES = `CRITICAL ANTI-TEXT RULE — READ CAREFULLY:
+export const ANTI_TEXT_RULES = `CRITICAL ANTI-TEXT RULE — READ CAREFULLY:
 The image MUST be pure visual art with absolutely no text of any kind. Specifically:
 - NO words, NO letters, NO numbers, NO punctuation marks, NO symbols
 - NO captions, NO labels, NO titles, NO signs, NO banners
@@ -43,6 +43,7 @@ interface GeneratePageIllustrationParams {
   visualBibleBlock?: string;
   characterCrops?: Array<{ name: string; base64: string }>;
   previousPageBase64?: string;
+  useFluxDirectly?: boolean;
 }
 
 function extractStatusCode(err: Error): number | undefined {
@@ -229,6 +230,7 @@ export async function generatePageIllustration(
     visualBibleBlock,
     characterCrops,
     previousPageBase64,
+    useFluxDirectly,
   } = params;
   const style = ART_STYLES[styleKey];
 
@@ -317,7 +319,15 @@ Before generating, verify: Is the character's race, skin tone, hair color/style 
     coverPresent: !!coverImageBase64,
     photoPresent: !!childPhotoBase64,
     stylePresent: !!stylePreviewBase64,
+    useFluxDirectly: !!useFluxDirectly,
   });
+
+  // If model is locked to FLUX, skip Gemini entirely
+  if (useFluxDirectly) {
+    console.log(`[illustration-generator] FLUX-direct mode for page ${pageNumber} (model locked)`);
+    const fb = await generateFlux2Fallback(fullPrompt, { characterCrops, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
+    return { buffer: fb, modelUsed: FALLBACK_MODEL };
+  }
 
   return generateWithRateLimit(async () => {
     const ai = getGeminiClient();
