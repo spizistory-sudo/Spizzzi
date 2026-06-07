@@ -29,11 +29,11 @@ export default function ReaderControls({
   const activeDotIndex = currentPage + 1;
 
   return (
-    <div className="bg-white/5 backdrop-blur-sm rounded-xl px-4 md:px-6 py-2.5 md:py-3 flex items-center justify-between max-w-2xl mx-auto w-full">
+    <div className="bg-white/5 backdrop-blur-sm rounded-xl px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 pb-safe-3 flex items-center justify-between max-w-2xl mx-auto w-full">
       {/* Close button */}
       <button
         onClick={onClose}
-        className="text-white/60 hover:text-white transition p-2"
+        className="text-white/60 hover:text-white active:text-white transition p-3 min-w-[44px] min-h-[44px] flex items-center justify-center"
         title="Close"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -45,9 +45,9 @@ export default function ReaderControls({
       <button
         onClick={onPrev}
         disabled={currentPage <= -1}
-        className="text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition flex items-center gap-1 text-sm font-medium px-3 py-2"
+        className="text-white/70 hover:text-white active:text-white disabled:opacity-20 disabled:cursor-not-allowed transition flex items-center gap-1 text-sm font-medium p-3 min-w-[44px] min-h-[44px] justify-center"
       >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
         </svg>
         <span className="hidden sm:inline">Previous</span>
@@ -58,7 +58,7 @@ export default function ReaderControls({
         <div className="flex items-center gap-2">
           <button
             onClick={onTogglePlay}
-            className="text-white/70 hover:text-white transition p-2"
+            className="text-white/70 hover:text-white active:text-white transition p-3 min-w-[44px] min-h-[44px] flex items-center justify-center"
             title={isPlaying ? 'Pause' : 'Play'}
           >
             {isPlaying ? (
@@ -105,10 +105,10 @@ export default function ReaderControls({
       <button
         onClick={onNext}
         disabled={currentPage >= totalPages - 1}
-        className="text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition flex items-center gap-1 text-sm font-medium px-3 py-2"
+        className="text-white/70 hover:text-white active:text-white disabled:opacity-20 disabled:cursor-not-allowed transition flex items-center gap-1 text-sm font-medium p-3 min-w-[44px] min-h-[44px] justify-center"
       >
         <span className="hidden sm:inline">Next</span>
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
         </svg>
       </button>

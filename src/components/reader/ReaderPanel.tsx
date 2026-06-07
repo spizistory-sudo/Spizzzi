@@ -39,13 +39,12 @@ export default function ReaderPanel({
   onSettings,
 }: Props) {
   return (
-    <div style={{
+    <div className="hidden lg:flex" style={{
       position: 'fixed',
       right: 20,
       top: '50%',
       transform: 'translateY(-50%)',
       zIndex: 50,
-      display: 'flex',
       flexDirection: 'column',
       gap: 6,
     }}>

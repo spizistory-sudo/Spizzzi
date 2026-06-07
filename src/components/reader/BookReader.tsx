@@ -372,45 +372,38 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
     if (v >= FIRST_STORY && v <= LAST_STORY) {
       const page = pages[v - FIRST_STORY];
       return (
-        <div style={{ width: '100%', height: '100%', display: 'flex' }}>
-          {/* Left page: text (editable in edit mode) */}
-          <div style={{ width: '50%', height: '100%', background: '#faf8f4', position: 'relative', overflow: 'hidden' }}>
-            {/* Title — pinned top */}
-            <div style={{ textAlign: 'center', position: 'absolute', top: '2rem', left: 0, right: 0, zIndex: 1 }}>
+        <div className="w-full h-full flex flex-col-reverse lg:flex-row">
+          {/* Text panel — bottom on mobile, left on desktop */}
+          <div className="flex-1 lg:w-1/2 lg:flex-initial bg-[#faf8f4] relative overflow-hidden">
+            {/* Title — pinned top (hidden on mobile to save space) */}
+            <div className="hidden lg:block" style={{ textAlign: 'center', position: 'absolute', top: '2rem', left: 0, right: 0, zIndex: 1 }}>
               <p style={{ fontSize: '12px', color: '#d1d5db', letterSpacing: '0.2em', textTransform: 'uppercase', fontFamily: 'Georgia, serif' }}>{book.title}</p>
             </div>
-            {/* Edited badge */}
             {isEditMode && dirtyPageIds.has(page.id) && (
               <span style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(245,200,66,0.20)', border: '1px solid rgba(245,200,66,0.50)', color: '#C8860A', fontSize: '0.65rem', fontWeight: 600, padding: '2px 8px', borderRadius: 9999, zIndex: 2 }}>Edited</span>
             )}
-            {/* Scrollable text area — absolute fill between title and page number */}
-            <div className="text-scroll" style={{ position: 'absolute', top: '4rem', bottom: '3rem', left: '3rem', right: '3rem', overflowY: 'auto', overflowX: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', scrollbarWidth: 'thin', scrollbarColor: 'rgba(155,125,212,0.4) transparent' }}>
+            {/* Scrollable text — absolute on desktop, flex on mobile */}
+            <div className="text-scroll h-full lg:absolute lg:top-16 lg:bottom-12 lg:left-12 lg:right-12 overflow-y-auto overflow-x-hidden flex items-center justify-center px-5 py-4 lg:px-0 lg:py-0" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(155,125,212,0.4) transparent' }}>
               {isEditMode ? (
                 <textarea
                   value={editedTexts[page.id] ?? page.text_content}
                   onChange={(e) => handleTextChange(page.id, page.text_content, e.target.value)}
                   dir="auto"
-                  style={{
-                    width: '100%', height: '100%',
-                    background: 'transparent', border: 'none',
-                    borderBottom: '1px solid rgba(100,80,40,0.30)',
-                    outline: 'none', resize: 'none',
-                    fontFamily: 'Georgia, serif', fontSize: '20px', lineHeight: 1.8,
-                    color: '#1f2937', textAlign: 'center', cursor: 'text', padding: '4px 2px',
-                  }}
+                  className="w-full h-full bg-transparent border-none outline-none resize-none text-center cursor-text"
+                  style={{ fontFamily: 'Georgia, serif', fontSize: '18px', lineHeight: 1.8, color: '#1f2937', borderBottom: '1px solid rgba(100,80,40,0.30)', padding: '4px 2px' }}
                   placeholder="Enter story text..."
                 />
               ) : (
-                <p style={{ color: '#1f2937', fontSize: '20px', lineHeight: 1.8, textAlign: 'center', fontFamily: 'Georgia, serif' }} dir="auto">{page.text_content}</p>
+                <p className="text-center" style={{ color: '#1f2937', fontSize: '18px', lineHeight: 1.8, fontFamily: 'Georgia, serif' }} dir="auto">{page.text_content}</p>
               )}
             </div>
-            {/* Page number — pinned bottom */}
-            <div style={{ textAlign: 'center', position: 'absolute', bottom: '1.5rem', left: 0, right: 0, zIndex: 1 }}>
+            {/* Page number — pinned bottom (desktop only) */}
+            <div className="hidden lg:block" style={{ textAlign: 'center', position: 'absolute', bottom: '1.5rem', left: 0, right: 0, zIndex: 1 }}>
               <p style={{ fontSize: '12px', color: '#d1d5db' }}>{page.page_number}</p>
             </div>
           </div>
-          {/* Right page: illustration or animated video */}
-          <div style={{ position: 'relative', width: '50%', height: '100%', overflow: 'hidden' }}>
+          {/* Image panel — top on mobile (height-capped), right on desktop */}
+          <div className="w-full max-h-[45vh] lg:max-h-none lg:w-1/2 relative overflow-hidden">
             {(() => {
               const videoUrl = pageVideos[page.id];
               const showVideo = viewMode === 'animated' && videoUrl;
@@ -432,8 +425,8 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
 
     if (v === THE_END) {
       return (
-        <div style={{ width: '100%', height: '100%', display: 'flex' }}>
-          <div style={{ width: '50%', height: '100%', background: '#faf8f4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="w-full h-full flex flex-col lg:flex-row">
+          <div className="flex-1 lg:w-1/2 lg:flex-initial bg-[#faf8f4] flex items-center justify-center">
             <div style={{ textAlign: 'center', padding: '32px' }}>
               <p style={{ color: '#d1d5db', fontSize: '18px', letterSpacing: '0.3em', marginBottom: '16px' }}>&#10022; &#10022; &#10022;</p>
               <p style={{ fontSize: '40px', fontWeight: 'bold', color: '#7e22ce', fontFamily: 'Georgia, serif', marginBottom: '20px' }}>The End</p>
@@ -446,7 +439,7 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
               <p style={{ color: '#374151', fontSize: '18px', fontWeight: 600, fontFamily: 'Georgia, serif' }} dir="auto">{book.child_name}</p>
             </div>
           </div>
-          <div style={{ width: '50%', height: '100%', background: 'linear-gradient(135deg, #1a1035, #0f0a2a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="w-full lg:w-1/2 h-1/2 lg:h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1a1035, #0f0a2a)' }}>
             <div style={{ textAlign: 'center', padding: '24px' }}>
               <Image
                 src="/images/logo/spizzzy-logo.png"
@@ -479,11 +472,11 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
       <ReaderSettings isOpen={showSettings} onClose={() => setShowSettings(false)} currentMusicId={activeMusicId} onMusicChange={handleMusicChange} narrationVolume={audio.narrationVolume} musicVolume={audio.musicVolume} onNarrationVolumeChange={audio.setNarrationVolume} onMusicVolumeChange={audio.setMusicVolume} currentVoiceId={currentVoiceId} bookId={book.id} onNarratorChange={handleNarratorChange} isRegeneratingNarration={isRegeneratingNarration} />
 
       {/* Book area */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 md:px-[5vw] py-14 md:py-16 relative z-10" onTouchStart={ts} onTouchEnd={te} style={{ perspective: '2000px' }}>
+      <div className="flex-1 flex flex-col items-center justify-center px-2 sm:px-4 md:px-[5vw] py-4 sm:py-8 md:py-14 lg:py-16 relative z-10" onTouchStart={ts} onTouchEnd={te} style={{ perspective: '2000px' }}>
 
         {/* Book shell */}
         <div
-          className={`relative overflow-hidden transition-[max-width] duration-500 ease-in-out ${isCover ? 'w-full max-w-[480px] rounded-md' : 'w-full max-w-[1200px]'} h-full max-h-[75vh]`}
+          className={`relative overflow-hidden transition-[max-width] duration-500 ease-in-out ${isCover ? 'w-full max-w-[480px] rounded-md' : 'w-full max-w-[1200px]'} h-full max-h-[85vh] lg:max-h-[75vh]`}
           style={{ boxShadow: '0 25px 60px rgba(0,0,0,0.5), 0 10px 25px rgba(0,0,0,0.3)' }}
         >
           {/* Fix #3: Layer 1 — next spread (underneath, always rendered during flip) */}
