@@ -144,7 +144,7 @@ export default function StoriesPage() {
       )}
 
       {!loading && stories.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-3">
           {stories.map(({ storyId, reason }) => {
             const story = getStoryById(storyId);
             if (!story) return null;
@@ -170,7 +170,7 @@ export default function StoriesPage() {
                   onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
                 >
                   {/* Story image */}
-                  <div className="relative w-full overflow-hidden" style={{ aspectRatio: '3 / 2' }}>
+                  <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16 / 9' }}>
                     <Image
                       src={`/images/stories/${storyId}.webp`}
                       alt={story.title}
@@ -190,7 +190,7 @@ export default function StoriesPage() {
                     </div>
                   </div>
                   {/* Title */}
-                  <div style={{ padding: '14px 16px 8px' }}>
+                  <div style={{ padding: '10px 14px 4px' }}>
                     <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                       {story.title}
                     </h3>
@@ -198,7 +198,7 @@ export default function StoriesPage() {
                 </button>
 
                 {/* Details toggle — separate tap target */}
-                <div style={{ padding: '0 16px 12px' }}>
+                <div style={{ padding: '0 14px 8px' }}>
                   <button
                     onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : storyId); }}
                     className="flex items-center gap-1 min-h-[44px] transition-colors"
