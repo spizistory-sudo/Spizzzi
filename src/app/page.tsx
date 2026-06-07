@@ -38,11 +38,11 @@ export default function LandingPage() {
   return (
     <div style={{ minHeight: '100vh' }}>
       {/* Nav */}
-      <nav className="flex items-start justify-between px-6 pt-6 max-w-7xl mx-auto">
-        {/* Left spacer for symmetry */}
-        <div className="w-[180px]" />
+      <nav className="flex items-start justify-between px-4 sm:px-6 pt-4 sm:pt-6 max-w-7xl mx-auto">
+        {/* Left spacer for symmetry — hidden on phone */}
+        <div className="hidden sm:block w-[180px]" />
 
-        {/* Center: logo */}
+        {/* Center: logo — smaller on phone */}
         <Link href="/">
           <Image
             src="/images/logo/spizzzy-logo.png"
@@ -50,7 +50,7 @@ export default function LandingPage() {
             width={192}
             height={192}
             priority
-            className="h-48 w-auto"
+            className="h-24 sm:h-48 w-auto"
           />
         </Link>
 

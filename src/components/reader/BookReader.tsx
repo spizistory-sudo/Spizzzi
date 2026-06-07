@@ -552,7 +552,7 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
       {/* Bottom bar — playback controls only */}
       {!isCover && (
         <div className="pb-3 px-4 md:px-8 relative z-10" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-          <ReaderControls currentPage={view} totalPages={totalViews} onPrev={prevPage} onNext={nextPage} onClose={() => { audio.stopPlayback(); router.back(); }} isPlaying={!isEditMode && audio.isPlaying} onTogglePlay={isEditMode ? undefined : audio.togglePlayPause} hasAudio={!isEditMode && hasNarration} isAutoPlay={isAutoPlay} onToggleAutoPlay={() => setIsAutoPlay(!isAutoPlay)} />
+          <ReaderControls currentPage={view} totalPages={totalViews} onPrev={prevPage} onNext={nextPage} onClose={() => { audio.stopPlayback(); router.back(); }} isPlaying={!isEditMode && audio.isPlaying} onTogglePlay={isEditMode ? undefined : audio.togglePlayPause} hasAudio={!isEditMode && hasNarration} isAutoPlay={isAutoPlay} onToggleAutoPlay={() => setIsAutoPlay(!isAutoPlay)} onShare={() => setShowShareModal(true)} onSettings={() => setShowSettings(true)} />
         </div>
       )}
 
