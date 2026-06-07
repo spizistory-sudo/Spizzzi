@@ -104,15 +104,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Mobile top bar — below lg */}
-      <div className="fixed top-0 left-0 right-0 z-30 lg:hidden pt-safe" style={{
+      <div className="fixed top-0 left-0 right-0 z-30 lg:hidden pt-safe flex items-center justify-between" style={{
         background: 'rgba(10, 17, 40, 0.85)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
         padding: '12px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
       }}>
         <button
           onClick={() => setDrawerOpen(true)}
