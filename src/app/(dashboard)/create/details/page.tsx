@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCreationWizard } from '@/stores/creation-wizard';
 import WizardProgress from '@/components/wizard/WizardProgress';
 import PhotoUpload from '@/components/wizard/PhotoUpload';
+import ComingSoon from '@/components/ui/ComingSoon';
 import { PERSONALITY_TRAITS } from '@/lib/personality-traits-en';
 import { INTERESTS, type Interest } from '@/lib/interests-en';
 
@@ -282,6 +283,9 @@ export default function DetailsPage() {
             We use it to create illustrations that look like them.
           </p>
           <PhotoUpload />
+          <div className="mt-3">
+            <ComingSoon title="Family & Pets" description="Add photos of your family or pets and include them in the story." />
+          </div>
           {photoError && (
             <div style={{ marginTop: 12, padding: 12, background: 'rgba(220,50,50,0.15)', border: '1px solid rgba(220,50,50,0.30)', borderRadius: '0.75rem', color: 'rgba(255,150,150,0.95)', fontSize: '0.84rem' }}>
               {photoError}

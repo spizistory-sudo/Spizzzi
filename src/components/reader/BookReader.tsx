@@ -10,6 +10,7 @@ import ReaderSettings from './ReaderSettings';
 import { FALLBACK_TRACKS } from '@/lib/music/tracks';
 import Image from 'next/image';
 import CoverImage from './CoverImage';
+import ComingSoon from '../ui/ComingSoon';
 import { MagicReaderBackground } from '../ui/MagicReaderBackground';
 import AnimatePromptModal from './AnimatePromptModal';
 import AnimationProgress from './AnimationProgress';
@@ -439,7 +440,7 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
               <p style={{ color: '#374151', fontSize: '18px', fontWeight: 600, fontFamily: 'Georgia, serif' }} dir="auto">{book.child_name}</p>
             </div>
           </div>
-          <div className="w-full lg:w-1/2 h-1/2 lg:h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1a1035, #0f0a2a)' }}>
+          <div className="w-full lg:w-1/2 h-1/2 lg:h-full flex flex-col items-center justify-center gap-6" style={{ background: 'linear-gradient(135deg, #1a1035, #0f0a2a)' }}>
             <div style={{ textAlign: 'center', padding: '24px' }}>
               <Image
                 src="/images/logo/spizzzy-logo.png"
@@ -450,6 +451,9 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
               />
               <div style={{ width: '40px', height: '1px', background: 'rgba(139,92,246,0.3)', margin: '12px auto' }} />
               <p style={{ color: 'rgba(167,139,250,0.6)', fontSize: '14px' }}>spizzzi.vercel.app</p>
+            </div>
+            <div className="w-full max-w-[280px] px-4">
+              <ComingSoon variant="card" title="Serialized Story" description="Stories that continue over multiple chapters or episodes." />
             </div>
           </div>
         </div>

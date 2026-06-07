@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCreationWizard } from '@/stores/creation-wizard';
 import { createClient } from '@/lib/supabase/client';
 import WizardProgress from '@/components/wizard/WizardProgress';
+import ComingSoon from '@/components/ui/ComingSoon';
 import { STORYMAGIC_VOICES, DEFAULT_VOICE_ID, getVoiceById as getVoice } from '@/lib/elevenlabs/voices';
 import { FALLBACK_TRACKS, suggestTrack, type MusicTrack } from '@/lib/music/tracks';
 import CoverImage from '@/components/reader/CoverImage';
@@ -656,6 +657,9 @@ function FinalizePage() {
               );
             })}
           </div>
+          <div className="mt-3">
+            <ComingSoon title="Use your own voice" description="Make the book feel even more personal and fun." />
+          </div>
       </section>
 
       {/* Music selector */}
@@ -710,6 +714,9 @@ function FinalizePage() {
               </div>
             );
           })}
+        </div>
+        <div className="mt-3">
+          <ComingSoon title="Adaptive Music" description="Music that adapts to the story, making it feel like a real movie." />
         </div>
       </section>
 
