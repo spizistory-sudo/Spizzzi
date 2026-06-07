@@ -301,6 +301,48 @@ One-time scripts in `/scripts/`:
 
 ---
 
+## Responsive Conventions (mobile/iPad — apply to ALL new UI)
+
+iPad landscape is the PRIMARY target device; the app must also work on iPhone and iPad portrait. Every new feature, fix, or component is built mobile-ready BY DEFAULT using the rules below. Desktop (lg+) must never visually regress when responsive variants are added.
+
+**Breakpoints (Tailwind 4 defaults):** sm 640 · md 768 · lg 1024 · xl 1280
+**Test widths:** 360/390 (phone) · 820 (iPad portrait) · 1180 (iPad landscape, primary) · 1440 (desktop)
+
+### Layout
+- Card/content grids: 1 col phone → 2 col iPad portrait → existing count at lg+. Pattern: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-N`. A multi-column grid with NO breakpoint variants WILL overflow on phones — never ship one.
+- Responsive spacing: `gap-3 sm:gap-4 lg:gap-6`, page padding `px-4 sm:px-6 lg:px-8`.
+- No fixed px widths that can exceed the viewport. Cap with `w-[min(90vw,400px)]`-style values. Use `object-fit: cover` on images whose container width changes.
+- Forms: single column on phone; side-by-side fields use `flex-col sm:flex-row` or `grid-cols-1 sm:grid-cols-2`.
+- Primary buttons full-width on phone: `w-full sm:w-auto`.
+
+### Touch
+- Minimum tap target 44×44px (Apple HIG) — buttons, play buttons, chips, icons, nav.
+- Inputs: font-size ≥ 16px (prevents iOS auto-zoom on focus), min-height ~48px.
+- Chips/pills: min-height 44px; wrap (`flex-wrap`) or horizontal-scroll (`overflow-x-auto`) — never overflow.
+- Add `active:` states alongside `hover:` (hover does not fire on touch).
+
+### Safe-area (notched devices)
+- `viewport-fit=cover` is set in the root layout `viewport` export.
+- Utilities in globals.css: `pb-safe`, `pt-safe`, `pl-safe`, `pr-safe`, `pb-safe-3` (additive).
+- Fixed BOTTOM elements: add `pb-safe` / `pb-safe-3` so they clear the home indicator.
+- Fixed TOP elements: add `pt-safe`, AND make content clearance ADDITIVE: `calc(<barHeight> + env(safe-area-inset-top, 0px))` — never a flat px guess.
+- WARNING: Chrome devtools reports `env(safe-area-inset-*)` as 0. Safe-area bugs are INVISIBLE there. Test anything touching safe-area on a real iPhone or the iOS Simulator.
+
+### Established shell behavior (don't re-solve)
+- Dashboard sidebar: fixed at lg+, collapses to a hamburger drawer below lg; content full-width below lg.
+- Wizard stepper: full at sm+, compact "Step X of N" + progress bar below sm.
+- Reader: image-over-text stacked below lg (`flex-col-reverse lg:flex-row`) with scrollable text; 50/50 spread at lg+.
+- Floating overlays/panels must NOT overlap content below lg — relocate into the bottom bar, a sheet, or a toggle.
+
+### Media inputs
+- Photo file inputs use `accept="image/*"` (offers camera + library on mobile). Do NOT add `capture` (forces camera-only).
+
+### Definition of done for ANY UI change
+- Verify at 360/390, 820, 1180, 1440: no horizontal scroll, all tap targets ≥44px, no element wider than the viewport, desktop visually unchanged.
+- For anything with fixed top/bottom bars, overlays, or full-screen surfaces: confirm on a real device / iOS Simulator, not just devtools.
+
+---
+
 ## 12. Critical Warnings
 
 - **Never commit `.env.local`** — it's in `.gitignore`
