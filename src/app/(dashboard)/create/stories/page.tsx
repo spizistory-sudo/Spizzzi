@@ -8,6 +8,7 @@ import WizardProgress from '@/components/wizard/WizardProgress';
 import { getStoriesByCategory, getStoryById, type StoryTemplate } from '@/lib/ai/prompts/en/story-catalog';
 import type { CurationResult, StoryRecommendation } from '@/lib/ai/curation-en';
 import { autoSelectFinalize } from '@/lib/auto-finalize';
+import Image from 'next/image';
 
 export default function StoriesPage() {
   const router = useRouter();
@@ -28,6 +29,7 @@ export default function StoriesPage() {
   const [error, setError] = useState<string | null>(null);
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [pickedStory, setPickedStory] = useState<StoryTemplate | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   if (!childName || !childAge || !childGender) {
     router.replace('/create/details');
@@ -146,36 +148,87 @@ export default function StoriesPage() {
           {stories.map(({ storyId, reason }) => {
             const story = getStoryById(storyId);
             if (!story) return null;
+            const isExpanded = expandedId === storyId;
 
             return (
-              <button
+              <div
                 key={storyId}
-                onClick={() => handlePickStory(storyId)}
-                className="text-left transition-all duration-300"
+                className="overflow-hidden transition-all duration-300"
                 style={{
-                  padding: '24px',
                   background: 'rgba(255,255,255,0.04)',
-                  backdropFilter: 'blur(12px)',
                   border: '1px solid rgba(255,255,255,0.10)',
                   borderRadius: '1.25rem',
-                  cursor: 'pointer',
                   boxShadow: 'inset 0 0 20px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.25)',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = 'rgba(155,125,212,0.40)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; }}
               >
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
-                  {story.title}
-                </h3>
-                <p style={{ fontSize: '0.84rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.5, marginBottom: reason ? 8 : 0 }}>
-                  {story.description}
-                </p>
-                {reason && (
-                  <p style={{ fontSize: '0.75rem', color: 'rgba(126,200,227,0.70)', fontStyle: 'italic', lineHeight: 1.4 }}>
-                    {reason}
-                  </p>
-                )}
-              </button>
+                {/* Image + Title — tapping selects the story */}
+                <button
+                  onClick={() => handlePickStory(storyId)}
+                  className="w-full text-left transition-all duration-200 active:opacity-80"
+                  style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+                >
+                  {/* Story image */}
+                  <div className="relative w-full overflow-hidden" style={{ aspectRatio: '3 / 2' }}>
+                    <Image
+                      src={`/images/stories/${storyId}.webp`}
+                      alt={story.title}
+                      fill
+                      sizes="(max-width: 640px) 100vw, 50vw"
+                      className="object-cover"
+                      loading="lazy"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                    />
+                    {/* Gradient fallback behind image */}
+                    <div className="absolute inset-0 -z-10" style={{ background: 'linear-gradient(135deg, rgba(155,125,212,0.20), rgba(126,200,227,0.15))' }}>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <svg className="w-10 h-10 text-white/15" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Title */}
+                  <div style={{ padding: '14px 16px 8px' }}>
+                    <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {story.title}
+                    </h3>
+                  </div>
+                </button>
+
+                {/* Details toggle — separate tap target */}
+                <div style={{ padding: '0 16px 12px' }}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : storyId); }}
+                    className="flex items-center gap-1 min-h-[44px] transition-colors"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', color: 'rgba(255,255,255,0.40)', fontSize: '0.78rem' }}
+                  >
+                    <svg
+                      className="w-3 h-3 transition-transform duration-200"
+                      style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                      fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                    </svg>
+                    Details
+                  </button>
+
+                  {/* Expanded content */}
+                  {isExpanded && (
+                    <div className="mt-1 mb-1" style={{ animation: 'fadeUp 0.2s ease-out' }}>
+                      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.50)', lineHeight: 1.5, marginBottom: reason ? 8 : 0 }}>
+                        {story.description}
+                      </p>
+                      {reason && (
+                        <p style={{ fontSize: '0.75rem', color: 'rgba(126,200,227,0.65)', fontStyle: 'italic', lineHeight: 1.4 }}>
+                          {reason}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>
