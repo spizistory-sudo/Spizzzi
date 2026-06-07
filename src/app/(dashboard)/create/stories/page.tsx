@@ -142,7 +142,7 @@ export default function StoriesPage() {
       )}
 
       {!loading && stories.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           {stories.map(({ storyId, reason }) => {
             const story = getStoryById(storyId);
             if (!story) return null;
@@ -187,8 +187,8 @@ export default function StoriesPage() {
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 24, paddingBottom: 32 }}>
-        <button onClick={() => router.push('/create/categories')} className="btn-secondary">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-6 pb-8">
+        <button onClick={() => router.push('/create/categories')} className="btn-secondary min-h-[44px]">
           &larr; Back
         </button>
       </div>

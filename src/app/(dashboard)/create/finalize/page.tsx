@@ -451,16 +451,16 @@ function FinalizePage() {
           <p className="text-white/60 text-base mb-8 leading-relaxed">
             Sometimes the magic doesn&apos;t land on the first try. We&apos;ve sent you an email &mdash; or you can try again now.
           </p>
-          <div className="flex gap-3 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center w-full max-w-[320px] mx-auto">
             <button
               onClick={() => router.push('/create')}
-              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-full text-white font-semibold transition"
+              className="w-full sm:w-auto px-6 py-3 min-h-[48px] bg-purple-600 hover:bg-purple-700 active:bg-purple-800 rounded-full text-white font-semibold transition"
             >
               Try Again
             </button>
             <button
               onClick={() => router.push('/library')}
-              className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition"
+              className="w-full sm:w-auto px-6 py-3 min-h-[48px] bg-white/10 hover:bg-white/20 active:bg-white/30 rounded-full text-white transition"
             >
               Back to Library
             </button>
@@ -526,13 +526,13 @@ function FinalizePage() {
                 } catch { /* continue */ }
                 router.push(`/reader/${bookId}?skipCover=true`);
               }}
-              className="px-10 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-lg font-semibold transition shadow-lg shadow-purple-900/40"
+              className="px-10 py-4 min-h-[48px] bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded-full text-lg font-semibold transition shadow-lg shadow-purple-900/40"
             >
               Start Reading
             </button>
           </div>
         ) : (
-          <div key="building" className="w-[280px] md:w-[360px] text-center build-fade-in">
+          <div key="building" className="w-full max-w-[360px] px-4 text-center build-fade-in">
             <p className="text-white text-lg font-medium mb-1">{msgs.primary}</p>
             {subText && (
               <p className="text-white/85 text-base mb-4 italic transition-opacity duration-500" key={subText.substring(0, 20)}>
@@ -545,7 +545,7 @@ function FinalizePage() {
                 style={{ width: `${Math.min(smoothProgress, 100)}%` }}
               />
             </div>
-            <p className="text-white/70 text-sm mt-6 max-w-[420px] text-center leading-relaxed">
+            <p className="text-white/70 text-sm mt-6 max-w-full sm:max-w-[420px] text-center leading-relaxed pb-safe">
               You&apos;re welcome to stick around, but no need to wait here. We&apos;ll send you an email as soon as your book is ready.
             </p>
           </div>
@@ -606,12 +606,12 @@ function FinalizePage() {
                 >
                   {/* Avatar */}
                   <div style={{
-                    width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                    width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     background: isSelected ? 'rgba(155,125,212,0.25)' : 'rgba(255,255,255,0.08)',
                     color: isSelected ? 'rgba(200,180,255,0.90)' : 'rgba(255,255,255,0.30)',
                   }}>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                     </svg>
                   </div>
@@ -632,7 +632,7 @@ function FinalizePage() {
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); previewVoice(voice.id, voice.id); } }}
                     className="transition-all duration-200"
                     style={{
-                      width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                      width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: isPreviewing ? 'linear-gradient(135deg, rgba(155,125,212,0.90), rgba(126,200,227,0.80))' : 'rgba(255,255,255,0.08)',
                       border: isPreviewing ? '1px solid rgba(255,255,255,0.25)' : '1px solid rgba(255,255,255,0.15)',
@@ -668,7 +668,7 @@ function FinalizePage() {
               background: musicCategory === cat ? 'linear-gradient(135deg, rgba(155,125,212,0.70), rgba(126,200,227,0.60))' : 'rgba(255,255,255,0.07)',
               border: musicCategory === cat ? '1px solid rgba(255,255,255,0.20)' : '1px solid rgba(255,255,255,0.14)',
               color: musicCategory === cat ? 'white' : 'rgba(255,255,255,0.60)',
-              borderRadius: '9999px', padding: '7px 18px', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.25s ease', whiteSpace: 'nowrap',
+              borderRadius: '9999px', padding: '10px 18px', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.25s ease', whiteSpace: 'nowrap', minHeight: 44,
               boxShadow: musicCategory === cat ? '0 4px 16px rgba(155,125,212,0.30)' : 'none',
             }}>
               {cat}
@@ -718,8 +718,8 @@ function FinalizePage() {
       )}
 
       {/* Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 32 }}>
-        <button onClick={() => router.push('/create/stories')} className="btn-secondary">Back</button>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-8">
+        <button onClick={() => router.push('/create/stories')} className="btn-secondary min-h-[44px]">Back</button>
         <button onClick={handleCreateBook} disabled={!selectedVoiceId} className="btn-primary">
           &#10022; Create My Book
         </button>
