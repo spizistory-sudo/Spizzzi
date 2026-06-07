@@ -165,7 +165,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}
 
       {/* Main content — full width below lg, offset by sidebar at lg+ */}
-      <main className="flex-1 overflow-y-auto relative z-[1] pt-topbar lg:pt-0">
+      <main className="flex-1 overflow-y-auto relative z-[1]">
+        {/* Mobile clearance for top bar — hidden at lg+ where sidebar replaces it */}
+        <div className="h-[68px] lg:hidden pt-safe" />
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px' }} className="lg:p-[40px_48px]">
           {children}
         </div>
