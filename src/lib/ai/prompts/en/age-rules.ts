@@ -24,7 +24,7 @@ export interface AgeRules {
 }
 
 export function getAgeRules(age: number): AgeRules {
-  if (age >= 3 && age <= 5) {
+  if (age >= 2 && age <= 5) {
     return {
       bucket: '3-5',
       spread_count: { min: 6, max: 8 },

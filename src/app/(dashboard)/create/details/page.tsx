@@ -64,7 +64,9 @@ const INTEREST_GROUPS: { key: Interest['group']; label: string }[] = [
   { key: 'activity', label: 'Activity' },
 ];
 
-const AGE_OPTIONS = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const AGE_MIN = 2;
+const AGE_MAX = 12;
+const AGE_DEFAULT = 6;
 const GENDER_OPTIONS: { value: 'boy' | 'girl' | 'nonbinary'; label: string }[] = [
   { value: 'boy', label: 'Boy' },
   { value: 'girl', label: 'Girl' },
@@ -108,7 +110,7 @@ export default function DetailsPage() {
     e.preventDefault();
     setError(null);
     if (!name.trim()) { setError("Please enter your child's name"); return; }
-    if (!age || age < 3 || age > 12) { setError('Please select an age (3-12)'); return; }
+    if (!age || age < AGE_MIN || age > AGE_MAX) { setError(`Please select an age (${AGE_MIN}-${AGE_MAX})`); return; }
     if (!gender) { setError('Please select a gender'); return; }
     if (!hasChildPhoto) { setError('Please upload at least one photo of your child'); return; }
 
@@ -180,14 +182,68 @@ export default function DetailsPage() {
         {/* Age */}
         <div>
           <label style={labelStyle}>How old is your child?</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {AGE_OPTIONS.map((a) => (
-              <button key={a} type="button" onClick={() => setAge(a)}
-                style={{ ...pillStyle(age === a, false), minWidth: 44, textAlign: 'center' }}
-              >
-                {a}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAge(Math.max(AGE_MIN, (age || AGE_DEFAULT) - 1))}
+              disabled={age !== null && age <= AGE_MIN}
+              className="flex items-center justify-center transition active:bg-white/10 disabled:opacity-25"
+              style={{
+                width: 44, height: 44, borderRadius: '0.75rem',
+                background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)',
+                color: 'rgba(255,255,255,0.70)', cursor: age !== null && age <= AGE_MIN ? 'not-allowed' : 'pointer',
+              }}
+              aria-label="Decrease age"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+              </svg>
+            </button>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={age ?? ''}
+              onChange={(e) => {
+                const v = e.target.value.replace(/\D/g, '');
+                if (v === '') { setAge(null); return; }
+                const n = parseInt(v, 10);
+                if (n >= AGE_MIN && n <= AGE_MAX) setAge(n);
+                else if (n > AGE_MAX) setAge(AGE_MAX);
+              }}
+              onBlur={() => {
+                if (age === null) setAge(AGE_DEFAULT);
+                else if (age < AGE_MIN) setAge(AGE_MIN);
+                else if (age > AGE_MAX) setAge(AGE_MAX);
+              }}
+              className="text-center"
+              style={{
+                width: 64, minHeight: 48, borderRadius: '0.75rem',
+                background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)',
+                color: 'rgba(255,255,255,0.95)', fontFamily: 'var(--font-body)',
+                fontSize: '18px', fontWeight: 600, outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(126,200,227,0.60)'; }}
+              aria-label="Child's age"
+            />
+            <button
+              type="button"
+              onClick={() => setAge(Math.min(AGE_MAX, (age || AGE_DEFAULT) + 1))}
+              disabled={age !== null && age >= AGE_MAX}
+              className="flex items-center justify-center transition active:bg-white/10 disabled:opacity-25"
+              style={{
+                width: 44, height: 44, borderRadius: '0.75rem',
+                background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)',
+                color: 'rgba(255,255,255,0.70)', cursor: age !== null && age >= AGE_MAX ? 'not-allowed' : 'pointer',
+              }}
+              aria-label="Increase age"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
+              </svg>
+            </button>
+            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.82rem', marginLeft: 4 }}>years old</span>
           </div>
         </div>
 
