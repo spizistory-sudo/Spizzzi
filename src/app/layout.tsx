@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Figtree, Lora } from "next/font/google";
 import "./globals.css";
 import NightSkyBackground from "@/components/ui/NightSkyBackground";
@@ -15,6 +15,12 @@ const lora = Lora({
   weight: ["400", "500", "600"],
   style: ["normal", "italic"],
 });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
   title: "Spizzzy — Personalized Children's Books",
