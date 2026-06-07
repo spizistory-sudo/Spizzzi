@@ -104,7 +104,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Mobile top bar — below lg */}
-      <div className="fixed top-0 left-0 right-0 z-30 lg:hidden" style={{
+      <div className="fixed top-0 left-0 right-0 z-30 lg:hidden pt-safe" style={{
         background: 'rgba(10, 17, 40, 0.85)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
@@ -165,7 +165,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}
 
       {/* Main content — full width below lg, offset by sidebar at lg+ */}
-      <main className="flex-1 overflow-y-auto relative z-1 pt-[68px] lg:pt-0">
+      <main className="flex-1 overflow-y-auto relative z-[1] pt-20 lg:pt-0">
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px' }} className="lg:p-[40px_48px]">
           {children}
         </div>

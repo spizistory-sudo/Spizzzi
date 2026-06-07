@@ -30,7 +30,7 @@ export default function CreatePage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-[720px]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full max-w-[720px]">
         {/* Guided card */}
         <button
           onClick={handleGuided}

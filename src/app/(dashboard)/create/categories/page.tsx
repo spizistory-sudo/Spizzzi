@@ -65,7 +65,7 @@ export default function CategoriesPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {activeCategories.map((cat) => {
           const isSelected = selected === cat.id;
           return (
@@ -107,11 +107,11 @@ export default function CategoriesPage() {
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 24, paddingBottom: 32 }}>
-        <button onClick={() => router.push('/create/details')} className="btn-secondary">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-6 pb-8">
+        <button onClick={() => router.push('/create/details')} className="btn-secondary min-h-[44px]">
           &larr; Back
         </button>
-        <button onClick={handleContinue} className="btn-primary" disabled={!selected}
+        <button onClick={handleContinue} className="btn-primary min-h-[44px]" disabled={!selected}
           style={{ opacity: selected ? 1 : 0.5, cursor: selected ? 'pointer' : 'not-allowed' }}
         >
           Continue &rarr;

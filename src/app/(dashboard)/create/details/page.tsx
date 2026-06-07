@@ -25,9 +25,10 @@ const inputStyle: React.CSSProperties = {
   padding: '14px 18px',
   color: 'rgba(255, 255, 255, 0.95)',
   fontFamily: 'var(--font-body)',
-  fontSize: '0.95rem',
+  fontSize: '16px',
   outline: 'none',
   transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+  minHeight: 48,
 };
 
 const pillStyle = (selected: boolean, disabled: boolean): React.CSSProperties => ({
@@ -35,12 +36,13 @@ const pillStyle = (selected: boolean, disabled: boolean): React.CSSProperties =>
   backdropFilter: 'blur(8px)',
   border: selected ? '1px solid rgba(155,125,212,0.70)' : '1px solid rgba(255,255,255,0.14)',
   color: selected ? '#ffffff' : 'rgba(255,255,255,0.70)',
-  borderRadius: '9999px', padding: '8px 18px',
+  borderRadius: '9999px', padding: '10px 18px',
   fontFamily: 'var(--font-body)', fontSize: '0.88rem', fontWeight: 400,
   cursor: disabled && !selected ? 'not-allowed' : 'pointer',
   opacity: disabled && !selected ? 0.4 : 1,
   transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
   boxShadow: selected ? '0 0 16px rgba(155,125,212,0.25)' : 'none',
+  minHeight: 44,
 });
 
 const interestPillStyle = (selected: boolean, disabled: boolean): React.CSSProperties => ({
@@ -48,8 +50,9 @@ const interestPillStyle = (selected: boolean, disabled: boolean): React.CSSPrope
   background: selected ? 'rgba(126,200,227,0.25)' : 'rgba(255,255,255,0.07)',
   border: selected ? '1px solid rgba(126,200,227,0.60)' : '1px solid rgba(255,255,255,0.14)',
   boxShadow: selected ? '0 0 16px rgba(126,200,227,0.20)' : 'none',
-  fontSize: '0.82rem',
-  padding: '6px 14px',
+  fontSize: '0.85rem',
+  padding: '8px 14px',
+  minHeight: 44,
 });
 
 const INTEREST_GROUPS: { key: Interest['group']; label: string }[] = [
@@ -162,7 +165,7 @@ export default function DetailsPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="max-w-2xl" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+      <form onSubmit={handleSubmit} className="w-full max-w-2xl" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         {/* Name */}
         <div>
           <label htmlFor="childName" style={labelStyle}>What&apos;s your child&apos;s name?</label>
@@ -292,11 +295,11 @@ export default function DetailsPage() {
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 8, paddingBottom: 32 }}>
-          <button type="button" onClick={() => router.push('/create/style')} className="btn-secondary">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2 pb-8">
+          <button type="button" onClick={() => router.push('/create/style')} className="btn-secondary min-h-[44px]">
             &larr; Back
           </button>
-          <button type="submit" className="btn-primary" disabled={!isValid}
+          <button type="submit" className="btn-primary min-h-[44px] flex-1 sm:flex-initial" disabled={!isValid}
             style={{ opacity: isValid ? 1 : 0.5, cursor: isValid ? 'pointer' : 'not-allowed' }}
           >
             {analyzing ? (

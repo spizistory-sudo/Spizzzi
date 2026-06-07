@@ -44,7 +44,7 @@ export default function StylePage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {styleEntries.map(([key, style]) => {
           const isSelected = selected === key;
           return (
@@ -91,11 +91,11 @@ export default function StylePage() {
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 24, paddingBottom: 32 }}>
-        <button onClick={() => router.push('/create')} className="btn-secondary">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-6 pb-8">
+        <button onClick={() => router.push('/create')} className="btn-secondary min-h-[44px]">
           &larr; Back
         </button>
-        <button onClick={handleContinue} className="btn-primary" disabled={!selected}
+        <button onClick={handleContinue} className="btn-primary min-h-[44px]" disabled={!selected}
           style={{ opacity: selected ? 1 : 0.5, cursor: selected ? 'pointer' : 'not-allowed' }}
         >
           Continue &rarr;
