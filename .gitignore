@@ -36,6 +36,7 @@ yarn-error.log*
 # videos (large files) — except the landing page demo
 public/videos/*
 !public/videos/how-it-works.mp4
+!public/videos/hero.mp4
 
 # vercel
 .vercel

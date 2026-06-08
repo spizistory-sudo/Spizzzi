@@ -70,7 +70,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <main className="max-w-7xl mx-auto px-6 pt-10 pb-20">
+      <main className="max-w-7xl mx-auto px-6 pt-4 sm:pt-6 pb-20">
         <div className="text-center max-w-3xl mx-auto">
           <h2
             className="leading-tight mb-6"
@@ -99,7 +99,7 @@ export default function LandingPage() {
             beautiful illustrated storybook with narration, music, and page-turn animations.
           </p>
 
-          <div className="flex items-center justify-center gap-4 mb-16">
+          <div className="flex items-center justify-center gap-4 mb-10">
             <Link
               href="/signup"
               className="btn-primary"
@@ -115,6 +115,19 @@ export default function LandingPage() {
               Sign in
             </Link>
           </div>
+        </div>
+
+        {/* Hero video */}
+        <div className="max-w-4xl mx-auto mb-14 rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.10)', boxShadow: '0 12px 40px rgba(0,0,0,0.35)' }}>
+          <video
+            src="/videos/hero.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            className="w-full"
+          />
         </div>
 
         {/* Feature cards — image-led, matching category card style */}
