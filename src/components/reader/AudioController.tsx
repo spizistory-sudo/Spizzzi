@@ -136,11 +136,17 @@ export function useAudioController({
     musicRef.current?.pause();
   }, []);
 
+  const seekTo = useCallback((time: number) => {
+    if (narrationRef.current) narrationRef.current.currentTime = time;
+  }, []);
+
   return {
     isPlaying,
     togglePlayPause,
     startPlayback,
     stopPlayback,
+    seekTo,
+    narrationRef,
     narrationVolume,
     musicVolume,
     setNarrationVolume: (v: number) => {

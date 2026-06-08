@@ -12,6 +12,7 @@ import Image from 'next/image';
 import CoverImage from './CoverImage';
 import ComingSoon from '../ui/ComingSoon';
 import CrossfadeVideo from './CrossfadeVideo';
+import ListenPlayer from './ListenPlayer';
 import { MagicReaderBackground } from '../ui/MagicReaderBackground';
 import AnimatePromptModal from './AnimatePromptModal';
 import AnimationProgress from './AnimationProgress';
@@ -60,6 +61,7 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
   const [animationStarted, setAnimationStarted] = useState(false);
   const [animatedVersionReady, setAnimatedVersionReady] = useState(false);
   const [viewMode, setViewMode] = useState<'static' | 'animated'>('static');
+  const [listenMode, setListenMode] = useState(false);
   const [pageVideos, setPageVideos] = useState<Record<string, string>>({});
   const [animationJustCompleted, setAnimationJustCompleted] = useState(false);
 
@@ -499,6 +501,30 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
     return null;
   }
 
+  // Resolve current page for listen mode
+  const listenIdx = view - FIRST_STORY;
+  const currentPage = listenIdx >= 0 && listenIdx < pages.length ? pages[listenIdx] : null;
+  const narratorVoiceName = (book.metadata as Record<string, unknown>)?.narrator_voice_name as string || 'Narrator';
+
+  if (listenMode) {
+    return (
+      <ListenPlayer
+        pageText={currentPage?.text_content || ''}
+        pageIllustrationUrl={currentPage?.illustration_url || null}
+        bookTitle={book.title}
+        narratorName={narratorVoiceName}
+        narrationRef={audio.narrationRef}
+        isPlaying={audio.isPlaying}
+        onTogglePlay={audio.togglePlayPause}
+        onPrev={prevPage}
+        onNext={nextPage}
+        onSeek={audio.seekTo}
+        onClose={() => setListenMode(false)}
+        hasAudio={!!currentPage?.narration_url}
+      />
+    );
+  }
+
   return (
     <div className="fixed inset-0 flex flex-col z-50">
       <MagicReaderBackground />
@@ -593,7 +619,7 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
       {/* Bottom bar — playback controls only */}
       {!isCover && (
         <div className="pb-3 px-4 md:px-8 relative z-10" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-          <ReaderControls currentPage={view} totalPages={totalViews} onPrev={prevPage} onNext={nextPage} onClose={() => { audio.stopPlayback(); router.back(); }} isPlaying={!isEditMode && audio.isPlaying} onTogglePlay={isEditMode ? undefined : audio.togglePlayPause} hasAudio={!isEditMode && hasNarration} isAutoPlay={isAutoPlay} onToggleAutoPlay={() => setIsAutoPlay(!isAutoPlay)} onShare={() => setShowShareModal(true)} onSettings={() => setShowSettings(true)} />
+          <ReaderControls currentPage={view} totalPages={totalViews} onPrev={prevPage} onNext={nextPage} onClose={() => { audio.stopPlayback(); router.back(); }} isPlaying={!isEditMode && audio.isPlaying} onTogglePlay={isEditMode ? undefined : audio.togglePlayPause} hasAudio={!isEditMode && hasNarration} isAutoPlay={isAutoPlay} onToggleAutoPlay={() => setIsAutoPlay(!isAutoPlay)} onShare={() => setShowShareModal(true)} onSettings={() => setShowSettings(true)} onListenMode={hasNarration ? () => setListenMode(true) : undefined} />
         </div>
       )}
 
