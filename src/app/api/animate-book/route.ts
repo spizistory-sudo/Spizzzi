@@ -8,6 +8,10 @@ fal.config({ credentials: process.env.FAL_KEY });
 const PRIMARY_MODEL = 'fal-ai/minimax/hailuo-02/standard/image-to-video';
 const FALLBACK_MODEL = 'fal-ai/kling-video/v1.6/standard/image-to-video';
 
+// Hailuo-02 max is 10s. Change to '6' during dev to save credits.
+const HAILUO_DURATION = '10';
+const KLING_DURATION = '5';
+
 export async function POST(req: Request) {
   try {
     const supabase = await createClient();
@@ -87,7 +91,7 @@ export async function POST(req: Request) {
               image_url: page.illustration_url!,
               prompt,
               prompt_optimizer: true,
-              duration: '6',
+              duration: HAILUO_DURATION,
               resolution: '768P',
             },
           });
@@ -100,7 +104,7 @@ export async function POST(req: Request) {
             input: {
               image_url: page.illustration_url!,
               prompt,
-              duration: '5',
+              duration: KLING_DURATION,
             },
           });
           requestId = result.request_id;

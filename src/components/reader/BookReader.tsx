@@ -11,6 +11,7 @@ import { FALLBACK_TRACKS } from '@/lib/music/tracks';
 import Image from 'next/image';
 import CoverImage from './CoverImage';
 import ComingSoon from '../ui/ComingSoon';
+import CrossfadeVideo from './CrossfadeVideo';
 import { MagicReaderBackground } from '../ui/MagicReaderBackground';
 import AnimatePromptModal from './AnimatePromptModal';
 import AnimationProgress from './AnimationProgress';
@@ -381,7 +382,7 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
             const videoUrl = pageVideos[page.id];
             const showVideo = viewMode === 'animated' && videoUrl;
             if (showVideo) {
-              return <video key={videoUrl} src={videoUrl} autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" />;
+              return <CrossfadeVideo key={videoUrl} src={videoUrl} className="absolute inset-0 w-full h-full" />;
             }
             return page.illustration_url ? (
               <img src={page.illustration_url} alt={`Page ${page.page_number}`} className="absolute inset-0 w-full h-full object-cover" />
@@ -444,7 +445,7 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
               const videoUrl = pageVideos[page.id];
               const showVideo = viewMode === 'animated' && videoUrl;
               if (showVideo) {
-                return <video key={videoUrl} src={videoUrl} autoPlay muted loop playsInline style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />;
+                return <CrossfadeVideo key={videoUrl} src={videoUrl} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />;
               }
               return page.illustration_url ? (
                 <img src={page.illustration_url} alt={`Page ${page.page_number}`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />

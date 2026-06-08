@@ -5,6 +5,9 @@ import { generateAnimationPrompt } from '@/lib/animation-prompts';
 
 fal.config({ credentials: process.env.FAL_KEY });
 
+// Hailuo-02 max is 10s. Change to '6' during dev to save credits.
+const HAILUO_DURATION = '10';
+
 export async function POST(req: Request) {
   const body = await req.json();
   const { pageId, bookId } = body;
@@ -62,7 +65,7 @@ export async function POST(req: Request) {
         image_url: page.illustration_url,
         prompt,
         prompt_optimizer: true,
-        duration: '6',
+        duration: HAILUO_DURATION,
         resolution: '768P',
       },
     });
