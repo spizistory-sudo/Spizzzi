@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { GeneratedStory } from '@/types/ai';
 import type { CoverOption } from '@/types/book';
 import type { ArtStyleKey } from '@/lib/ai/prompts/style-references';
@@ -128,7 +129,9 @@ const initialState = {
   language: 'en' as const,
 };
 
-export const useCreationWizard = create<WizardState>((set) => ({
+export const useCreationWizard = create<WizardState>()(
+  persist(
+    (set) => ({
   ...initialState,
 
   setStep: (step) => set({ currentStep: step }),
@@ -191,5 +194,47 @@ export const useCreationWizard = create<WizardState>((set) => ({
 
   setPhotoDescription: (desc) => set({ photoDescription: desc }),
 
-  reset: () => set(initialState),
-}));
+  reset: () => {
+    set(initialState);
+    // Also clear persisted storage so a fresh "Create New Book" truly starts clean
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('spizzzy-wizard');
+    }
+  },
+}),
+    {
+      name: 'spizzzy-wizard',
+      storage: createJSONStorage(() =>
+        typeof window !== 'undefined' ? sessionStorage : {
+          getItem: () => null,
+          setItem: () => {},
+          removeItem: () => {},
+        }
+      ),
+      partialize: (state) => ({
+        // Persist only wizard data — NOT transient UI flags
+        currentStep: state.currentStep,
+        selectedThemeSlug: state.selectedThemeSlug,
+        categoryId: state.categoryId,
+        topicId: state.topicId,
+        storyMode: state.storyMode,
+        childName: state.childName,
+        childAge: state.childAge,
+        childGender: state.childGender,
+        childTraits: state.childTraits,
+        childInterests: state.childInterests,
+        traitDetails: state.traitDetails,
+        selectedStyleKey: state.selectedStyleKey,
+        storyId: state.storyId,
+        photoDescription: state.photoDescription,
+        selectedVoiceId: state.selectedVoiceId,
+        selectedMusicId: state.selectedMusicId,
+        language: state.language,
+        bookId: state.bookId,
+        // NOT persisted: uploadedPhotos (blob URLs don't survive), generatedStory,
+        // curationResult, isGenerating*, coverOptions, illustrationProgress
+      }),
+      skipHydration: true,
+    }
+  )
+);

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useCreationWizard } from '@/stores/creation-wizard';
 
 const navItems = [
   {
@@ -63,6 +64,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const supabase = createClient();
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Rehydrate persisted wizard state from sessionStorage (skipHydration: true in store)
+  useEffect(() => {
+    useCreationWizard.persist.rehydrate();
+  }, []);
 
   async function handleSignOut() {
     await supabase.auth.signOut();

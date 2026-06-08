@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Prevent accidental pull-to-refresh on mobile (iOS Safari 16+) */
+html, body {
+  overscroll-behavior-y: contain;
+}
+
 /* Safe-area utilities for notched devices */
 @layer utilities {
   .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
