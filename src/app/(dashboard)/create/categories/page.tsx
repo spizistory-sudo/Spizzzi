@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCreationWizard } from '@/stores/creation-wizard';
 import WizardProgress from '@/components/wizard/WizardProgress';
@@ -21,6 +21,7 @@ export default function CategoriesPage() {
   const router = useRouter();
   const { childName, childAge, childGender, selectedStyleKey, categoryId, setCategoryId, setStep } = useCreationWizard();
   const [selected, setSelected] = useState<string | null>(categoryId);
+  const navigatingRef = useRef(false);
 
   if (!selectedStyleKey) {
     router.replace('/create/style');
@@ -36,10 +37,17 @@ export default function CategoriesPage() {
   function handleSelect(id: string) {
     setSelected(id);
     setCategoryId(id);
+    // On phone: tap-to-advance
+    if (typeof window !== 'undefined' && window.innerWidth < 640 && !navigatingRef.current) {
+      navigatingRef.current = true;
+      setStep('stories');
+      setTimeout(() => router.push('/create/stories'), 150);
+    }
   }
 
   function handleContinue() {
-    if (!selected) return;
+    if (!selected || navigatingRef.current) return;
+    navigatingRef.current = true;
     setStep('stories');
     router.push('/create/stories');
   }
@@ -65,7 +73,7 @@ export default function CategoriesPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
         {activeCategories.map((cat) => {
           const isSelected = selected === cat.id;
           return (
@@ -107,7 +115,7 @@ export default function CategoriesPage() {
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-6 pb-8">
+      <div className="hidden sm:flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-6 pb-8">
         <button onClick={() => router.push('/create/details')} className="btn-secondary min-h-[44px]">
           &larr; Back
         </button>

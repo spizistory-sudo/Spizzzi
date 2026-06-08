@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCreationWizard } from '@/stores/creation-wizard';
 import WizardProgress from '@/components/wizard/WizardProgress';
@@ -13,14 +13,22 @@ export default function StylePage() {
   const router = useRouter();
   const { selectedStyleKey, setSelectedStyle, setStep } = useCreationWizard();
   const [selected, setSelected] = useState<ArtStyleKey | null>(selectedStyleKey);
+  const navigatingRef = useRef(false);
 
   function handleSelect(key: ArtStyleKey) {
     setSelected(key);
     setSelectedStyle(key);
+    // On phone: tap-to-advance (no Continue button)
+    if (typeof window !== 'undefined' && window.innerWidth < 640 && !navigatingRef.current) {
+      navigatingRef.current = true;
+      setStep('details');
+      setTimeout(() => router.push('/create/details'), 150);
+    }
   }
 
   function handleContinue() {
-    if (!selected) return;
+    if (!selected || navigatingRef.current) return;
+    navigatingRef.current = true;
     setStep('details');
     router.push('/create/details');
   }
@@ -44,7 +52,7 @@ export default function StylePage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         {styleEntries.map(([key, style]) => {
           const isSelected = selected === key;
           return (
@@ -91,7 +99,7 @@ export default function StylePage() {
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-6 pb-8">
+      <div className="hidden sm:flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-6 pb-8">
         <button onClick={() => router.push('/create')} className="btn-secondary min-h-[44px]">
           &larr; Back
         </button>
