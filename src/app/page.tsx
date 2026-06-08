@@ -102,15 +102,13 @@ export default function LandingPage() {
           <div className="flex items-center justify-center gap-4 mb-10">
             <Link
               href="/signup"
-              className="btn-primary"
-              style={{ padding: '16px 36px', fontSize: '1.1rem' }}
+              className="btn-primary btn-hero"
             >
               &#10024; Start Creating
             </Link>
             <Link
               href="/login"
-              className="btn-secondary"
-              style={{ padding: '16px 28px', fontSize: '1.1rem' }}
+              className="btn-secondary btn-hero"
             >
               Sign in
             </Link>
