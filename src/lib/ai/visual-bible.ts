@@ -90,19 +90,29 @@ Be concrete and specific. Do not invent details not visible in the image. If a s
     });
 
     const text = (response.text || '').trim();
-    const cleaned = text.replace(/```json\n?|```\n?/g, '').trim();
+    if (!text) throw new Error('Empty response from Gemini Vision');
 
+    const cleaned = text.replace(/```json\n?|```\n?/g, '').trim();
     const parsed = JSON.parse(cleaned) as VisualBible;
+
+    // Validate shape — protagonist must exist with at least a name
+    if (!parsed?.protagonist?.name) {
+      throw new Error('Malformed bible: missing protagonist.name');
+    }
+    if (!parsed?.setting?.palette) {
+      throw new Error('Malformed bible: missing setting.palette');
+    }
+
     console.log('[visual-bible] Extracted successfully:', {
-      protagonist: parsed.protagonist?.name,
+      protagonist: parsed.protagonist.name,
       supportingCount: parsed.supportingCharacters?.length || 0,
       styleNotesLength: parsed.styleNotes?.length || 0,
     });
 
     return parsed;
   } catch (err) {
-    console.error('[visual-bible] Extraction failed:', err instanceof Error ? err.message : String(err));
-    return null;
+    console.error('[visual-bible] Extraction failed (will retry if attempts remain):', err instanceof Error ? err.message : String(err));
+    throw err;
   }
 }
 

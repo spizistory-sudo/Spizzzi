@@ -43,8 +43,14 @@ If a character is not visible in the image, return null for that character's val
   });
 
   const text = (response.text || '').trim();
+  if (!text) throw new Error('Empty response from Gemini Vision');
+
   const cleaned = text.replace(/```json\n?|```\n?/g, '').trim();
   const parsed = JSON.parse(cleaned) as Record<string, { y_min: number; x_min: number; y_max: number; x_max: number } | null>;
+
+  if (!parsed || typeof parsed !== 'object' || Object.keys(parsed).length === 0) {
+    throw new Error('Malformed bounding boxes: empty or invalid JSON');
+  }
 
   // Get image dimensions to convert normalized coords to pixels
   const imgBuffer = Buffer.from(coverImageBase64, 'base64');

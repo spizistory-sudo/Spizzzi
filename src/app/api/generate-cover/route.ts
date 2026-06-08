@@ -257,64 +257,83 @@ export async function POST(req: Request) {
       }
 
       const coverBase64 = coverResult.buffer.toString('base64');
-      const visualBible = await withRetry('visual-bible', () => extractVisualBible(coverBase64, {
-        protagonistName: book.child_name,
-        supportingCharacters,
-        storyText,
-      }));
 
-      if (visualBible) {
-        const { data: currentBook } = await supabase
-          .from('books')
-          .select('metadata')
-          .eq('id', bookId)
-          .single();
-        const existingMeta = (currentBook?.metadata as Record<string, unknown>) || {};
-        await supabase
-          .from('books')
-          .update({ metadata: { ...existingMeta, visual_bible: visualBible } })
-          .eq('id', bookId);
-        console.log('[generate-cover] Visual Bible saved to metadata');
-      } else {
-        console.warn('[generate-cover] Visual Bible extraction returned null, continuing without');
-      }
-    } catch (bibleErr) {
-      console.error('[generate-cover] Visual Bible extraction error (non-fatal):', bibleErr);
-    }
-
-    // Extract character crops from cover (non-blocking)
-    try {
-      // Re-read metadata to get the visual_bible we just saved
-      const { data: updatedBook } = await supabase
-        .from('books')
-        .select('metadata')
-        .eq('id', bookId)
-        .single();
-      const updatedMeta = (updatedBook?.metadata as Record<string, unknown>) || {};
-      const vb = updatedMeta.visual_bible as { protagonist?: { name?: string }; supportingCharacters?: Array<{ name: string; hair?: string }> } | undefined;
-
+      // Build character list for crops (protagonist + supporting from story bible)
       const characterList = [book.child_name];
-      if (vb?.supportingCharacters) {
-        for (const sc of vb.supportingCharacters) {
-          if (sc.name && sc.hair !== 'not visible on cover') {
-            characterList.push(sc.name);
+      if (storyBible) {
+        const nameMatches2 = storyBible.match(/(?:^|\.\s+)([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s+is\b/g);
+        if (nameMatches2) {
+          for (const m of nameMatches2) {
+            const name = m.replace(/^\.\s*/, '').replace(/\s+is$/, '').trim();
+            if (name !== book.child_name && !characterList.includes(name)) characterList.push(name);
           }
         }
       }
 
-      const coverBase64ForCrop = coverResult.buffer.toString('base64');
-      const boxes = await withRetry('bounding-boxes', () => extractCharacterBoundingBoxes(coverBase64ForCrop, characterList));
-      const crops = boxes ? await cropAndUploadCharacters(coverResult.buffer, boxes, bookId) : [];
+      // Run bible + crops in PARALLEL (independent, each with retry)
+      const bibleStart = Date.now();
+      const cropsStart = Date.now();
 
-      if (crops.length > 0) {
-        const cropMeta = crops.map(c => ({ name: c.name, storagePath: c.storagePath, publicUrl: c.publicUrl }));
-        const { data: metaBook } = await supabase.from('books').select('metadata').eq('id', bookId).single();
-        const existMeta = (metaBook?.metadata as Record<string, unknown>) || {};
-        await supabase.from('books').update({ metadata: { ...existMeta, character_crops: cropMeta } }).eq('id', bookId);
-        console.log('[generate-cover] Character crops saved:', crops.length);
+      const [bibleResult, cropsResult] = await Promise.allSettled([
+        withRetry('visual-bible', () => extractVisualBible(coverBase64, {
+          protagonistName: book.child_name,
+          supportingCharacters,
+          storyText,
+        })),
+        withRetry('bounding-boxes', () => extractCharacterBoundingBoxes(coverBase64, characterList))
+          .then(async (boxes) => {
+            if (!boxes) return [];
+            return cropAndUploadCharacters(coverResult.buffer, boxes, bookId);
+          }),
+      ]);
+
+      // Log bible outcome
+      const bibleSuccess = bibleResult.status === 'fulfilled' && bibleResult.value !== null;
+      await logGeneration({
+        bookId, imageType: 'cover' as const, styleKey,
+        modelAttempted: 'gemini-2.5-flash', modelUsed: 'gemini-2.5-flash',
+        fallbackTriggered: false, referencesAttached: {},
+        durationMs: Date.now() - bibleStart, retryCount: 0,
+        success: bibleSuccess,
+        errorMessage: !bibleSuccess ? (bibleResult.status === 'rejected' ? (bibleResult.reason as Error)?.message : 'returned null') : undefined,
+      });
+
+      // Save bible to metadata if successful
+      const visualBible = bibleResult.status === 'fulfilled' ? bibleResult.value : null;
+      if (visualBible) {
+        const { data: bMeta } = await supabase.from('books').select('metadata').eq('id', bookId).single();
+        await supabase.from('books').update({
+          metadata: { ...((bMeta?.metadata as Record<string, unknown>) || {}), visual_bible: visualBible },
+        }).eq('id', bookId);
+        console.log('[generate-cover] Visual Bible saved to metadata');
+      } else {
+        console.error('[generate-cover] Visual Bible MISSING after all retries — pages will skip verification');
       }
-    } catch (cropErr) {
-      console.error('[generate-cover] Character cropping error (non-fatal):', cropErr);
+
+      // Log crops outcome
+      const crops = cropsResult.status === 'fulfilled' ? (cropsResult.value as Awaited<ReturnType<typeof cropAndUploadCharacters>>) : [];
+      await logGeneration({
+        bookId, imageType: 'cover' as const, styleKey,
+        modelAttempted: 'gemini-2.5-flash', modelUsed: 'gemini-2.5-flash',
+        fallbackTriggered: false, referencesAttached: {},
+        durationMs: Date.now() - cropsStart, retryCount: 0,
+        success: crops.length > 0,
+        errorMessage: crops.length === 0 ? (cropsResult.status === 'rejected' ? (cropsResult.reason as Error)?.message : 'no crops produced') : undefined,
+      });
+
+      // Save crops to metadata if successful
+      if (crops.length > 0) {
+        const cropMeta = crops.map((c: { name: string; storagePath: string; publicUrl: string }) => ({ name: c.name, storagePath: c.storagePath, publicUrl: c.publicUrl }));
+        const { data: cMeta } = await supabase.from('books').select('metadata').eq('id', bookId).single();
+        await supabase.from('books').update({
+          metadata: { ...((cMeta?.metadata as Record<string, unknown>) || {}), character_crops: cropMeta },
+        }).eq('id', bookId);
+        console.log('[generate-cover] Character crops saved:', crops.length);
+      } else {
+        console.error('[generate-cover] Character crops MISSING after all retries');
+      }
+    } catch (extractErr) {
+      console.error('[generate-cover] Bible/crops extraction error (non-fatal):', extractErr);
     }
 
     return NextResponse.json({ covers: [cover] });
