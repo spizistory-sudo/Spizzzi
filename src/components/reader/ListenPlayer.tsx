@@ -16,6 +16,8 @@ interface ListenPlayerProps {
   onSeek: (time: number) => void;
   onClose: () => void;
   hasAudio: boolean;
+  isLastPage?: boolean;
+  onStartPlayback?: () => void;
 }
 
 export default function ListenPlayer({
@@ -31,6 +33,8 @@ export default function ListenPlayer({
   onSeek,
   onClose,
   hasAudio,
+  isLastPage,
+  onStartPlayback,
 }: ListenPlayerProps) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -47,22 +51,39 @@ export default function ListenPlayer({
     return () => mq.removeEventListener('change', h);
   }, []);
 
-  // Track audio time
+  const [ended, setEnded] = useState(false);
+
+  // Track audio time + handle ended for auto-advance
   useEffect(() => {
     const el = narrationRef.current;
     if (!el) return;
+    setEnded(false);
     const onTime = () => setCurrentTime(el.currentTime);
     const onMeta = () => setDuration(el.duration || 0);
+    const onEnded = () => {
+      setEnded(true);
+      if (!isLastPage) {
+        // Auto-advance to next page
+        setTimeout(() => {
+          onNext();
+          // The parent will re-render with new page data; trigger playback after src change
+          setTimeout(() => onStartPlayback?.(), 300);
+        }, 500);
+      }
+    };
     el.addEventListener('timeupdate', onTime);
     el.addEventListener('loadedmetadata', onMeta);
     el.addEventListener('durationchange', onMeta);
+    el.addEventListener('ended', onEnded);
     if (el.duration) setDuration(el.duration);
     return () => {
       el.removeEventListener('timeupdate', onTime);
       el.removeEventListener('loadedmetadata', onMeta);
       el.removeEventListener('durationchange', onMeta);
+      el.removeEventListener('ended', onEnded);
     };
-  }, [narrationRef, pageText]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [narrationRef, pageText, isLastPage]);
 
   // Compute timings when page text or duration changes
   useEffect(() => {
@@ -154,7 +175,7 @@ export default function ListenPlayer({
 
       {/* Transport */}
       <div className="flex items-center justify-center gap-8 mb-4">
-        <button onClick={onPrev} className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/60 hover:text-white active:text-white transition">
+        <button onClick={() => { onPrev(); setTimeout(() => onStartPlayback?.(), 300); }} className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/60 hover:text-white active:text-white transition">
           <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
@@ -175,7 +196,7 @@ export default function ListenPlayer({
             </svg>
           )}
         </button>
-        <button onClick={onNext} className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/60 hover:text-white active:text-white transition">
+        <button onClick={() => { onNext(); setTimeout(() => onStartPlayback?.(), 300); }} className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/60 hover:text-white active:text-white transition">
           <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
           </svg>

@@ -61,6 +61,13 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
   const [animationStarted, setAnimationStarted] = useState(false);
   const [animatedVersionReady, setAnimatedVersionReady] = useState(false);
   const [viewMode, setViewMode] = useState<'static' | 'animated'>('static');
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
   const [listenMode, setListenMode] = useState(false);
   const [pageVideos, setPageVideos] = useState<Record<string, string>>({});
   const [animationJustCompleted, setAnimationJustCompleted] = useState(false);
@@ -506,7 +513,13 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
   const currentPage = listenIdx >= 0 && listenIdx < pages.length ? pages[listenIdx] : null;
   const narratorVoiceName = (book.metadata as Record<string, unknown>)?.narrator_voice_name as string || 'Narrator';
 
-  if (listenMode) {
+  // Mobile = Listen mode only; Desktop = opt-in
+  const showListenMode = isMobile || listenMode;
+
+  if (showListenMode) {
+    // Ensure audio is unlocked and playing starts on first page
+    if (!audioUnlocked) setAudioUnlocked(true);
+
     return (
       <ListenPlayer
         pageText={currentPage?.text_content || ''}
@@ -519,8 +532,10 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
         onPrev={prevPage}
         onNext={nextPage}
         onSeek={audio.seekTo}
-        onClose={() => setListenMode(false)}
+        onClose={() => { if (isMobile) { audio.stopPlayback(); router.back(); } else { setListenMode(false); } }}
         hasAudio={!!currentPage?.narration_url}
+        isLastPage={view >= LAST_VIEW}
+        onStartPlayback={audio.startPlayback}
       />
     );
   }
@@ -619,7 +634,7 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
       {/* Bottom bar — playback controls only */}
       {!isCover && (
         <div className="pb-3 px-4 md:px-8 relative z-10" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-          <ReaderControls currentPage={view} totalPages={totalViews} onPrev={prevPage} onNext={nextPage} onClose={() => { audio.stopPlayback(); router.back(); }} isPlaying={!isEditMode && audio.isPlaying} onTogglePlay={isEditMode ? undefined : audio.togglePlayPause} hasAudio={!isEditMode && hasNarration} isAutoPlay={isAutoPlay} onToggleAutoPlay={() => setIsAutoPlay(!isAutoPlay)} onShare={() => setShowShareModal(true)} onSettings={() => setShowSettings(true)} onListenMode={hasNarration ? () => setListenMode(true) : undefined} />
+          <ReaderControls currentPage={view} totalPages={totalViews} onPrev={prevPage} onNext={nextPage} onClose={() => { audio.stopPlayback(); router.back(); }} isPlaying={!isEditMode && audio.isPlaying} onTogglePlay={isEditMode ? undefined : audio.togglePlayPause} hasAudio={!isEditMode && hasNarration} isAutoPlay={isAutoPlay} onToggleAutoPlay={() => setIsAutoPlay(!isAutoPlay)} onShare={() => setShowShareModal(true)} onSettings={() => setShowSettings(true)} onListenMode={!isMobile && hasNarration ? () => setListenMode(true) : undefined} />
         </div>
       )}
 
