@@ -115,18 +115,31 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Hero video */}
-        <div className="max-w-4xl mx-auto mb-14 rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.10)', boxShadow: '0 12px 40px rgba(0,0,0,0.35)' }}>
+        {/* Hero video — click-to-play with sound */}
+        <div className="max-w-3xl mx-auto mb-14 rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.10)', boxShadow: '0 12px 40px rgba(0,0,0,0.35)' }}>
           <video
             src="/videos/hero.mp4"
-            autoPlay
-            muted
-            loop
+            controls
             playsInline
-            preload="auto"
+            preload="metadata"
             className="w-full"
+            style={{ maxHeight: '70vh', objectFit: 'contain', background: '#000' }}
           />
         </div>
+
+        {/* "How it works" heading — sits above the feature cards */}
+        <h2
+          className="text-center mb-10"
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(1.6rem, 3vw, 2.2rem)',
+            color: 'var(--text-primary)',
+            fontWeight: 700,
+            fontStyle: 'italic',
+          }}
+        >
+          How it works
+        </h2>
 
         {/* Feature cards — image-led, matching category card style */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-20">
@@ -185,31 +198,6 @@ export default function LandingPage() {
               </div>
             </Link>
           ))}
-        </div>
-
-        {/* Video */}
-        <h2
-          className="text-center mb-10"
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(1.6rem, 3vw, 2.2rem)',
-            color: 'var(--text-primary)',
-            fontWeight: 700,
-            fontStyle: 'italic',
-          }}
-        >
-          How it works
-        </h2>
-        <div className="mx-auto max-w-[640px] overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-          <video
-            controls
-            preload="metadata"
-            playsInline
-            className="h-full w-full"
-          >
-            <source src="/videos/how-it-works.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
         </div>
 
         {/* Category strip */}
