@@ -91,7 +91,8 @@ function FinalizePage() {
     language,
   } = useCreationWizard();
 
-  const [phase, setPhase] = useState<FinalizationPhase>('select');
+  const isAutoStart = searchParams.get('autostart') === '1';
+  const [phase, setPhase] = useState<FinalizationPhase>(isAutoStart ? 'building' : 'select');
   const [error, setError] = useState<string | null>(null);
   const [musicTracks, setMusicTracks] = useState<MusicTrack[]>(FALLBACK_TRACKS);
   const [musicCategory, setMusicCategory] = useState('All');
@@ -99,7 +100,7 @@ function FinalizePage() {
   // Building state
   const [buildProgress, setBuildProgress] = useState({ illustrationsComplete: 0, narrationsComplete: 0, total: 0 });
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  const [buildPhase, setBuildPhase] = useState<BuildPhase>('cover_generating');
+  const [buildPhase, setBuildPhase] = useState<BuildPhase>(isAutoStart ? 'writing_story' : 'cover_generating');
   const [smoothProgress, setSmoothProgress] = useState(0);
   const [rotatingIdx, setRotatingIdx] = useState(0);
   const buildingMusicRef = useRef<HTMLAudioElement | null>(null);

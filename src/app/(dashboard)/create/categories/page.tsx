@@ -115,11 +115,11 @@ export default function CategoriesPage() {
       </div>
 
       {/* Actions */}
-      <div className="hidden sm:flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-6 pb-8">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-6 pb-8">
         <button onClick={() => router.push('/create/details')} className="btn-secondary min-h-[44px]">
           &larr; Back
         </button>
-        <button onClick={handleContinue} className="btn-primary min-h-[44px]" disabled={!selected}
+        <button onClick={handleContinue} className="hidden sm:inline-flex btn-primary min-h-[44px]" disabled={!selected}
           style={{ opacity: selected ? 1 : 0.5, cursor: selected ? 'pointer' : 'not-allowed' }}
         >
           Continue &rarr;
