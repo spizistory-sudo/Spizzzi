@@ -48,29 +48,7 @@ export interface GeneratedStory {
 // THE MASTER SYSTEM PROMPT
 // -----------------------------------------------------------------------------
 
-const STORY_SYSTEM_PROMPT_EN = `=================================================================
-HARD CONSTRAINT — WORD COUNT PER PAGE
-This rule overrides every other instruction in this prompt.
-=================================================================
-
-The reader interface has a FIXED text area. Text that exceeds the limit is CLIPPED — the parent sees a broken book with sentences cut off mid-word. This is a shipping defect.
-
-Word limits by age:
-- Ages 3-5: maximum 50 words per page
-- Ages 6-8: maximum 90 words per page
-- Ages 9-12: maximum 130 words per page
-
-This is the ABSOLUTE MAXIMUM. You may write fewer words, never more.
-
-If your story needs more prose, ADD MORE PAGES — never write longer pages. A 10-page book with proper word counts is correct. A 6-page book with overflowing pages is broken.
-
-Before returning the story, COUNT THE WORDS on each page. If any page exceeds the maximum, rewrite it shorter or split it into two pages.
-
-Word counting: "don't" = 1 word, "Mr. Pim" = 2, "wide-eyed" = 1.
-
-=================================================================
-
-You are a children's book author. You write like Mo Willems, Kevin Henkes, Eric Carle, Jane Yolen, Kate DiCamillo, Andrea Beaty — and you understand what makes children's literature actually good:
+const STORY_SYSTEM_PROMPT_EN = `You are a children's book author. You write like Mo Willems, Kevin Henkes, Eric Carle, Jane Yolen, Kate DiCamillo, Andrea Beaty — and you understand what makes children's literature actually good:
 
 - Specificity over generality. Real sensory detail beats abstract description.
 - Show, don't tell. A child's feeling lands through what they DO, not what we narrate about them.
@@ -155,6 +133,21 @@ Return ONLY valid JSON in this exact structure. No prose before or after, no mar
 Be a real children's book author. Now you'll receive the child's details and the story to write.`;
 
 // -----------------------------------------------------------------------------
+// STORY LENGTH BUDGET
+// -----------------------------------------------------------------------------
+
+function getStoryLengthBudget(age: number, pageCount: number): { totalTarget: number; perPageMax: number } {
+  let totalTarget: number;
+  if (age <= 5) totalTarget = 150;
+  else if (age <= 8) totalTarget = 330;
+  else totalTarget = 490;
+
+  const raw = Math.ceil((totalTarget / Math.max(1, pageCount)) * 1.1);
+  const perPageMax = Math.min(190, Math.max(40, raw));
+  return { totalTarget, perPageMax };
+}
+
+// -----------------------------------------------------------------------------
 // USER MESSAGE BUILDER
 // -----------------------------------------------------------------------------
 
@@ -178,9 +171,25 @@ function buildGenerationMessage(
   const avoidBlock = story.things_to_avoid.map((b) => `- ${b}`).join('\n');
 
   const testPageCount = process.env.TEST_PAGE_COUNT ? parseInt(process.env.TEST_PAGE_COUNT, 10) : null;
-  const spreadOverride = testPageCount
-    ? `\nIMPORTANT OVERRIDE: Generate EXACTLY ${testPageCount} spreads. Ignore the spread count range above — this book must have exactly ${testPageCount} spreads.\n`
-    : '';
+  const effectivePageCount = testPageCount || ageRules.spread_count.max;
+  const { totalTarget, perPageMax } = getStoryLengthBudget(child.age, effectivePageCount);
+
+  const lengthConstraint = `
+=================================================================
+HARD CONSTRAINT — STORY LENGTH (overrides every other instruction)
+=================================================================
+This story has EXACTLY ${effectivePageCount} pages.
+Write a complete, satisfying story of about ${totalTarget} words TOTAL,
+appropriate for a ${child.age}-year-old, split into ${effectivePageCount} pages of
+roughly equal length.
+Each page must be ${perPageMax} words or fewer — this is the ceiling.
+${effectivePageCount} pages at ${perPageMax} words is enough room for a full story;
+do not exceed ${perPageMax} on any page.
+Before returning, count the words on each page; if any page is over,
+shorten it or move a sentence to another page.
+Word counting: "don't" = 1 word, "Mr. Pim" = 2, "wide-eyed" = 1.
+=================================================================
+`;
 
   const photoBlock = photoDescription
     ? `
@@ -214,7 +223,7 @@ ${traitsBlock}
 ${interestsBlock}
 
 ${ageRulesToPromptFragment(ageRules)}
-${spreadOverride}
+${lengthConstraint}
 # The story to write
 
 Title hint: "${story.title}" (you can keep, adapt, or replace this — but the new title should serve the child)
@@ -286,8 +295,9 @@ export async function generateStory(
 
   validateGeneratedStory(parsed, child, story);
 
-  // Post-generation word count enforcement
-  const wordCap = child.age <= 5 ? 50 : child.age <= 8 ? 90 : 130;
+  // Post-generation word count enforcement (derived from age + actual page count)
+  const actualPages = parsed.spreads.length;
+  const { perPageMax: wordCap } = getStoryLengthBudget(child.age, actualPages);
   const countWords = (t: string) => t.trim().split(/\s+/).filter(Boolean).length;
 
   const pageCounts = parsed.spreads.map((s, i) => ({
@@ -365,14 +375,19 @@ function validateGeneratedStory(
     console.warn('[story-generation-en] character_bible is missing or empty — illustration consistency may suffer');
   }
 
-  // Spread count tolerance: ±2 from age rules range
+  // Spread count tolerance: check against configured page count or age rules
   const spreadCount = generated.spreads.length;
-  const tolerantMin = ageRules.spread_count.min - 2;
-  const tolerantMax = ageRules.spread_count.max + 2;
-  if (spreadCount < tolerantMin || spreadCount > tolerantMax) {
-    console.warn(
-      `Spread count ${spreadCount} outside expected range [${ageRules.spread_count.min}, ${ageRules.spread_count.max}] for age ${child.age}`
-    );
+  const configuredPageCount = process.env.TEST_PAGE_COUNT ? parseInt(process.env.TEST_PAGE_COUNT, 10) : null;
+  if (configuredPageCount) {
+    if (spreadCount !== configuredPageCount) {
+      console.warn(`Spread count ${spreadCount} differs from configured TEST_PAGE_COUNT=${configuredPageCount}`);
+    }
+  } else {
+    const tolerantMin = ageRules.spread_count.min - 2;
+    const tolerantMax = ageRules.spread_count.max + 2;
+    if (spreadCount < tolerantMin || spreadCount > tolerantMax) {
+      console.warn(`Spread count ${spreadCount} outside expected range [${ageRules.spread_count.min}, ${ageRules.spread_count.max}] for age ${child.age}`);
+    }
   }
 
   // Each spread must have text and illustration_prompt
