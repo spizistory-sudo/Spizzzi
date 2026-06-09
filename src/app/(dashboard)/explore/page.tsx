@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getLibraryBooks,
   paletteGradient,
+  coverImagePath,
+  featuredImagePath,
   CATEGORIES,
   AGE_RANGES,
   VALUES,
@@ -202,12 +204,26 @@ export default function ExplorePage() {
         .el-toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
 
         .el-footnote{text-align:center;color:rgba(111,121,163,1);font-size:12px;margin-top:40px;padding:0 24px;line-height:1.6}
+
+        .el-row-wrap{position:relative}
+        .el-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:4;width:40px;height:40px;border-radius:50%;background:rgba(10,14,39,0.75);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.8);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .2s,background .2s;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+        .el-arrow:hover{background:rgba(20,28,68,0.9);color:#fff}
+        .el-arrow:disabled{opacity:0;pointer-events:none}
+        .el-arrow.left{left:-4px}
+        .el-arrow.right{right:-4px}
+        @media(pointer:coarse){.el-arrow{display:none}}
+
+        .el-cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:3;border-radius:inherit}
+        .el-hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+        .el-sheet-hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
       `}</style>
 
       {/* HERO */}
       {heroBook && (
         <section className="el-hero" aria-label="Featured book">
           <div className="el-hero-bg" style={{ background: paletteGradient(heroBook.palette) }} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={featuredImagePath(heroBook.slug)} alt="" className="el-hero-img" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           <div className="el-hero-emoji">{heroBook.emoji}</div>
           <div className="el-hero-in">
             <span className="el-tag">★ Featured</span>
@@ -261,6 +277,8 @@ export default function ExplorePage() {
         <div className="el-scrim" onClick={(e) => { if (e.target === e.currentTarget) setSelectedBook(null); }}>
           <div className={`el-sheet${reduceMotion ? '' : ' el-sheet-anim'}`} role="dialog" aria-modal="true">
             <div className="el-sheet-hero" style={{ background: paletteGradient(selectedBook.palette) }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={coverImagePath(selectedBook.slug)} alt="" className="el-sheet-hero-img" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               <div className="el-sheet-hero-emoji">{selectedBook.emoji}</div>
               <button className="el-x" onClick={() => setSelectedBook(null)} aria-label="Close">✕</button>
             </div>
@@ -357,6 +375,8 @@ function BookCard({ book, onClick }: { book: LibraryBook; onClick: () => void })
   return (
     <div className="el-card" tabIndex={0} role="button" aria-label={`${book.title}, ages ${book.ages}`} onClick={onClick} onKeyDown={(e) => { if (e.key === 'Enter') onClick(); }}>
       <div className="el-cover" style={{ background: paletteGradient(book.palette) }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={coverImagePath(book.slug)} alt="" loading="lazy" className="el-cover-img" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
         {book.formats.includes('watch') && <span className="el-badge-anim">Animated</span>}
         <div className="el-cover-fmt">{book.formats.map((f) => <span key={f} title={f}>{FORMAT_ICON[f]}</span>)}</div>
         <div className="el-cover-emoji">{book.emoji}</div>
@@ -372,6 +392,31 @@ function BookCard({ book, onClick }: { book: LibraryBook; onClick: () => void })
 }
 
 function ScrollRow({ title, subtitle, books, onSelect }: { title: string; subtitle: string; books: LibraryBook[]; onSelect: (b: LibraryBook) => void }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(true);
+
+  const updateArrows = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 2);
+    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateArrows();
+    el.addEventListener('scroll', updateArrows, { passive: true });
+    return () => el.removeEventListener('scroll', updateArrows);
+  }, [updateArrows]);
+
+  const scroll = (dir: -1 | 1) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' });
+  };
+
   if (!books.length) return null;
   return (
     <section className="el-row">
@@ -379,8 +424,16 @@ function ScrollRow({ title, subtitle, books, onSelect }: { title: string; subtit
         <h2 className="el-row-title">{title}</h2>
         <span className="el-row-sub">{subtitle}</span>
       </div>
-      <div className="el-scroller">
-        {books.map((b) => <BookCard key={b.id} book={b} onClick={() => onSelect(b)} />)}
+      <div className="el-row-wrap">
+        <button className="el-arrow left" disabled={!canLeft} onClick={() => scroll(-1)} aria-label="Scroll left">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+        </button>
+        <div className="el-scroller" ref={scrollRef}>
+          {books.map((b) => <BookCard key={b.id} book={b} onClick={() => onSelect(b)} />)}
+        </div>
+        <button className="el-arrow right" disabled={!canRight} onClick={() => scroll(1)} aria-label="Scroll right">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+        </button>
       </div>
     </section>
   );

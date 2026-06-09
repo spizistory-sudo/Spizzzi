@@ -1,5 +1,6 @@
 export interface LibraryBook {
   id: number;
+  slug: string;
   title: string;
   emoji: string;
   palette: string;
@@ -12,6 +13,18 @@ export interface LibraryBook {
   narrator: string;
   description: string;
   featured: boolean;
+}
+
+function toSlug(title: string): string {
+  return title.toLowerCase().replace(/['']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+export function coverImagePath(slug: string): string {
+  return `/images/library/covers/${slug}.webp`;
+}
+
+export function featuredImagePath(slug: string): string {
+  return `/images/library/featured/${slug}.webp`;
 }
 
 const PALETTE: Record<string, [string, string]> = {
@@ -32,7 +45,7 @@ export function paletteGradient(key: string): string {
   return `linear-gradient(165deg, ${p[0]}, ${p[1]})`;
 }
 
-const BOOKS_RAW: Omit<LibraryBook, 'id'>[] = [
+const BOOKS_RAW: Omit<LibraryBook, 'id' | 'slug'>[] = [
   { title: 'Beyond the Stars', emoji: '🚀', palette: 'space', category: 'Big Adventures', ages: '6–8', values: ['Curiosity', 'Courage'], moods: ['Magical', 'Adventurous'], formats: ['read', 'listen', 'watch'], duration: '9 min', narrator: 'Sarah', featured: true, description: 'When a tiny rocket lands in the backyard, one curious kid and a giggling little alien set off to count the stars — and discover that home is the best place in the whole galaxy.' },
   { title: 'The Jungle Expedition', emoji: '🦜', palette: 'forest', category: 'Big Adventures', ages: '6–8', values: ['Curiosity', 'Perseverance'], moods: ['Adventurous', 'Exciting'], formats: ['read', 'listen', 'watch'], duration: '10 min', narrator: 'George', featured: true, description: 'Deep in a vine-tangled jungle, a young explorer follows a bright parrot toward a waterfall that hides a secret no grown-up has ever found.' },
   { title: 'Pirate Treasure Hunt', emoji: '🏴‍☠️', palette: 'gold', category: 'Big Adventures', ages: '6–8', values: ['Courage', 'Teamwork'], moods: ['Exciting', 'Adventurous'], formats: ['read', 'listen', 'watch'], duration: '11 min', narrator: 'Bill', featured: true, description: 'X marks the spot — but the real treasure is the crew of friends who sail through the storm together to find it.' },
@@ -59,7 +72,7 @@ const BOOKS_RAW: Omit<LibraryBook, 'id'>[] = [
   { title: 'Captain of the Cardboard Ship', emoji: '📦', palette: 'ember', category: 'Family & Friends', ages: '4–5', values: ['Curiosity', 'Teamwork'], moods: ['Silly', 'Adventurous'], formats: ['read', 'listen'], duration: '6 min', narrator: 'Bill', featured: false, description: 'A rainy day, a big box, and the wildest imaginary voyage two siblings ever sailed across the living-room sea.' },
 ];
 
-const BOOKS: LibraryBook[] = BOOKS_RAW.map((b, i) => ({ ...b, id: i }));
+const BOOKS: LibraryBook[] = BOOKS_RAW.map((b, i) => ({ ...b, id: i, slug: toSlug(b.title) }));
 
 export function getLibraryBooks(): LibraryBook[] {
   return BOOKS;
