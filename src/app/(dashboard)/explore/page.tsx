@@ -124,8 +124,7 @@ export default function ExplorePage() {
         .el-search input{flex:1;background:none;border:none;color:var(--text-primary,#eef1ff);font-family:var(--font-body);font-size:16px;outline:none}
         .el-search input::placeholder{color:rgba(160,170,210,0.6)}
 
-        .el-filter-bar{display:flex;align-items:center;gap:8px;padding:14px 0 6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-        .el-filter-bar::-webkit-scrollbar{display:none}
+        .el-filter-bar{display:flex;align-items:center;gap:8px;padding:14px 0 6px;flex-wrap:wrap}
         .el-dropdown{position:relative;flex:none}
         .el-dd-trigger{display:flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:13px;color:rgba(225,230,250,0.9);background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:9px 14px;cursor:pointer;white-space:nowrap;min-height:44px;transition:all .15s}
         .el-dd-trigger:hover{border-color:rgba(255,255,255,0.20)}
@@ -380,11 +379,13 @@ function FilterDropdown({ label, items, active, isOpen, onToggleOpen, onSelect }
 
   useEffect(() => {
     if (!isOpen) return;
-    function onClick(e: MouseEvent) {
+    let skipFirst = true;
+    function onDown(e: MouseEvent) {
+      if (skipFirst) { skipFirst = false; return; }
       if (ref.current && !ref.current.contains(e.target as Node)) onToggleOpen();
     }
-    document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
   }, [isOpen, onToggleOpen]);
 
   return (
