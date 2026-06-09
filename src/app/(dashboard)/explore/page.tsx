@@ -93,9 +93,13 @@ export default function ExplorePage() {
   const heroBook = featured[heroIdx];
 
   return (
-    <>
+    <div className="el-explore-root">
       <style>{`
+        .el-explore-root{margin-left:-16px;margin-right:-16px;padding-left:16px;padding-right:16px}
+        @media(min-width:1024px){.el-explore-root{margin-left:-48px;margin-right:-48px;padding-left:48px;padding-right:48px;max-width:1440px}}
+
         .el-hero{position:relative;border-radius:24px;overflow:hidden;min-height:300px;display:flex;align-items:flex-end;border:1px solid rgba(255,255,255,0.10)}
+        @media(min-width:1024px){.el-hero{min-height:380px}}
         .el-hero-bg{position:absolute;inset:0;z-index:0}
         .el-hero-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,14,39,.05) 0%,rgba(10,14,39,.55) 55%,rgba(10,14,39,.95) 100%)}
         .el-hero-emoji{position:absolute;right:6%;top:50%;transform:translateY(-55%);font-size:120px;z-index:1;filter:drop-shadow(0 12px 40px rgba(0,0,0,.45));opacity:.96}
@@ -134,6 +138,7 @@ export default function ExplorePage() {
         .el-scroller::-webkit-scrollbar{display:none}
 
         .el-card{flex:none;width:150px;scroll-snap-align:start;cursor:pointer;transition:transform .18s ease}
+        @media(min-width:1024px){.el-card{width:185px}}
         .el-card:hover{transform:translateY(-4px)}
         .el-grid .el-card{width:auto}
         .el-cover{position:relative;aspect-ratio:2/3;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.10);display:flex;flex-direction:column;justify-content:flex-end;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
@@ -150,6 +155,7 @@ export default function ExplorePage() {
         .el-card-age{font-size:11px;color:rgba(111,121,163,1);font-weight:600;margin-top:2px}
 
         .el-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px}
+        @media(min-width:1024px){.el-grid{grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:20px}}
         .el-results-head{display:flex;align-items:baseline;justify-content:space-between;margin:18px 0 14px}
         .el-results-head h2{font-family:var(--font-display);font-weight:600;font-size:20px;color:var(--text-primary,#eef1ff)}
         .el-results-head span{font-size:13px;color:rgba(111,121,163,1);font-weight:600}
@@ -347,7 +353,7 @@ export default function ExplorePage() {
 
       {/* TOAST */}
       <div className={`el-toast${toastMsg ? ' show' : ''}`}>{toastMsg}</div>
-    </>
+    </div>
   );
 }
 
