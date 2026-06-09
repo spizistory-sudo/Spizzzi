@@ -23,6 +23,7 @@ export default function ExplorePage() {
 
   const [heroIdx, setHeroIdx] = useState(0);
   const [filters, setFilters] = useState<{ cat: string | null; age: string | null; val: string | null; mood: string | null; q: string }>({ cat: null, age: null, val: null, mood: null, q: '' });
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [selectedBook, setSelectedBook] = useState<LibraryBook | null>(null);
   const [playerBook, setPlayerBook] = useState<LibraryBook | null>(null);
   const [playerMode, setPlayerMode] = useState<string>('read');
@@ -55,13 +56,14 @@ export default function ExplorePage() {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        if (playerBook) setPlayerBook(null);
+        if (openDropdown) setOpenDropdown(null);
+        else if (playerBook) setPlayerBook(null);
         else if (selectedBook) setSelectedBook(null);
       }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [playerBook, selectedBook]);
+  }, [openDropdown, playerBook, selectedBook]);
 
   const toast = useCallback((msg: string) => {
     setToastMsg(msg);
@@ -107,9 +109,9 @@ export default function ExplorePage() {
         .el-hero-in{position:relative;z-index:2;padding:24px;max-width:560px}
         .el-tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold,#e9b949);background:rgba(233,185,73,0.16);border:1px solid rgba(233,185,73,.3);padding:5px 11px;border-radius:999px}
         .el-hero-title{font-family:var(--font-display);font-weight:700;font-size:clamp(24px,6vw,42px);line-height:1.05;margin:12px 0 8px;text-shadow:0 2px 18px rgba(0,0,0,.5)}
-        .el-hero-blurb{color:rgba(170,179,214,1);font-size:15px;line-height:1.5;max-width:440px}
+        .el-hero-blurb{color:rgba(220,225,245,0.85);font-size:15px;line-height:1.5;max-width:440px}
         .el-hero-meta{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 16px}
-        .el-chip{font-size:12px;font-weight:600;color:rgba(170,179,214,1);background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.10);border-radius:999px;padding:5px 11px}
+        .el-chip{font-size:12px;font-weight:600;color:rgba(220,225,245,0.85);background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.10);border-radius:999px;padding:5px 11px}
         .el-hero-actions{display:flex;gap:10px;flex-wrap:wrap}
         .el-act{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-body);font-weight:600;font-size:14px;border-radius:999px;padding:11px 18px;cursor:pointer;border:1px solid transparent;min-height:44px;background:none}
         .el-act.primary{color:#1a1330;background:linear-gradient(135deg,#f0d480,#e9b949);box-shadow:0 6px 20px rgba(233,185,73,.3);border:none}
@@ -120,20 +122,26 @@ export default function ExplorePage() {
 
         .el-search{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:12px 14px;margin-top:18px}
         .el-search input{flex:1;background:none;border:none;color:var(--text-primary,#eef1ff);font-family:var(--font-body);font-size:16px;outline:none}
-        .el-search input::placeholder{color:rgba(111,121,163,1)}
+        .el-search input::placeholder{color:rgba(160,170,210,0.6)}
 
-        .el-filter-row{display:flex;align-items:center;gap:8px;overflow-x:auto;padding:14px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-        .el-filter-row::-webkit-scrollbar{display:none}
-        .el-filter-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:rgba(111,121,163,1);flex:none;padding-right:2px}
-        .el-fchip{flex:none;font-family:var(--font-body);font-weight:600;font-size:13px;color:rgba(170,179,214,1);background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.10);border-radius:999px;padding:8px 14px;cursor:pointer;white-space:nowrap;transition:all .15s;min-height:38px}
-        .el-fchip:hover{color:var(--text-primary,#eef1ff)}
-        .el-fchip.on{color:#fff;background:rgba(155,125,212,0.16);border-color:rgba(155,125,212,0.70);box-shadow:0 0 0 1px rgba(155,125,212,0.70)}
-        .el-clear{flex:none;font-size:13px;font-weight:600;color:#e9b949;background:none;border:none;cursor:pointer;padding:8px 6px}
+        .el-filter-bar{display:flex;align-items:center;gap:8px;padding:14px 0 6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+        .el-filter-bar::-webkit-scrollbar{display:none}
+        .el-dropdown{position:relative;flex:none}
+        .el-dd-trigger{display:flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:13px;color:rgba(225,230,250,0.9);background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:9px 14px;cursor:pointer;white-space:nowrap;min-height:44px;transition:all .15s}
+        .el-dd-trigger:hover{border-color:rgba(255,255,255,0.20)}
+        .el-dd-trigger.active{color:#fff;background:rgba(155,125,212,0.14);border-color:rgba(155,125,212,0.60)}
+        .el-dd-trigger svg{flex:none;opacity:.5;transition:transform .15s}
+        .el-dd-trigger.open svg{transform:rotate(180deg)}
+        .el-dd-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:50;min-width:180px;max-height:320px;overflow-y:auto;background:rgba(16,22,52,0.97);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:6px;box-shadow:0 12px 40px rgba(0,0,0,.5);scrollbar-width:thin;scrollbar-color:rgba(155,125,212,0.3) transparent}
+        .el-dd-option{display:block;width:100%;text-align:left;font-family:var(--font-body);font-weight:500;font-size:14px;color:rgba(220,225,245,0.85);background:none;border:none;border-radius:10px;padding:10px 14px;cursor:pointer;min-height:44px;transition:background .12s}
+        .el-dd-option:hover{background:rgba(255,255,255,0.07)}
+        .el-dd-option.selected{color:#fff;background:rgba(155,125,212,0.18);font-weight:600}
+        .el-clear{flex:none;font-size:13px;font-weight:600;color:#e9b949;background:none;border:none;cursor:pointer;padding:8px 6px;min-height:44px}
 
         .el-row{margin:22px 0 4px}
         .el-row-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
         .el-row-title{font-family:var(--font-display);font-weight:600;font-size:20px;color:var(--text-primary,#eef1ff)}
-        .el-row-sub{font-size:12px;color:rgba(111,121,163,1);font-weight:600}
+        .el-row-sub{font-size:12px;color:rgba(180,190,230,0.75);font-weight:600}
         .el-scroller{display:flex;gap:14px;overflow-x:auto;padding:2px 0 8px;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
         .el-scroller::-webkit-scrollbar{display:none}
 
@@ -152,14 +160,14 @@ export default function ExplorePage() {
         .el-badge-anim{position:absolute;top:9px;left:9px;z-index:2;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#1a1330;background:#e9b949;border-radius:6px;padding:3px 6px}
         .el-card-meta{margin-top:8px}
         .el-card-name{font-weight:600;font-size:13px;line-height:1.2;color:var(--text-primary,#eef1ff)}
-        .el-card-age{font-size:11px;color:rgba(111,121,163,1);font-weight:600;margin-top:2px}
+        .el-card-age{font-size:11px;color:rgba(180,190,230,0.75);font-weight:600;margin-top:2px}
 
         .el-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px}
         @media(min-width:1024px){.el-grid{grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:20px}}
         .el-results-head{display:flex;align-items:baseline;justify-content:space-between;margin:18px 0 14px}
         .el-results-head h2{font-family:var(--font-display);font-weight:600;font-size:20px;color:var(--text-primary,#eef1ff)}
-        .el-results-head span{font-size:13px;color:rgba(111,121,163,1);font-weight:600}
-        .el-empty{text-align:center;padding:60px 20px;color:rgba(170,179,214,1)}
+        .el-results-head span{font-size:13px;color:rgba(180,190,230,0.75);font-weight:600}
+        .el-empty{text-align:center;padding:60px 20px;color:rgba(220,225,245,0.85)}
         .el-empty .e-emoji{font-size:44px;opacity:.7}
         .el-empty p{margin-top:10px;font-size:15px}
 
@@ -176,29 +184,29 @@ export default function ExplorePage() {
         .el-x{position:absolute;top:12px;right:12px;z-index:3;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.45);border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center}
         .el-sheet-body{padding:0 22px 22px;margin-top:-30px;position:relative;z-index:2}
         .el-sheet-title{font-family:var(--font-display);font-weight:700;font-size:27px;line-height:1.08;color:var(--text-primary,#eef1ff)}
-        .el-sheet-byline{color:rgba(170,179,214,1);font-size:14px;margin-top:6px}
+        .el-sheet-byline{color:rgba(220,225,245,0.85);font-size:14px;margin-top:6px}
         .el-sheet-chips{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0}
         .el-chip-val{color:#e9b949;background:rgba(233,185,73,0.16);border-color:rgba(233,185,73,.28)}
         .el-chip-mood{color:rgba(155,125,212,1);background:rgba(155,125,212,0.16);border-color:rgba(155,125,212,0.70)}
-        .el-sheet-desc{color:rgba(170,179,214,1);font-size:15px;line-height:1.58;margin:6px 0 18px}
+        .el-sheet-desc{color:rgba(220,225,245,0.85);font-size:15px;line-height:1.58;margin:6px 0 18px}
         .el-sheet-actions{display:grid;gap:10px}
         .el-sheet-actions.cols-3{grid-template-columns:1fr 1fr 1fr}
         .el-sheet-actions.cols-2{grid-template-columns:1fr 1fr}
         .el-big-act{display:flex;flex-direction:column;align-items:center;gap:5px;font-family:var(--font-body);font-weight:600;font-size:13px;color:var(--text-primary,#eef1ff);background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:14px 8px;cursor:pointer;min-height:44px}
         .el-big-act .ic{font-size:20px}
         .el-big-act.read{background:linear-gradient(135deg,#7d6bd0,#9b7dd4);border-color:transparent;color:#fff}
-        .el-shelf-btn{width:100%;margin-top:10px;font-family:var(--font-body);font-weight:600;font-size:14px;color:rgba(170,179,214,1);background:none;border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:12px;cursor:pointer;min-height:44px}
+        .el-shelf-btn{width:100%;margin-top:10px;font-family:var(--font-body);font-weight:600;font-size:14px;color:rgba(220,225,245,0.85);background:none;border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:12px;cursor:pointer;min-height:44px}
 
         .el-player{position:fixed;inset:0;z-index:80;background:#080b1c;display:flex;flex-direction:column}
         .el-player-top{display:flex;align-items:center;gap:12px;padding:calc(14px + env(safe-area-inset-top,0px)) 18px 14px}
-        .el-player-top .pt-title{flex:1;text-align:center;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(111,121,163,1)}
+        .el-player-top .pt-title{flex:1;text-align:center;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(180,190,230,0.75)}
         .el-player-top button{background:none;border:none;color:var(--text-primary,#eef1ff);font-size:22px;cursor:pointer;width:34px;min-height:44px}
         .el-player-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px;text-align:center}
         .el-stage-cover{width:min(70vw,300px);aspect-ratio:2/3;border-radius:18px;display:flex;flex-direction:column;justify-content:flex-end;padding:16px;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5)}
         .el-stage-cover .se{position:absolute;top:0;left:0;right:0;height:60%;display:flex;align-items:center;justify-content:center;font-size:84px}
         .el-stage-mode{margin-top:22px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#e9b949}
         .el-stage-txt{font-family:var(--font-display);font-size:20px;line-height:1.4;margin-top:10px;max-width:440px;color:var(--text-primary,#eef1ff)}
-        .el-stage-note{margin-top:18px;font-size:13px;color:rgba(111,121,163,1)}
+        .el-stage-note{margin-top:18px;font-size:13px;color:rgba(180,190,230,0.75)}
         .el-player-bar{padding:18px 24px calc(26px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
         .el-prog{height:5px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden}
         .el-prog i{display:block;height:100%;width:34%;background:linear-gradient(90deg,rgba(155,125,212,1),#e9b949);border-radius:999px}
@@ -209,7 +217,7 @@ export default function ExplorePage() {
         .el-toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:90;background:rgba(20,28,68,.96);border:1px solid rgba(255,255,255,0.10);color:var(--text-primary,#eef1ff);font-size:14px;font-weight:500;padding:12px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;white-space:nowrap}
         .el-toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
 
-        .el-footnote{text-align:center;color:rgba(111,121,163,1);font-size:12px;margin-top:40px;padding:0 24px;line-height:1.6}
+        .el-footnote{text-align:center;color:rgba(180,190,230,0.75);font-size:12px;margin-top:40px;padding:0 24px;line-height:1.6}
 
         .el-row-wrap{position:relative}
         .el-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:4;width:40px;height:40px;border-radius:50%;background:rgba(10,14,39,0.75);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.8);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .2s,background .2s;box-shadow:0 4px 16px rgba(0,0,0,.4)}
@@ -257,17 +265,18 @@ export default function ExplorePage() {
 
       {/* SEARCH */}
       <div className="el-search">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(170,179,214,1)" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(200,210,240,0.7)" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
         <input type="search" placeholder="Search stories by title…" autoComplete="off" value={filters.q} onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))} />
       </div>
 
       {/* FILTERS */}
-      <FilterRow label="Category" items={CATEGORIES} active={filters.cat} onToggle={(v) => toggleFilter('cat', v)} />
-      <FilterRow label="Ages" items={AGE_RANGES} active={filters.age} onToggle={(v) => toggleFilter('age', v)} />
-      <FilterRow label="Values" items={VALUES} active={filters.val} onToggle={(v) => toggleFilter('val', v)} />
-      <FilterRow label="Moods" items={MOODS} active={filters.mood} onToggle={(v) => toggleFilter('mood', v)}>
+      <div className="el-filter-bar">
+        <FilterDropdown label="Category" items={CATEGORIES} active={filters.cat} isOpen={openDropdown === 'cat'} onToggleOpen={() => setOpenDropdown(openDropdown === 'cat' ? null : 'cat')} onSelect={(v) => { setFilters((f) => ({ ...f, cat: v })); setOpenDropdown(null); }} />
+        <FilterDropdown label="Ages" items={AGE_RANGES} active={filters.age} isOpen={openDropdown === 'age'} onToggleOpen={() => setOpenDropdown(openDropdown === 'age' ? null : 'age')} onSelect={(v) => { setFilters((f) => ({ ...f, age: v })); setOpenDropdown(null); }} />
+        <FilterDropdown label="Values" items={VALUES} active={filters.val} isOpen={openDropdown === 'val'} onToggleOpen={() => setOpenDropdown(openDropdown === 'val' ? null : 'val')} onSelect={(v) => { setFilters((f) => ({ ...f, val: v })); setOpenDropdown(null); }} />
+        <FilterDropdown label="Moods" items={MOODS} active={filters.mood} isOpen={openDropdown === 'mood'} onToggleOpen={() => setOpenDropdown(openDropdown === 'mood' ? null : 'mood')} onSelect={(v) => { setFilters((f) => ({ ...f, mood: v })); setOpenDropdown(null); }} />
         {hasFilters && <button className="el-clear" onClick={clearAll}>Clear all</button>}
-      </FilterRow>
+      </div>
 
       {/* CONTENT: rows or filtered results */}
       {hasFilters ? (
@@ -359,20 +368,39 @@ export default function ExplorePage() {
 
 /* ---------- Sub-components ---------- */
 
-function FilterRow({ label, items, active, onToggle, children }: {
+function FilterDropdown({ label, items, active, isOpen, onToggleOpen, onSelect }: {
   label: string;
   items: string[];
   active: string | null;
-  onToggle: (v: string) => void;
-  children?: React.ReactNode;
+  isOpen: boolean;
+  onToggleOpen: () => void;
+  onSelect: (v: string | null) => void;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onToggleOpen();
+    }
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [isOpen, onToggleOpen]);
+
   return (
-    <div className="el-filter-row">
-      <span className="el-filter-label">{label}</span>
-      {items.map((v) => (
-        <button key={v} className={`el-fchip${active === v ? ' on' : ''}`} onClick={() => onToggle(v)}>{v}</button>
-      ))}
-      {children}
+    <div className="el-dropdown" ref={ref}>
+      <button className={`el-dd-trigger${active ? ' active' : ''}${isOpen ? ' open' : ''}`} onClick={onToggleOpen} aria-expanded={isOpen} aria-haspopup="listbox">
+        {active ? `${label}: ${active}` : label}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+      </button>
+      {isOpen && (
+        <div className="el-dd-menu" role="listbox" aria-label={label}>
+          <button className={`el-dd-option${!active ? ' selected' : ''}`} role="option" aria-selected={!active} onClick={() => onSelect(null)}>All</button>
+          {items.map((v) => (
+            <button key={v} className={`el-dd-option${active === v ? ' selected' : ''}`} role="option" aria-selected={active === v} onClick={() => onSelect(v)}>{v}</button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
