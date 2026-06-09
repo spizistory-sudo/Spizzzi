@@ -18,6 +18,15 @@ const navItems = [
     ),
   },
   {
+    label: 'Spizzzy Library',
+    href: '/explore',
+    icon: (
+      <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6M4.5 9.75v9.75h15V9.75" />
+      </svg>
+    ),
+  },
+  {
     label: 'Settings',
     href: '/admin',
     icon: (
