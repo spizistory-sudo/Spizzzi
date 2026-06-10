@@ -3,7 +3,7 @@ import { ART_STYLES, type ArtStyleKey } from './prompts/style-references';
 import { generateWithRateLimit } from './rate-limit';
 import type { Part } from '@google/genai';
 import { isDevIllustrations } from '@/lib/dev/config';
-import { generateImageWithFlux, generateImageWithFlux2Pro, type ReferenceImage } from './fal-client';
+import { generateImageWithFlux2Pro, type ReferenceImage } from './fal-client';
 
 export const PRIMARY_MODEL = 'gemini-3-pro-image-preview';
 export const FALLBACK_MODEL = 'flux-2-pro';
@@ -130,11 +130,11 @@ ${ANTI_TEXT_RULES}
 We will add the title separately with CSS.`;
 
   if (isDevIllustrations()) {
-    console.log(`[DEV_ILLUSTRATIONS] Using FLUX.2 Pro for cover (${styleKey})`);
+    console.log(`[DEV_ILLUSTRATIONS] Using FLUX 2 Pro for cover (${styleKey})`);
     const buffer = await generateWithRateLimit(() =>
-      generateImageWithFlux(promptText, { aspectRatio: 'portrait_4_3' })
+      buildFlux2ProRequest(promptText, { childPhotoBase64, stylePreviewBase64 })
     );
-    return { buffer, modelUsed: 'flux-pro-v1.1' };
+    return { buffer, modelUsed: FALLBACK_MODEL };
   }
 
   const referenceBlock = (childPhotoBase64 || stylePreviewBase64) ? `
@@ -302,11 +302,11 @@ Before generating, verify: Is the character's race, skin tone, hair color/style 
 === END FINAL CHECK ===`;
 
   if (isDevIllustrations()) {
-    console.log(`[DEV_ILLUSTRATIONS] Using FLUX.2 Pro for page ${pageNumber}`);
+    console.log(`[DEV_ILLUSTRATIONS] Using FLUX 2 Pro for page ${pageNumber}`);
     const buffer = await generateWithRateLimit(() =>
-      generateImageWithFlux(promptText, { aspectRatio: 'portrait_4_3' })
+      buildFlux2ProRequest(promptText, { characterCrops, coverImageBase64, childPhotoBase64, stylePreviewBase64 })
     );
-    return { buffer, modelUsed: 'flux-pro-v1.1' };
+    return { buffer, modelUsed: FALLBACK_MODEL };
   }
 
   const fullPrompt = `${promptText}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).`;
@@ -325,7 +325,7 @@ Before generating, verify: Is the character's race, skin tone, hair color/style 
   // If model is locked to FLUX, skip Gemini entirely
   if (useFluxDirectly) {
     console.log(`[illustration-generator] FLUX-direct mode for page ${pageNumber} (model locked)`);
-    const fb = await generateFlux2Fallback(fullPrompt, { characterCrops, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
+    const fb = await buildFlux2ProRequest(fullPrompt, { characterCrops, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
     return { buffer: fb, modelUsed: FALLBACK_MODEL };
   }
 
@@ -373,7 +373,7 @@ Before generating, verify: Is the character's race, skin tone, hair color/style 
       const imageBuffer = extractImageFromResponse(response);
       if (!imageBuffer) {
         console.warn(`[illustration-generator] ${PRIMARY_MODEL} returned no image for page ${pageNumber}, trying FLUX.2 Pro fallback`);
-        const fb = await generateFlux2Fallback(fullPrompt, { characterCrops, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
+        const fb = await buildFlux2ProRequest(fullPrompt, { characterCrops, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
         return { buffer: fb, modelUsed: FALLBACK_MODEL };
       }
 
@@ -382,13 +382,13 @@ Before generating, verify: Is the character's race, skin tone, hair color/style 
       console.error(`[illustration-generator] ${PRIMARY_MODEL} page ${pageNumber} FAILED, trying FLUX.2 Pro fallback:`, {
         message: err instanceof Error ? err.message : String(err),
       });
-      const fb = await generateFlux2Fallback(fullPrompt, { characterCrops, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
+      const fb = await buildFlux2ProRequest(fullPrompt, { characterCrops, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
       return { buffer: fb, modelUsed: FALLBACK_MODEL };
     }
   });
 }
 
-async function generateFlux2Fallback(
+async function buildFlux2ProRequest(
   prompt: string,
   refs: {
     characterCrops?: Array<{ name: string; base64: string }>;
