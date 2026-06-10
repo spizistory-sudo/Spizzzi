@@ -87,8 +87,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div style={{ position: 'relative', zIndex: 1, display: 'flex', minHeight: '100vh' }}>
-      {/* Desktop sidebar — lg and up */}
-      <aside className="hidden lg:flex" style={{
+      {/* Desktop sidebar — lg + fine pointer (mouse/trackpad) only */}
+      <aside className="dash-sidebar" style={{
         width: 240,
         background: 'rgba(10, 17, 40, 0.70)',
         backdropFilter: 'blur(24px) saturate(150%)',
@@ -118,8 +118,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </button>
       </aside>
 
-      {/* Mobile top bar — below lg */}
-      <div className="fixed top-0 left-0 right-0 z-30 lg:hidden pt-safe flex items-center justify-between" style={{
+      {/* Top bar — visible on touch + phones (hidden on desktop with pointer:fine) */}
+      <div className="dash-topbar fixed top-0 left-0 right-0 z-30 pt-safe flex items-center justify-between" style={{
         background: 'rgba(10, 17, 40, 0.85)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
@@ -144,8 +144,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Mobile drawer overlay */}
       {drawerOpen && (
         <>
-          <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setDrawerOpen(false)} onKeyDown={(e) => { if (e.key === 'Escape') setDrawerOpen(false); }} role="button" tabIndex={0} aria-label="Close menu" />
-          <div className="fixed top-0 left-0 bottom-0 z-50 lg:hidden" style={{
+          <div className="dash-drawer fixed inset-0 z-40 bg-black/50" onClick={() => setDrawerOpen(false)} onKeyDown={(e) => { if (e.key === 'Escape') setDrawerOpen(false); }} role="button" tabIndex={0} aria-label="Close menu" />
+          <div className="dash-drawer fixed top-0 left-0 bottom-0 z-50" style={{
             width: 280,
             background: 'rgba(10, 17, 40, 0.95)',
             backdropFilter: 'blur(24px)',
@@ -178,9 +178,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main content — full width below lg, offset by sidebar at lg+ */}
       <main className="flex-1 overflow-y-auto relative z-[1]">
-        {/* Mobile clearance for top bar — hidden at lg+ where sidebar replaces it */}
-        <div className="h-[80px] lg:hidden pt-safe" />
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px' }} className="lg:p-[40px_48px]">
+        {/* Clearance for top bar — hidden when persistent sidebar is shown */}
+        <div className="dash-topbar h-[80px] pt-safe" />
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px' }} className="dash-content-pad">
           {children}
         </div>
       </main>
@@ -189,6 +189,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         @keyframes slideInLeft {
           from { transform: translateX(-100%); }
           to { transform: translateX(0); }
+        }
+        /* Persistent sidebar: only on desktop (lg + fine pointer) */
+        .dash-sidebar { display: none; }
+        @media (min-width: 1024px) and (pointer: fine) {
+          .dash-sidebar { display: flex; }
+          .dash-topbar { display: none !important; }
+          .dash-drawer { display: none !important; }
+          .dash-content-pad { padding: 40px 48px; }
         }
       `}</style>
     </div>
