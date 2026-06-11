@@ -116,6 +116,15 @@ export async function POST(req: Request) {
     childPhotoBase64 = childPhotosBase64[0];
     console.log(`[generate-cover] Loaded ${childPhotosBase64.length} child photo(s)`);
 
+    // Load character sheet (generated before cover)
+    let characterSheetBase64: string | undefined;
+    try {
+      characterSheetBase64 = await getImageBase64('covers', `character-sheets/${bookId}/sheet.png`);
+      console.log('[generate-cover] Character sheet loaded');
+    } catch {
+      console.log('[generate-cover] No character sheet found, continuing without');
+    }
+
     // Load style preview PNG
     let stylePreviewBase64: string | undefined;
     try {
@@ -154,7 +163,7 @@ export async function POST(req: Request) {
       const attemptStart = Date.now();
       try {
         console.log(`[generate-cover] Gemini attempt ${attempt}/${GEMINI_ATTEMPTS}`);
-        coverResult = await generateCoverImage({ styleKey, bookTitle: book.title, characterDescription, themeDescription, childPhotoBase64, childPhotosBase64, stylePreviewBase64 });
+        coverResult = await generateCoverImage({ styleKey, bookTitle: book.title, characterDescription, themeDescription, childPhotoBase64, childPhotosBase64, characterSheetBase64, stylePreviewBase64 });
         chosenModel = 'gemini';
         await logGeneration({ bookId, imageType: 'cover', styleKey, modelAttempted: PRIMARY_MODEL, modelUsed: coverResult.modelUsed, fallbackTriggered: false, referencesAttached: refsInfo, promptLength: characterDescription.length, durationMs: Date.now() - attemptStart, retryCount: attempt - 1, success: true });
         console.log(`[generate-cover] Gemini attempt ${attempt} succeeded`);

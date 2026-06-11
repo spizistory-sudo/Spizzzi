@@ -29,6 +29,7 @@ interface GenerateCoverParams {
   themeDescription: string;
   childPhotoBase64?: string;
   childPhotosBase64?: string[];
+  characterSheetBase64?: string;
   stylePreviewBase64?: string;
 }
 
@@ -40,6 +41,7 @@ interface GeneratePageIllustrationParams {
   pageNumber: number;
   childPhotoBase64?: string;
   childPhotosBase64?: string[];
+  characterSheetBase64?: string;
   coverImageBase64?: string;
   stylePreviewBase64?: string;
   visualBibleBlock?: string;
@@ -92,10 +94,90 @@ async function generateWithImagen(
   return Buffer.from(generatedImage.image.imageBytes, 'base64');
 }
 
+interface GenerateCharacterSheetParams {
+  styleKey: ArtStyleKey;
+  characterDescription: string;
+  childPhotosBase64?: string[];
+  stylePreviewBase64?: string;
+}
+
+export async function generateCharacterSheet(
+  params: GenerateCharacterSheetParams
+): Promise<GenerationResult> {
+  const { styleKey, characterDescription, childPhotosBase64, stylePreviewBase64 } = params;
+  const style = ART_STYLES[styleKey];
+  const allPhotos = childPhotosBase64 || [];
+
+  const promptText = `PURE IMAGE OUTPUT — NO TEXT WHATSOEVER.
+
+CHARACTER REFERENCE SHEET — Generate a clean, front-facing character portrait.
+
+CHARACTER (must match the reference photos EXACTLY):
+${characterDescription}
+
+REQUIREMENTS:
+- Front-facing view, neutral friendly expression, eyes looking at camera
+- Simple plain solid-color background (no scene, no props, no other characters)
+- Clear full face visible: eyes, nose, mouth, hair all fully shown
+- Character fills most of the frame (head and shoulders, or head to waist)
+- Consistent character design suitable for reproducing across many illustrations
+
+ART STYLE:
+${style.stylePrompt}
+
+${ANTI_TEXT_RULES}
+
+This is a CHARACTER REFERENCE — it will be used as the identity anchor for all illustrations in this book. Accuracy to the photo is critical.`;
+
+  const refDescriptions = allPhotos.length > 0
+    ? `The FIRST ${allPhotos.length > 1 ? `${allPhotos.length} images are PHOTOS` : 'image is a PHOTO'} of the REAL CHILD. Match their appearance EXACTLY.${stylePreviewBase64 ? ' The NEXT image is the art STYLE to render in.' : ''}`
+    : stylePreviewBase64 ? 'The attached image is the art STYLE to render in.' : '';
+
+  const fullPrompt = `${promptText}\n\nREFERENCE IMAGES:\n${refDescriptions}\nGenerate in PORTRAIT orientation (3:4 aspect ratio).`;
+
+  if (isDevIllustrations()) {
+    console.log(`[character-sheet] Using FLUX 2 Pro (DEV_ILLUSTRATIONS)`);
+    const buffer = await generateWithRateLimit(() =>
+      buildFlux2ProRequest(fullPrompt, { childPhotoBase64: allPhotos[0], stylePreviewBase64 })
+    );
+    return { buffer, modelUsed: FALLBACK_MODEL };
+  }
+
+  return generateWithRateLimit(async () => {
+    const ai = getGeminiClient();
+    try {
+      const parts: Part[] = [];
+      for (const photo of allPhotos) {
+        parts.push({ inlineData: { mimeType: 'image/jpeg', data: photo } });
+      }
+      if (stylePreviewBase64) {
+        parts.push({ inlineData: { mimeType: 'image/png', data: stylePreviewBase64 } });
+      }
+      parts.push({ text: fullPrompt });
+
+      const response = await ai.models.generateContent({
+        model: PRIMARY_MODEL,
+        contents: [{ role: 'user', parts }],
+        config: { responseModalities: ['image', 'text'] },
+      });
+
+      const imageBuffer = extractImageFromResponse(response);
+      if (!imageBuffer) throw new Error('No image in character sheet response');
+
+      console.log(`[character-sheet] Generated via ${PRIMARY_MODEL}, ${imageBuffer.length} bytes`);
+      return { buffer: imageBuffer, modelUsed: PRIMARY_MODEL };
+    } catch (err) {
+      console.warn(`[character-sheet] ${PRIMARY_MODEL} failed, trying FLUX 2 Pro:`, err instanceof Error ? err.message : err);
+      const fb = await buildFlux2ProRequest(fullPrompt, { childPhotoBase64: allPhotos[0], stylePreviewBase64 });
+      return { buffer: fb, modelUsed: FALLBACK_MODEL };
+    }
+  });
+}
+
 export async function generateCoverImage(
   params: GenerateCoverParams
 ): Promise<GenerationResult> {
-  const { styleKey, characterDescription, themeDescription, childPhotoBase64, childPhotosBase64, stylePreviewBase64 } = params;
+  const { styleKey, characterDescription, themeDescription, childPhotoBase64, childPhotosBase64, characterSheetBase64, stylePreviewBase64 } = params;
   const allChildPhotos = childPhotosBase64?.length ? childPhotosBase64 : childPhotoBase64 ? [childPhotoBase64] : [];
   const style = ART_STYLES[styleKey];
 
@@ -135,7 +217,7 @@ We will add the title separately with CSS.`;
   if (isDevIllustrations()) {
     console.log(`[DEV_ILLUSTRATIONS] Using FLUX 2 Pro for cover (${styleKey})`);
     const buffer = await generateWithRateLimit(() =>
-      buildFlux2ProRequest(promptText, { childPhotoBase64: allChildPhotos[0], stylePreviewBase64 })
+      buildFlux2ProRequest(promptText, { childPhotoBase64: allChildPhotos[0], characterSheetBase64, stylePreviewBase64 })
     );
     return { buffer, modelUsed: FALLBACK_MODEL };
   }
@@ -155,7 +237,7 @@ ${stylePreviewBase64 ? `The ${allChildPhotos.length > 0 ? 'NEXT' : 'FIRST'} atta
 
 If you do not faithfully reproduce the style shown in this image, you have failed.` : ''}
 
-PHOTO = who the character IS. STYLE EXAMPLE = how to RENDER them. Never confuse these roles. If the photo's child does not match the style example's character, IGNORE the style example's character — only use the style example for art style and medium reference.
+PHOTO = who the character IS. CHARACTER SHEET = the locked character design in this art style — match it exactly. STYLE EXAMPLE = how to RENDER. Never confuse these roles. If the photo's child does not match the style example's character, IGNORE the style example's character — only use the style example for art style and medium reference.
 ` : '';
 
   const fullPrompt = `${promptText}\n${referenceBlock}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).${allChildPhotos.length > 0 ? '\nThink step by step about the character\'s appearance before generating. The main character must look EXACTLY like the child in the reference photo(s).' : ''}`;
@@ -177,6 +259,9 @@ PHOTO = who the character IS. STYLE EXAMPLE = how to RENDER them. Never confuse 
         const parts: Part[] = [];
         for (const photo of allChildPhotos) {
           parts.push({ inlineData: { mimeType: 'image/jpeg', data: photo } });
+        }
+        if (characterSheetBase64) {
+          parts.push({ inlineData: { mimeType: 'image/png', data: characterSheetBase64 } });
         }
         if (stylePreviewBase64) {
           parts.push({ inlineData: { mimeType: 'image/png', data: stylePreviewBase64 } });
@@ -229,6 +314,7 @@ export async function generatePageIllustration(
     pageNumber,
     childPhotoBase64,
     childPhotosBase64,
+    characterSheetBase64,
     coverImageBase64,
     stylePreviewBase64,
     visualBibleBlock,
@@ -309,7 +395,7 @@ Before generating, verify: Is the character's race, skin tone, hair color/style 
   if (isDevIllustrations()) {
     console.log(`[DEV_ILLUSTRATIONS] Using FLUX 2 Pro for page ${pageNumber}`);
     const buffer = await generateWithRateLimit(() =>
-      buildFlux2ProRequest(promptText, { characterCrops, coverImageBase64, childPhotoBase64, stylePreviewBase64 })
+      buildFlux2ProRequest(promptText, { characterCrops, characterSheetBase64, coverImageBase64, childPhotoBase64, stylePreviewBase64 })
     );
     return { buffer, modelUsed: FALLBACK_MODEL };
   }
@@ -330,7 +416,7 @@ Before generating, verify: Is the character's race, skin tone, hair color/style 
   // If model is locked to FLUX, skip Gemini entirely
   if (useFluxDirectly) {
     console.log(`[illustration-generator] FLUX-direct mode for page ${pageNumber} (model locked)`);
-    const fb = await buildFlux2ProRequest(fullPrompt, { characterCrops, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
+    const fb = await buildFlux2ProRequest(fullPrompt, { characterCrops, characterSheetBase64, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
     return { buffer: fb, modelUsed: FALLBACK_MODEL };
   }
 
@@ -349,6 +435,10 @@ Before generating, verify: Is the character's race, skin tone, hair color/style 
       for (const crop of otherCrops) {
         if (imgCount >= 10) break;
         parts.push({ inlineData: { mimeType: 'image/png', data: crop.base64 } });
+        imgCount++;
+      }
+      if (characterSheetBase64 && imgCount < 10) {
+        parts.push({ inlineData: { mimeType: 'image/png', data: characterSheetBase64 } });
         imgCount++;
       }
       if (previousPageBase64 && imgCount < 10) {
@@ -379,7 +469,7 @@ Before generating, verify: Is the character's race, skin tone, hair color/style 
       const imageBuffer = extractImageFromResponse(response);
       if (!imageBuffer) {
         console.warn(`[illustration-generator] ${PRIMARY_MODEL} returned no image for page ${pageNumber}, trying FLUX.2 Pro fallback`);
-        const fb = await buildFlux2ProRequest(fullPrompt, { characterCrops, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
+        const fb = await buildFlux2ProRequest(fullPrompt, { characterCrops, characterSheetBase64, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
         return { buffer: fb, modelUsed: FALLBACK_MODEL };
       }
 
@@ -388,7 +478,7 @@ Before generating, verify: Is the character's race, skin tone, hair color/style 
       console.error(`[illustration-generator] ${PRIMARY_MODEL} page ${pageNumber} FAILED, trying FLUX.2 Pro fallback:`, {
         message: err instanceof Error ? err.message : String(err),
       });
-      const fb = await buildFlux2ProRequest(fullPrompt, { characterCrops, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
+      const fb = await buildFlux2ProRequest(fullPrompt, { characterCrops, characterSheetBase64, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
       return { buffer: fb, modelUsed: FALLBACK_MODEL };
     }
   });
@@ -398,6 +488,7 @@ async function buildFlux2ProRequest(
   prompt: string,
   refs: {
     characterCrops?: Array<{ name: string; base64: string }>;
+    characterSheetBase64?: string;
     coverImageBase64?: string;
     childPhotoBase64?: string;
     stylePreviewBase64?: string;
@@ -405,9 +496,13 @@ async function buildFlux2ProRequest(
 ): Promise<Buffer> {
   const referenceImages: ReferenceImage[] = [];
 
-  // Protagonist crop first (strongest identity anchor)
-  if (refs.characterCrops?.[0]) {
-    referenceImages.push({ base64: refs.characterCrops[0].base64, role: 'protagonist' });
+  // Character sheet first (strongest identity anchor when available)
+  if (refs.characterSheetBase64 && referenceImages.length < 8) {
+    referenceImages.push({ base64: refs.characterSheetBase64, role: 'protagonist' });
+  }
+  // Protagonist crop
+  if (refs.characterCrops?.[0] && referenceImages.length < 8) {
+    referenceImages.push({ base64: refs.characterCrops[0].base64, role: referenceImages.length === 0 ? 'protagonist' : 'supporting_character' });
   }
   // Supporting character crops
   for (const crop of (refs.characterCrops || []).slice(1)) {

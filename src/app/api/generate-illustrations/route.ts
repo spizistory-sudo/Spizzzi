@@ -144,6 +144,15 @@ export async function POST(req: Request) {
     childPhotoBase64 = childPhotosBase64[0];
     console.log(`[generate-illustrations] Loaded ${childPhotosBase64.length} child photo(s)`);
 
+    // Load character sheet
+    let characterSheetBase64: string | undefined;
+    try {
+      characterSheetBase64 = await getImageBase64('covers', `character-sheets/${bookId}/sheet.png`);
+      console.log('[generate-illustrations] Character sheet loaded');
+    } catch {
+      console.log('[generate-illustrations] No character sheet found, continuing without');
+    }
+
     console.log('[generate-illustrations] CHARACTER LOCK:', {
       bookId,
       gender: normalizedGender,
@@ -217,6 +226,7 @@ export async function POST(req: Request) {
       characterBible,
       childPhotoBase64,
       childPhotosBase64,
+      characterSheetBase64,
       coverImageBase64,
       stylePreviewBase64,
       visualBibleBlock,
@@ -264,6 +274,7 @@ async function generateAllIllustrations(params: {
   characterBible: string;
   childPhotoBase64?: string;
   childPhotosBase64?: string[];
+  characterSheetBase64?: string;
   coverImageBase64?: string;
   stylePreviewBase64?: string;
   visualBibleBlock?: string;
@@ -272,7 +283,7 @@ async function generateAllIllustrations(params: {
   normalizedGender?: string;
   lockedModel?: string;
 }): Promise<Array<{ pageNumber: number; status: string; url?: string; error?: string }>> {
-  const { bookId, pages, styleKey, characterDescription, characterBible, childPhotoBase64, childPhotosBase64, coverImageBase64, stylePreviewBase64, visualBibleBlock, characterCrops, rawVisualBible, normalizedGender, lockedModel } = params;
+  const { bookId, pages, styleKey, characterDescription, characterBible, childPhotoBase64, childPhotosBase64, characterSheetBase64, coverImageBase64, stylePreviewBase64, visualBibleBlock, characterCrops, rawVisualBible, normalizedGender, lockedModel } = params;
 
   const { createClient: createServiceClient } = await import('@supabase/supabase-js');
   const supabase = createServiceClient(
@@ -306,6 +317,7 @@ async function generateAllIllustrations(params: {
         pageNumber: page.page_number,
         childPhotoBase64,
         childPhotosBase64,
+        characterSheetBase64,
         coverImageBase64,
         stylePreviewBase64,
         visualBibleBlock,

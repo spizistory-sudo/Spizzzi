@@ -407,8 +407,23 @@ function FinalizePage() {
     const pageCount = generatedStory?.pages?.length || 3;
     setBuildProgress({ illustrationsComplete: 0, narrationsComplete: 0, total: pageCount * 2 });
 
-    // STEP 2: Generate cover (pages need it as reference)
+    // STEP 2a: Generate canonical character sheet (identity anchor for cover + pages)
     setBuildPhase('cover_generating');
+    try {
+      console.log('[finalize] Generating character sheet...');
+      const sheetRes = await fetch('/api/generate-character-sheet', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId: newBookId }),
+      });
+      if (sheetRes.ok) {
+        console.log('[finalize] Character sheet generated');
+      } else {
+        console.warn('[finalize] Character sheet generation failed, continuing without');
+      }
+    } catch (err) {
+      console.warn('[finalize] Character sheet error (non-fatal):', err);
+    }
+
+    // STEP 2b: Generate cover (pages need it as reference)
     try {
       console.log('[finalize] Starting cover generation...');
       const coverRes = await fetch('/api/generate-cover', {
