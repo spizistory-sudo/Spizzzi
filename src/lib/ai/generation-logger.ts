@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export type GenerationLogEntry = {
   bookId: string;
-  imageType: 'cover' | 'page';
+  imageType: 'cover' | 'page' | 'identity_check';
   pageNumber?: number;
   styleKey?: string;
   modelAttempted: string;

@@ -7,6 +7,7 @@ import { logGeneration } from '@/lib/ai/generation-logger';
 import { visualBibleToPromptBlock, type VisualBible } from '@/lib/ai/visual-bible';
 import { checkBookFullyComplete, triggerSuccessEmail, triggerFailureEmail } from '@/lib/email/book-completion-trigger';
 import { verifyPageIdentity } from '@/lib/ai/identity-verifier';
+import { scoreCharacterMatch } from '@/lib/ai/character-scorer';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -325,20 +326,27 @@ async function generateAllIllustrations(params: {
         useFluxDirectly: lockedModel === 'flux',
       };
 
-      // Generate with identity verification retry loop (up to 3 attempts)
-      const MAX_IDENTITY_ATTEMPTS = 3;
-      let identityAttempt = 0;
-      let genResult;
-      let lastVerification: { passes: boolean; reason?: string } | null = null;
+      // Generate with scored drift gate (character sheet comparison)
+      const IDENTITY_MIN_SCORE = parseInt(process.env.IDENTITY_MIN_SCORE || '70', 10);
+      const IDENTITY_MAX_RETRIES = parseInt(process.env.IDENTITY_MAX_RETRIES || '2', 10);
+      let bestResult: { buffer: Buffer; modelUsed: string; score: number } | null = null;
+      let genAttempt = 0;
+      let lastMismatches: string[] = [];
 
-      while (identityAttempt < MAX_IDENTITY_ATTEMPTS) {
-        identityAttempt++;
+      while (genAttempt <= IDENTITY_MAX_RETRIES) {
+        genAttempt++;
 
+        // On retry, append mismatch feedback to the prompt
+        const retryParams = genAttempt > 1 && lastMismatches.length > 0
+          ? { ...illustrationParams, illustrationPrompt: `${illustrationParams.illustrationPrompt}\n\nIMPORTANT — The previous illustration had these identity mismatches: ${lastMismatches.join('; ')}. Match the character sheet EXACTLY.` }
+          : illustrationParams;
+
+        let genResult;
         try {
-          genResult = await generatePageIllustration(illustrationParams);
+          genResult = await generatePageIllustration(retryParams);
         } catch (genErr) {
-          if (identityAttempt < MAX_IDENTITY_ATTEMPTS) {
-            console.warn(`[generate-illustrations] Page ${page.page_number} gen failed attempt ${identityAttempt}, retrying:`, (genErr as Error).message);
+          if (genAttempt <= IDENTITY_MAX_RETRIES) {
+            console.warn(`[generate-illustrations] Page ${page.page_number} gen failed attempt ${genAttempt}, retrying:`, (genErr as Error).message);
             retryCount++;
             await new Promise((r) => setTimeout(r, 2000));
             continue;
@@ -346,43 +354,52 @@ async function generateAllIllustrations(params: {
           throw genErr;
         }
 
-        // Verify identity if Visual Bible is available
-        if (!rawVisualBible) break;
+        // Score against character sheet (if available)
+        let score = 80;
+        let mismatches: string[] = [];
+        if (characterSheetBase64) {
+          const match = await scoreCharacterMatch(
+            genResult.buffer.toString('base64'),
+            characterSheetBase64,
+          );
+          score = match.score;
+          mismatches = match.mismatches;
+          lastMismatches = mismatches;
 
-        const verifyStart = Date.now();
-        lastVerification = await verifyPageIdentity({
-          pageImageBuffer: genResult.buffer,
-          visualBible: rawVisualBible,
-          childGender: normalizedGender || 'male',
-        });
+          await logGeneration({
+            bookId,
+            imageType: 'identity_check',
+            pageNumber: page.page_number,
+            styleKey,
+            modelAttempted: 'gemini-2.5-flash',
+            modelUsed: 'gemini-2.5-flash',
+            fallbackTriggered: false,
+            referencesAttached: {},
+            durationMs: 0,
+            success: true,
+            errorMessage: score >= IDENTITY_MIN_SCORE ? undefined : `score=${score} mismatches=[${mismatches.join(', ')}]`,
+          });
 
-        await logGeneration({
-          bookId,
-          imageType: 'page' as const,
-          pageNumber: page.page_number,
-          styleKey,
-          modelAttempted: 'gemini-2.5-flash',
-          modelUsed: 'gemini-2.5-flash',
-          fallbackTriggered: false,
-          referencesAttached: {},
-          durationMs: Date.now() - verifyStart,
-          success: true,
-          errorMessage: lastVerification.passes ? undefined : lastVerification.reason,
-        });
+          console.log(`[generate-illustrations] Page ${page.page_number} attempt ${genAttempt}: score=${score}, mismatches=${mismatches.join(', ') || 'none'}`);
+        }
 
-        if (lastVerification.passes) break;
+        if (!bestResult || score > bestResult.score) {
+          bestResult = { ...genResult, score };
+        }
 
-        if (identityAttempt < MAX_IDENTITY_ATTEMPTS) {
-          console.warn(`[generate-illustrations] Identity check failed page ${page.page_number} attempt ${identityAttempt}: ${lastVerification.reason}`);
+        if (score >= IDENTITY_MIN_SCORE) break;
+
+        if (genAttempt <= IDENTITY_MAX_RETRIES) {
+          console.warn(`[generate-illustrations] Page ${page.page_number} score ${score} < ${IDENTITY_MIN_SCORE}, retrying (${genAttempt}/${IDENTITY_MAX_RETRIES + 1})`);
           retryCount++;
         }
       }
 
-      if (lastVerification && !lastVerification.passes) {
-        console.error(`[generate-illustrations] Identity check FAILED ALL ${MAX_IDENTITY_ATTEMPTS} attempts on page ${page.page_number}. Accepting last attempt.`);
+      if (bestResult && bestResult.score < IDENTITY_MIN_SCORE) {
+        console.warn(`[generate-illustrations] Page ${page.page_number} best score ${bestResult.score} still below threshold ${IDENTITY_MIN_SCORE}. Accepting best attempt.`);
       }
 
-      const finalResult = genResult!;
+      const finalResult = bestResult!;
 
       await logGeneration({
         bookId,

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getImageBase64 } from '@/lib/supabase/storage';
 import { generateCharacterSheet } from '@/lib/ai/illustration-generator';
+import { scoreCharacterMatch } from '@/lib/ai/character-scorer';
 import type { ArtStyleKey } from '@/lib/ai/prompts/style-references';
 
 export const maxDuration = 120;
@@ -70,11 +71,12 @@ export async function POST(req: Request) {
     // Generate sheet (attempt 1)
     let result = await generateCharacterSheet({ styleKey, characterDescription, childPhotosBase64, stylePreviewBase64 });
 
-    // Light quality gate: quick identity check via Gemini Flash
+    // Light quality gate via shared scorer
     if (childPhotosBase64.length > 0) {
-      const passesCheck = await quickIdentityCheck(childPhotosBase64[0], result.buffer.toString('base64'));
-      if (!passesCheck) {
-        console.log('[generate-character-sheet] Sheet failed identity check, regenerating once');
+      const match = await scoreCharacterMatch(result.buffer.toString('base64'), childPhotosBase64[0], 'image/png', 'image/jpeg');
+      console.log(`[generate-character-sheet] Sheet score: ${match.score}, mismatches: ${match.mismatches.join(', ') || 'none'}`);
+      if (match.score < 60) {
+        console.log('[generate-character-sheet] Sheet below threshold (60), regenerating once');
         result = await generateCharacterSheet({ styleKey, characterDescription, childPhotosBase64, stylePreviewBase64 });
       }
     }
@@ -118,29 +120,5 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error('[generate-character-sheet] Error:', err);
     return NextResponse.json({ error: 'Sheet generation failed' }, { status: 500 });
-  }
-}
-
-async function quickIdentityCheck(photoBase64: string, sheetBase64: string): Promise<boolean> {
-  try {
-    const { getGeminiClient } = await import('@/lib/ai/gemini');
-    const ai = getGeminiClient();
-    const res = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [{
-        role: 'user',
-        parts: [
-          { inlineData: { mimeType: 'image/jpeg', data: photoBase64 } },
-          { inlineData: { mimeType: 'image/png', data: sheetBase64 } },
-          { text: 'Image 1 is a photo of a real child. Image 2 is an illustrated character sheet. Does the illustrated character clearly match the child in the photo — same hair color, skin tone, and face shape? Answer with exactly one word: "YES" or "NO".' },
-        ],
-      }],
-    });
-    const answer = (res.text || '').trim().toUpperCase();
-    console.log(`[character-sheet] Identity check: ${answer}`);
-    return answer.startsWith('YES');
-  } catch (err) {
-    console.warn('[character-sheet] Identity check failed, passing by default:', err);
-    return true;
   }
 }
