@@ -125,20 +125,24 @@ export async function POST(req: Request) {
       console.log('[generate-illustrations] Character crops loaded:', characterCrops.length);
     }
 
-    // Load reference images
+    // Load all child photos as references
     let childPhotoBase64: string | undefined;
+    const childPhotosBase64: string[] = [];
     const { data: photos } = await supabase
       .from('photos')
       .select('storage_path')
       .eq('book_id', bookId)
       .eq('label', 'child')
-      .limit(1);
+      .order('created_at', { ascending: true });
 
-    if (photos?.[0]) {
+    for (const photo of photos || []) {
       try {
-        childPhotoBase64 = await getImageBase64('photos', photos[0].storage_path);
+        const b64 = await getImageBase64('photos', photo.storage_path);
+        childPhotosBase64.push(b64);
       } catch { /* continue without */ }
     }
+    childPhotoBase64 = childPhotosBase64[0];
+    console.log(`[generate-illustrations] Loaded ${childPhotosBase64.length} child photo(s)`);
 
     console.log('[generate-illustrations] CHARACTER LOCK:', {
       bookId,
@@ -212,6 +216,7 @@ export async function POST(req: Request) {
       characterDescription,
       characterBible,
       childPhotoBase64,
+      childPhotosBase64,
       coverImageBase64,
       stylePreviewBase64,
       visualBibleBlock,
@@ -258,6 +263,7 @@ async function generateAllIllustrations(params: {
   characterDescription: string;
   characterBible: string;
   childPhotoBase64?: string;
+  childPhotosBase64?: string[];
   coverImageBase64?: string;
   stylePreviewBase64?: string;
   visualBibleBlock?: string;
@@ -266,7 +272,7 @@ async function generateAllIllustrations(params: {
   normalizedGender?: string;
   lockedModel?: string;
 }): Promise<Array<{ pageNumber: number; status: string; url?: string; error?: string }>> {
-  const { bookId, pages, styleKey, characterDescription, characterBible, childPhotoBase64, coverImageBase64, stylePreviewBase64, visualBibleBlock, characterCrops, rawVisualBible, normalizedGender, lockedModel } = params;
+  const { bookId, pages, styleKey, characterDescription, characterBible, childPhotoBase64, childPhotosBase64, coverImageBase64, stylePreviewBase64, visualBibleBlock, characterCrops, rawVisualBible, normalizedGender, lockedModel } = params;
 
   const { createClient: createServiceClient } = await import('@supabase/supabase-js');
   const supabase = createServiceClient(
@@ -299,6 +305,7 @@ async function generateAllIllustrations(params: {
         mood: page.mood || 'happy',
         pageNumber: page.page_number,
         childPhotoBase64,
+        childPhotosBase64,
         coverImageBase64,
         stylePreviewBase64,
         visualBibleBlock,

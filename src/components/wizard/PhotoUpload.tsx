@@ -6,17 +6,44 @@ import { createClient } from '@/lib/supabase/client';
 
 type PhotoLabel = 'child' | 'parent' | 'sibling' | 'pet';
 
-const MAX_FILES = 5;
+const MAX_CHILD_PHOTOS = 3;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-export default function PhotoUpload() {
+export default function PhotoUpload({ childName }: { childName?: string }) {
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { uploadedPhotos, addPhoto, removePhoto } = useCreationWizard();
 
+  const childPhotos = uploadedPhotos.filter((p) => p.label === 'child');
+
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validating, setValidating] = useState(false);
+
+  async function validatePhoto(storagePath: string): Promise<{ ok: boolean; message?: string }> {
+    try {
+      const res = await fetch('/api/analyze-photo-standalone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storagePath, validateOnly: true }),
+      });
+      if (res.ok) return { ok: true };
+      const data = await res.json().catch(() => ({}));
+      if (data.error === 'NO_PERSON_DETECTED') {
+        return { ok: false, message: data.message || 'No face detected in this photo.' };
+      }
+      if (data.error === 'MULTIPLE_FACES') {
+        return { ok: false, message: data.message || 'Please use a photo with just one person.' };
+      }
+      if (data.error === 'LOW_QUALITY') {
+        return { ok: false, message: data.message || 'Photo is too blurry or dark. Try a clearer one.' };
+      }
+      return { ok: true };
+    } catch {
+      return { ok: true };
+    }
+  }
 
   async function uploadFile(file: File, label: PhotoLabel) {
     if (file.size > MAX_FILE_SIZE) {
@@ -27,8 +54,8 @@ export default function PhotoUpload() {
       setError(`${file.name} is not a valid image file.`);
       return;
     }
-    if (uploadedPhotos.length >= MAX_FILES) {
-      setError(`Maximum ${MAX_FILES} photos allowed.`);
+    if (childPhotos.length >= MAX_CHILD_PHOTOS) {
+      setError(`Maximum ${MAX_CHILD_PHOTOS} photos allowed.`);
       return;
     }
 
@@ -49,6 +76,18 @@ export default function PhotoUpload() {
 
       if (uploadError) throw uploadError;
 
+      setUploading(false);
+      setValidating(true);
+
+      const validation = await validatePhoto(storagePath);
+      if (!validation.ok) {
+        await supabase.storage.from('photos').remove([storagePath]);
+        const name = childName || 'your child';
+        setError(validation.message || `Use a clear, well-lit photo of just ${name}'s face.`);
+        setValidating(false);
+        return;
+      }
+
       addPhoto({
         id: photoId,
         storagePath,
@@ -59,6 +98,7 @@ export default function PhotoUpload() {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploading(false);
+      setValidating(false);
     }
   }
 
@@ -113,8 +153,8 @@ export default function PhotoUpload() {
           textAlign: 'center',
           cursor: 'pointer',
           transition: 'all 0.3s ease',
-          opacity: uploadedPhotos.length >= MAX_FILES ? 0.5 : 1,
-          pointerEvents: uploadedPhotos.length >= MAX_FILES ? 'none' : 'auto',
+          opacity: childPhotos.length >= MAX_CHILD_PHOTOS ? 0.5 : 1,
+          pointerEvents: childPhotos.length >= MAX_CHILD_PHOTOS ? 'none' : 'auto',
         }}
       >
         <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleFiles(e.target.files)} />
@@ -122,18 +162,18 @@ export default function PhotoUpload() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
           <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
         </svg>
-        {uploading ? (
+        {uploading || validating ? (
           <div className="flex items-center justify-center gap-2">
             <div className="animate-spin w-5 h-5 border-2 rounded-full" style={{ borderColor: 'rgba(126,200,227,0.3)', borderTopColor: 'var(--cyan)' }} />
-            <p style={{ color: 'var(--cyan)', fontWeight: 500 }}>Uploading...</p>
+            <p style={{ color: 'var(--cyan)', fontWeight: 500 }}>{validating ? 'Checking photo...' : 'Uploading...'}</p>
           </div>
         ) : (
           <>
             <p style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'var(--font-body)', fontWeight: 500 }}>
-              Drag & drop a photo, or click to browse
+              {childPhotos.length === 0 ? 'Drag & drop a photo, or click to browse' : `Add another photo (${childPhotos.length}/${MAX_CHILD_PHOTOS})`}
             </p>
             <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: '0.85rem', marginTop: 4 }}>
-              JPG, PNG, or WebP &middot; Max 5MB
+              {childPhotos.length === 0 ? 'Up to 3 clear solo photos · JPG, PNG, or WebP · Max 5MB' : 'More angles help the AI match your child'}
             </p>
           </>
         )}

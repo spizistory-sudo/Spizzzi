@@ -28,6 +28,7 @@ interface GenerateCoverParams {
   characterDescription: string;
   themeDescription: string;
   childPhotoBase64?: string;
+  childPhotosBase64?: string[];
   stylePreviewBase64?: string;
 }
 
@@ -38,6 +39,7 @@ interface GeneratePageIllustrationParams {
   mood: string;
   pageNumber: number;
   childPhotoBase64?: string;
+  childPhotosBase64?: string[];
   coverImageBase64?: string;
   stylePreviewBase64?: string;
   visualBibleBlock?: string;
@@ -93,7 +95,8 @@ async function generateWithImagen(
 export async function generateCoverImage(
   params: GenerateCoverParams
 ): Promise<GenerationResult> {
-  const { styleKey, characterDescription, themeDescription, childPhotoBase64, stylePreviewBase64 } = params;
+  const { styleKey, characterDescription, themeDescription, childPhotoBase64, childPhotosBase64, stylePreviewBase64 } = params;
+  const allChildPhotos = childPhotosBase64?.length ? childPhotosBase64 : childPhotoBase64 ? [childPhotoBase64] : [];
   const style = ART_STYLES[styleKey];
 
   if (!characterDescription || characterDescription.length < 50) {
@@ -132,17 +135,17 @@ We will add the title separately with CSS.`;
   if (isDevIllustrations()) {
     console.log(`[DEV_ILLUSTRATIONS] Using FLUX 2 Pro for cover (${styleKey})`);
     const buffer = await generateWithRateLimit(() =>
-      buildFlux2ProRequest(promptText, { childPhotoBase64, stylePreviewBase64 })
+      buildFlux2ProRequest(promptText, { childPhotoBase64: allChildPhotos[0], stylePreviewBase64 })
     );
     return { buffer, modelUsed: FALLBACK_MODEL };
   }
 
-  const referenceBlock = (childPhotoBase64 || stylePreviewBase64) ? `
+  const referenceBlock = (allChildPhotos.length > 0 || stylePreviewBase64) ? `
 REFERENCE IMAGES — READ CAREFULLY:
 
-${childPhotoBase64 ? `The FIRST attached image is a PHOTO of the REAL CHILD this book is about. The protagonist on the cover MUST look like this child — match the face shape, hair color and texture, eye color and shape, skin tone, and overall proportions exactly.` : ''}
+${allChildPhotos.length > 0 ? `The FIRST ${allChildPhotos.length > 1 ? `${allChildPhotos.length} attached images are PHOTOS` : 'attached image is a PHOTO'} of the REAL CHILD this book is about. The protagonist on the cover MUST look like this child — match the face shape, hair color and texture, eye color and shape, skin tone, and overall proportions exactly.${allChildPhotos.length > 1 ? ' Multiple angles are provided for better identity matching.' : ''}` : ''}
 
-${stylePreviewBase64 ? `The ${childPhotoBase64 ? 'SECOND' : 'FIRST'} attached image is a STYLE EXAMPLE showing the EXACT art style this cover must be rendered in. This is the MOST IMPORTANT visual instruction. The cover MUST look like it could come from the same book or art collection as this style example. Match every aspect of this style:
+${stylePreviewBase64 ? `The ${allChildPhotos.length > 0 ? 'NEXT' : 'FIRST'} attached image is a STYLE EXAMPLE showing the EXACT art style this cover must be rendered in. This is the MOST IMPORTANT visual instruction. The cover MUST look like it could come from the same book or art collection as this style example. Match every aspect of this style:
 - The medium (oil paint vs. ink vs. clay vs. 3D render vs. watercolor vs. screen-print, etc.)
 - The color palette and saturation
 - The line work — thick black outlines vs. no outlines vs. soft edges
@@ -155,7 +158,7 @@ If you do not faithfully reproduce the style shown in this image, you have faile
 PHOTO = who the character IS. STYLE EXAMPLE = how to RENDER them. Never confuse these roles. If the photo's child does not match the style example's character, IGNORE the style example's character — only use the style example for art style and medium reference.
 ` : '';
 
-  const fullPrompt = `${promptText}\n${referenceBlock}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).${childPhotoBase64 ? '\nThink step by step about the character\'s appearance before generating. The main character must look EXACTLY like the child in the reference photo.' : ''}`;
+  const fullPrompt = `${promptText}\n${referenceBlock}\nGenerate in PORTRAIT orientation (3:4 aspect ratio, taller than wide).${allChildPhotos.length > 0 ? '\nThink step by step about the character\'s appearance before generating. The main character must look EXACTLY like the child in the reference photo(s).' : ''}`;
 
   console.log('[illustration-generator] generateCoverImage references:', {
     styleKey,
@@ -172,8 +175,8 @@ PHOTO = who the character IS. STYLE EXAMPLE = how to RENDER them. Never confuse 
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         const parts: Part[] = [];
-        if (childPhotoBase64) {
-          parts.push({ inlineData: { mimeType: 'image/jpeg', data: childPhotoBase64 } });
+        for (const photo of allChildPhotos) {
+          parts.push({ inlineData: { mimeType: 'image/jpeg', data: photo } });
         }
         if (stylePreviewBase64) {
           parts.push({ inlineData: { mimeType: 'image/png', data: stylePreviewBase64 } });
@@ -225,6 +228,7 @@ export async function generatePageIllustration(
     mood,
     pageNumber,
     childPhotoBase64,
+    childPhotosBase64,
     coverImageBase64,
     stylePreviewBase64,
     visualBibleBlock,
@@ -233,6 +237,7 @@ export async function generatePageIllustration(
     useFluxDirectly,
   } = params;
   const style = ART_STYLES[styleKey];
+  const allChildPhotos = childPhotosBase64?.length ? childPhotosBase64 : childPhotoBase64 ? [childPhotoBase64] : [];
 
   if (!characterDescription || characterDescription.length < 50) {
     console.warn('[illustration] WARNING: Character description is too short or missing:', characterDescription);
@@ -354,8 +359,9 @@ Before generating, verify: Is the character's race, skin tone, hair color/style 
         parts.push({ inlineData: { mimeType: 'image/png', data: coverImageBase64 } });
         imgCount++;
       }
-      if (childPhotoBase64 && imgCount < 10) {
-        parts.push({ inlineData: { mimeType: 'image/jpeg', data: childPhotoBase64 } });
+      for (const photo of allChildPhotos) {
+        if (imgCount >= 10) break;
+        parts.push({ inlineData: { mimeType: 'image/jpeg', data: photo } });
         imgCount++;
       }
       if (stylePreviewBase64 && imgCount < 10) {

@@ -95,23 +95,26 @@ export async function POST(req: Request) {
       storyBibleLength: storyBible.length,
     });
 
-    // Load child photo
+    // Load all child photos
     let childPhotoBase64: string | undefined;
+    const childPhotosBase64: string[] = [];
     const { data: photos } = await supabase
       .from('photos')
       .select('storage_path')
       .eq('book_id', bookId)
       .eq('label', 'child')
-      .limit(1);
+      .order('created_at', { ascending: true });
 
-    if (photos?.[0]) {
+    for (const photo of photos || []) {
       try {
-        childPhotoBase64 = await getImageBase64('photos', photos[0].storage_path);
-        console.log('[generate-cover] Child photo loaded, length:', childPhotoBase64.length);
+        const b64 = await getImageBase64('photos', photo.storage_path);
+        childPhotosBase64.push(b64);
       } catch (err) {
         console.warn('[generate-cover] Could not load child photo:', err);
       }
     }
+    childPhotoBase64 = childPhotosBase64[0];
+    console.log(`[generate-cover] Loaded ${childPhotosBase64.length} child photo(s)`);
 
     // Load style preview PNG
     let stylePreviewBase64: string | undefined;
@@ -151,7 +154,7 @@ export async function POST(req: Request) {
       const attemptStart = Date.now();
       try {
         console.log(`[generate-cover] Gemini attempt ${attempt}/${GEMINI_ATTEMPTS}`);
-        coverResult = await generateCoverImage({ styleKey, bookTitle: book.title, characterDescription, themeDescription, childPhotoBase64, stylePreviewBase64 });
+        coverResult = await generateCoverImage({ styleKey, bookTitle: book.title, characterDescription, themeDescription, childPhotoBase64, childPhotosBase64, stylePreviewBase64 });
         chosenModel = 'gemini';
         await logGeneration({ bookId, imageType: 'cover', styleKey, modelAttempted: PRIMARY_MODEL, modelUsed: coverResult.modelUsed, fallbackTriggered: false, referencesAttached: refsInfo, promptLength: characterDescription.length, durationMs: Date.now() - attemptStart, retryCount: attempt - 1, success: true });
         console.log(`[generate-cover] Gemini attempt ${attempt} succeeded`);

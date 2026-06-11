@@ -334,11 +334,11 @@ export default function DetailsPage() {
 
         {/* Photo upload */}
         <div>
-          <label style={labelStyle}>Add a photo of your child</label>
+          <label style={labelStyle}>Add photos of your child (1–3)</label>
           <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.84rem', marginBottom: 12, fontFamily: 'var(--font-body)' }}>
-            We use it to create illustrations that look like them.
+            Clear solo photos from different angles help the AI match your child best.
           </p>
-          <PhotoUpload />
+          <PhotoUpload childName={name.trim() || undefined} />
           <div className="mt-3">
             <ComingSoon title="Family & Pets" description="Add photos of your family or pets and include them in the story." />
           </div>
