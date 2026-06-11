@@ -7,10 +7,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useCreationWizard } from '@/stores/creation-wizard';
 
-const navItems = [
+const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || 'yc3005@gmail.com').split(',').map(e => e.trim().toLowerCase());
+
+const NAV_ITEMS = [
   {
     label: 'My Library',
     href: '/library',
+    adminOnly: false,
     icon: (
       <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
@@ -20,6 +23,7 @@ const navItems = [
   {
     label: 'Spizzzy Library',
     href: '/explore',
+    adminOnly: false,
     icon: (
       <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6M4.5 9.75v9.75h15V9.75" />
@@ -29,6 +33,7 @@ const navItems = [
   {
     label: 'Settings',
     href: '/admin',
+    adminOnly: true,
     icon: (
       <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
@@ -38,10 +43,10 @@ const navItems = [
   },
 ];
 
-function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+function NavLinks({ pathname, onNavigate, showAdmin }: { pathname: string; onNavigate?: () => void; showAdmin: boolean }) {
   return (
     <>
-      {navItems.map((item) => {
+      {NAV_ITEMS.filter(item => !item.adminOnly || showAdmin).map((item) => {
         const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
         return (
           <Link
@@ -73,10 +78,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const supabase = createClient();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
 
-  // Rehydrate persisted wizard state from sessionStorage (skipHydration: true in store)
   useEffect(() => {
     useCreationWizard.persist.rehydrate();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+        setShowAdmin(true);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleSignOut() {
@@ -100,16 +111,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         zIndex: 10,
         flexShrink: 0,
       }}>
-        <Link href="/library" style={{ textDecoration: 'none', marginBottom: 28, display: 'block' }}>
+        <Link href="/library" style={{ textDecoration: 'none', marginBottom: 16, display: 'block' }}>
           <Image src="/images/logo/spizzzy-logo.png" alt="Spizzzy" width={140} height={140} priority className="h-auto w-32" />
+        </Link>
+        <Link href="/create" className="btn-primary" style={{ width: '100%', textAlign: 'center', marginBottom: 16, fontSize: '0.9rem', padding: '12px 20px' }}>
+          &#10022; Create Book
         </Link>
         <div style={{ borderTop: '1px solid rgba(255, 248, 235, 0.06)', margin: '0 0 12px' }} />
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <NavLinks pathname={pathname} />
+          <NavLinks pathname={pathname} showAdmin={showAdmin} />
         </nav>
-        <Link href="/create" className="btn-primary" style={{ width: '100%', textAlign: 'center', marginTop: 'auto', marginBottom: 16, fontSize: '0.9rem', padding: '12px 20px' }}>
-          &#10022; Create Book
-        </Link>
         <button onClick={handleSignOut} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, color: 'rgba(255, 255, 255, 0.30)', fontFamily: 'var(--font-body)', fontSize: '0.82rem', fontWeight: 400, cursor: 'pointer', background: 'transparent', border: 'none', width: '100%' }}>
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
@@ -156,16 +167,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             padding: '28px 16px',
             animation: 'slideInLeft 0.2s ease-out',
           }}>
-            <Link href="/library" onClick={() => setDrawerOpen(false)} style={{ textDecoration: 'none', marginBottom: 28, display: 'block' }}>
+            <Link href="/library" onClick={() => setDrawerOpen(false)} style={{ textDecoration: 'none', marginBottom: 16, display: 'block' }}>
               <Image src="/images/logo/spizzzy-logo.png" alt="Spizzzy" width={120} height={120} className="h-auto w-28" />
+            </Link>
+            <Link href="/create" onClick={() => setDrawerOpen(false)} className="btn-primary" style={{ width: '100%', textAlign: 'center', marginBottom: 16, fontSize: '0.9rem', padding: '12px 20px' }}>
+              &#10022; Create Book
             </Link>
             <div style={{ borderTop: '1px solid rgba(255, 248, 235, 0.06)', margin: '0 0 12px' }} />
             <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <NavLinks pathname={pathname} onNavigate={() => setDrawerOpen(false)} />
+              <NavLinks pathname={pathname} onNavigate={() => setDrawerOpen(false)} showAdmin={showAdmin} />
             </nav>
-            <Link href="/create" onClick={() => setDrawerOpen(false)} className="btn-primary" style={{ width: '100%', textAlign: 'center', marginTop: 'auto', marginBottom: 16, fontSize: '0.9rem', padding: '12px 20px' }}>
-              &#10022; Create Book
-            </Link>
             <button onClick={() => { handleSignOut(); setDrawerOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, color: 'rgba(255, 255, 255, 0.30)', fontFamily: 'var(--font-body)', fontSize: '0.82rem', background: 'transparent', border: 'none', width: '100%', cursor: 'pointer' }}>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
