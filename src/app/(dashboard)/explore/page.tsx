@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import LibraryAnnouncementModal from '@/components/library/LibraryAnnouncementModal';
 import {
   getLibraryBooks,
   paletteGradient,
@@ -361,6 +362,8 @@ export default function ExplorePage() {
 
       {/* TOAST */}
       <div className={`el-toast${toastMsg ? ' show' : ''}`}>{toastMsg}</div>
+
+      <LibraryAnnouncementModal />
     </div>
   );
 }
