@@ -1,7 +1,12 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+
+const POST_AUTH_DEST = '/library';
 
 const CATEGORY_CARDS = [
   { title: 'Big Adventures', emoji: '🌟', image: '/images/categories/big-adventures.jpg', id: 'big_adventures' },
@@ -35,6 +40,35 @@ const FEATURE_CARDS = [
 ];
 
 export default function LandingPage() {
+  const router = useRouter();
+  const supabase = createClient();
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setLoggedIn(true);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleStartCreating(e: React.MouseEvent) {
+    e.preventDefault();
+    if (loggedIn) {
+      router.push(POST_AUTH_DEST);
+    } else {
+      router.push(`/signup?next=${encodeURIComponent(POST_AUTH_DEST)}`);
+    }
+  }
+
+  function handleSignIn(e: React.MouseEvent) {
+    e.preventDefault();
+    if (loggedIn) {
+      router.push(POST_AUTH_DEST);
+    } else {
+      router.push(`/login?next=${encodeURIComponent(POST_AUTH_DEST)}`);
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh' }}>
       {/* Nav */}
@@ -56,16 +90,20 @@ export default function LandingPage() {
 
         {/* Right: buttons */}
         <div className="flex items-center gap-4">
-          <Link href="/login" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: '0.95rem' }}>
-            Sign in
-          </Link>
-          <Link
-            href="/signup"
-            className="btn-primary"
-            style={{ padding: '10px 24px', fontSize: '0.92rem' }}
-          >
-            Get started
-          </Link>
+          {loggedIn ? (
+            <Link href={POST_AUTH_DEST} className="btn-primary" style={{ padding: '10px 24px', fontSize: '0.92rem' }}>
+              My Library
+            </Link>
+          ) : (
+            <>
+              <a href="/login" onClick={handleSignIn} style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: '0.95rem' }}>
+                Sign in
+              </a>
+              <a href="/signup" onClick={handleStartCreating} className="btn-primary" style={{ padding: '10px 24px', fontSize: '0.92rem' }}>
+                Get started
+              </a>
+            </>
+          )}
         </div>
       </nav>
 
@@ -100,18 +138,20 @@ export default function LandingPage() {
           </p>
 
           <div className="flex items-center justify-center gap-4 mb-10">
-            <Link
+            <a
               href="/signup"
+              onClick={handleStartCreating}
               className="btn-primary btn-hero"
             >
               &#10024; Start Creating
-            </Link>
-            <Link
+            </a>
+            <a
               href="/login"
+              onClick={handleSignIn}
               className="btn-secondary btn-hero"
             >
-              Sign in
-            </Link>
+              {loggedIn ? 'Go to Library' : 'Sign in'}
+            </a>
           </div>
         </div>
 

@@ -1,18 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+
+const POST_AUTH_DEST = '/library';
 
 export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
+  );
+}
+
+function SignupForm() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  const nextUrl = searchParams.get('next') || POST_AUTH_DEST;
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
@@ -31,14 +44,14 @@ export default function SignupPage() {
       return;
     }
 
-    router.push('/library');
+    router.push(nextUrl);
     router.refresh();
   }
 
   async function handleGoogleSignup() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextUrl)}` },
     });
     if (error) setError(error.message);
   }
@@ -121,7 +134,7 @@ export default function SignupPage() {
 
         <p className="text-center mt-6" style={{ fontSize: '0.88rem', color: 'var(--text-faint)', fontFamily: 'var(--font-body)' }}>
           Already have an account?{' '}
-          <Link href="/login" style={{ color: 'var(--purple)', fontWeight: 600 }}>
+          <Link href={`/login${nextUrl !== POST_AUTH_DEST ? `?next=${encodeURIComponent(nextUrl)}` : ''}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>
             Sign in
           </Link>
         </p>
