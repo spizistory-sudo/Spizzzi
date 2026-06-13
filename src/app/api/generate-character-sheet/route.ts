@@ -5,7 +5,21 @@ import { generateCharacterSheet } from '@/lib/ai/illustration-generator';
 import { scoreCharacterMatch } from '@/lib/ai/character-scorer';
 import type { ArtStyleKey } from '@/lib/ai/prompts/style-references';
 
-export const maxDuration = 120;
+export const maxDuration = 300;
+
+const SHEET_TIMEOUT_MS = 60_000;
+
+async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timer!);
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -68,16 +82,44 @@ export async function POST(req: Request) {
 
     console.log(`[generate-character-sheet] Generating for book ${bookId}, style: ${styleKey}, photos: ${childPhotosBase64.length}`);
 
-    // Generate sheet (attempt 1)
-    let result = await generateCharacterSheet({ styleKey, characterDescription, childPhotosBase64, stylePreviewBase64 });
+    // Generate sheet with internal timeout (fail fast, don't hit gateway 504)
+    let result;
+    try {
+      result = await withTimeout(
+        generateCharacterSheet({ styleKey, characterDescription, childPhotosBase64, stylePreviewBase64 }),
+        SHEET_TIMEOUT_MS,
+        'Character sheet generation',
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[generate-character-sheet] First attempt failed: ${msg}`);
+      return NextResponse.json({ error: 'Sheet generation timed out or failed', skipped: true }, { status: 200 });
+    }
 
-    // Light quality gate via shared scorer
+    // Quality gate: score against photo, retry ONCE only if score is low (NOT on timeout)
     if (childPhotosBase64.length > 0) {
-      const match = await scoreCharacterMatch(result.buffer.toString('base64'), childPhotosBase64[0], 'image/png', 'image/jpeg');
-      console.log(`[generate-character-sheet] Sheet score: ${match.score}, mismatches: ${match.mismatches.join(', ') || 'none'}`);
-      if (match.score < 60) {
-        console.log('[generate-character-sheet] Sheet below threshold (60), regenerating once');
-        result = await generateCharacterSheet({ styleKey, characterDescription, childPhotosBase64, stylePreviewBase64 });
+      try {
+        const match = await withTimeout(
+          scoreCharacterMatch(result.buffer.toString('base64'), childPhotosBase64[0], 'image/png', 'image/jpeg'),
+          15_000,
+          'Character match scoring',
+        );
+        console.log(`[generate-character-sheet] Sheet score: ${match.score}, mismatches: ${match.mismatches.join(', ') || 'none'}`);
+        if (match.score < 60) {
+          console.log('[generate-character-sheet] Sheet below threshold (60), regenerating once');
+          try {
+            const retry = await withTimeout(
+              generateCharacterSheet({ styleKey, characterDescription, childPhotosBase64, stylePreviewBase64 }),
+              SHEET_TIMEOUT_MS,
+              'Character sheet retry',
+            );
+            result = retry;
+          } catch (retryErr) {
+            console.warn('[generate-character-sheet] Retry failed, keeping first attempt:', retryErr instanceof Error ? retryErr.message : retryErr);
+          }
+        }
+      } catch (scoreErr) {
+        console.warn('[generate-character-sheet] Scoring failed, keeping first attempt:', scoreErr instanceof Error ? scoreErr.message : scoreErr);
       }
     }
 
@@ -119,6 +161,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ sheetUrl, modelUsed: result.modelUsed });
   } catch (err) {
     console.error('[generate-character-sheet] Error:', err);
-    return NextResponse.json({ error: 'Sheet generation failed' }, { status: 500 });
+    return NextResponse.json({ error: 'Sheet generation failed', skipped: true }, { status: 200 });
   }
 }
