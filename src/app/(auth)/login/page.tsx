@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { getSiteUrl } from '@/lib/utils/site-url';
 
 const POST_AUTH_DEST = '/library';
 
@@ -46,7 +47,7 @@ function LoginForm() {
   async function handleGoogleLogin() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextUrl)}` },
+      options: { redirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(nextUrl)}` },
     });
     if (error) setError(error.message);
   }

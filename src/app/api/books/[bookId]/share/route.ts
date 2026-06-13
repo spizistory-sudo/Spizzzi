@@ -47,7 +47,8 @@ export async function PATCH(
       return NextResponse.json({ error: 'Failed to update' }, { status: 500 });
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://spizzzi.vercel.app';
+    const { getSiteUrl } = await import('@/lib/utils/site-url');
+    const appUrl = getSiteUrl();
     return NextResponse.json({
       ...updated,
       shareUrl: updated.share_slug ? `${appUrl}/share/${updated.share_slug}` : null,

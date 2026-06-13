@@ -320,7 +320,7 @@ export async function POST(req: Request) {
           React.createElement(
             Text,
             { style: styles.brandingSubtext },
-            'storymagic.app'
+            'spizzzy.com'
           )
         )
       )

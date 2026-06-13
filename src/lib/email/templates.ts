@@ -1,4 +1,6 @@
-const APP_URL = 'https://spizzzi.vercel.app';
+import { getSiteUrl } from '@/lib/utils/site-url';
+
+const APP_URL = getSiteUrl();
 
 const WRAPPER = (content: string) => `
 <!DOCTYPE html>

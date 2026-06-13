@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { getSiteUrl } from '@/lib/utils/site-url';
 import type { Book } from '@/types/book';
 
 interface ShareModalProps {
@@ -16,7 +17,7 @@ export default function ShareModal({ book, isOpen, onClose }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://storymagic.app');
+  const appUrl = getSiteUrl();
   const shareUrl = shareSlug ? `${appUrl}/share/${shareSlug}` : null;
 
   const togglePublic = useCallback(async () => {

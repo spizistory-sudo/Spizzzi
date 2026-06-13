@@ -1,4 +1,5 @@
 import { customAlphabet } from 'nanoid';
+import { getSiteUrl } from './site-url';
 
 const generateSlug = customAlphabet('abcdefghkmnpqrstuvwxyz23456789', 8);
 
@@ -7,6 +8,5 @@ export function createShareSlug(): string {
 }
 
 export function getShareUrl(slug: string): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL || 'https://spizzzi.vercel.app';
-  return `${base}/share/${slug}`;
+  return `${getSiteUrl()}/share/${slug}`;
 }

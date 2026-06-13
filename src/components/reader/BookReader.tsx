@@ -496,7 +496,7 @@ export default function BookReader({ book, pages: initialPages, coverUrl, musicU
                 className="h-auto w-24 mb-2"
               />
               <div style={{ width: '40px', height: '1px', background: 'rgba(139,92,246,0.3)', margin: '12px auto' }} />
-              <p style={{ color: 'rgba(167,139,250,0.6)', fontSize: '14px' }}>spizzzi.vercel.app</p>
+              <p style={{ color: 'rgba(167,139,250,0.6)', fontSize: '14px' }}>spizzzy.com</p>
             </div>
             <div className="w-full max-w-[280px] px-4">
               <ComingSoon variant="card" title="Serialized Story" description="Stories that continue over multiple chapters or episodes." />
