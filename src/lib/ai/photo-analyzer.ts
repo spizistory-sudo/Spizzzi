@@ -45,7 +45,7 @@ async function analyzeWithRetry(photoBase64: string, maxRetries = 3): Promise<st
       const status = (err as { status?: number; statusCode?: number })?.status ||
                      (err as { status?: number; statusCode?: number })?.statusCode;
 
-      if ((status === 503 || status === 429) && attempt < maxRetries) {
+      if ((status === 500 || status === 503 || status === 429) && attempt < maxRetries) {
         const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
         console.log(`[photo-analysis] Attempt ${attempt} failed with ${status}, retrying in ${delayMs}ms`);
         await new Promise(resolve => setTimeout(resolve, delayMs));

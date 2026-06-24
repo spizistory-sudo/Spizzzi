@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Spizzzy Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#0a0e27; --bg-1:#0e1638; --bg-2:#142251;
+    --ink:#eef1ff; --ink-soft:#aab3d6; --ink-dim:#6f79a3;
+    --violet:#9b7dd4; --violet-ring:rgba(155,125,212,0.70); --violet-soft:rgba(155,125,212,0.16);
+    --gold:#e9b949; --gold-soft:rgba(233,185,73,0.16);
+    --glass:rgba(255,255,255,0.055); --glass-line:rgba(255,255,255,0.10);
+    --serif:"Lora",Georgia,serif; --sans:"Figtree",system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--sans); color:var(--ink); background:var(--bg-0);
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  /* Night sky */
+  .sky{position:fixed;inset:0;z-index:-2;
+    background:
+      radial-gradient(120% 80% at 80% -10%, #1c2c63 0%, transparent 55%),
+      radial-gradient(120% 90% at 10% 0%, #18204a 0%, transparent 50%),
+      linear-gradient(180deg,#0a0e27 0%, #0b1130 40%, #0a0e27 100%);
+    background-color:#0a0e27;
+  }
+  .stars{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+  .star{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;opacity:.5;
+    animation:tw 4s ease-in-out infinite}
+  @keyframes tw{0%,100%{opacity:.15}50%{opacity:.7}}
+  @media (prefers-reduced-motion:reduce){.star{animation:none}}
+
+  /* Top bar */
+  header{position:sticky;top:0;z-index:40;
+    background:linear-gradient(180deg,rgba(10,14,39,.92),rgba(10,14,39,.55) 80%,transparent);
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    padding:calc(14px + env(safe-area-inset-top)) 18px 14px;}
+  .bar{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:14px}
+  .brand{display:flex;align-items:center;gap:9px;font-family:var(--serif);font-weight:700;
+    font-size:23px;color:var(--gold);letter-spacing:.3px}
+  .owl{width:30px;height:30px;flex:none;filter:drop-shadow(0 2px 8px rgba(233,185,73,.35))}
+  .bar .sub{font-family:var(--sans);font-weight:600;font-size:12px;color:var(--ink-soft);
+    border-left:1px solid var(--glass-line);padding-left:12px;letter-spacing:.4px;text-transform:uppercase}
+  .bar .spacer{flex:1}
+  .pill-btn{font-family:var(--sans);font-weight:600;font-size:14px;color:var(--ink);
+    background:linear-gradient(135deg,#7d6bd0,#9b7dd4);border:none;border-radius:999px;
+    padding:9px 18px;cursor:pointer;box-shadow:0 4px 16px rgba(123,107,208,.35)}
+
+  main{max-width:1180px;margin:0 auto;padding:8px 0 64px}
+  .pad{padding-left:18px;padding-right:18px}
+
+  /* Hero / featured */
+  .hero{position:relative;margin:6px 18px 8px;border-radius:24px;overflow:hidden;
+    min-height:330px;display:flex;align-items:flex-end;
+    border:1px solid var(--glass-line)}
+  .hero-bg{position:absolute;inset:0;z-index:0}
+  .hero-bg::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(10,14,39,.05) 0%,rgba(10,14,39,.55) 55%,rgba(10,14,39,.95) 100%)}
+  .hero-emoji{position:absolute;right:6%;top:50%;transform:translateY(-55%);font-size:140px;z-index:1;
+    filter:drop-shadow(0 12px 40px rgba(0,0,0,.45));opacity:.96}
+  .hero-in{position:relative;z-index:2;padding:24px;max-width:560px}
+  .tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:1px;
+    text-transform:uppercase;color:var(--gold);background:var(--gold-soft);
+    border:1px solid rgba(233,185,73,.3);padding:5px 11px;border-radius:999px}
+  .hero-title{font-family:var(--serif);font-weight:700;font-size:clamp(28px,7vw,42px);line-height:1.05;
+    margin:12px 0 8px;text-shadow:0 2px 18px rgba(0,0,0,.5)}
+  .hero-blurb{color:var(--ink-soft);font-size:15px;line-height:1.5;max-width:440px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 16px}
+  .chip{font-size:12px;font-weight:600;color:var(--ink-soft);background:var(--glass);
+    border:1px solid var(--glass-line);border-radius:999px;padding:5px 11px}
+  .hero-actions{display:flex;gap:10px;flex-wrap:wrap}
+  .act{display:inline-flex;align-items:center;gap:7px;font-family:var(--sans);font-weight:600;
+    font-size:14px;border-radius:999px;padding:11px 18px;cursor:pointer;border:1px solid transparent;min-height:44px}
+  .act.primary{color:#1a1330;background:linear-gradient(135deg,#f0d480,var(--gold));box-shadow:0 6px 20px rgba(233,185,73,.3)}
+  .act.ghost{color:var(--ink);background:var(--glass);border-color:var(--glass-line)}
+  .hero-dots{position:absolute;z-index:3;bottom:14px;right:18px;display:flex;gap:7px}
+  .hero-dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer;display:block}
+  .hero-dots i.on{background:var(--gold);width:20px;border-radius:999px}
+
+  /* Search + filters */
+  .controls{margin:18px 0 4px}
+  .search{display:flex;align-items:center;gap:10px;background:var(--glass);border:1px solid var(--glass-line);
+    border-radius:14px;padding:12px 14px}
+  .search input{flex:1;background:none;border:none;color:var(--ink);font-family:var(--sans);font-size:16px;outline:none}
+  .search input::placeholder{color:var(--ink-dim)}
+  .search svg{flex:none;opacity:.6}
+
+  .filter-row{display:flex;align-items:center;gap:8px;overflow-x:auto;padding:14px 18px;margin:0 -18px;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .filter-row::-webkit-scrollbar{display:none}
+  .filter-row .label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--ink-dim);flex:none;padding-right:2px}
+  .fchip{flex:none;font-family:var(--sans);font-weight:600;font-size:13px;color:var(--ink-soft);
+    background:var(--glass);border:1px solid var(--glass-line);border-radius:999px;padding:8px 14px;
+    cursor:pointer;white-space:nowrap;transition:all .15s;min-height:38px}
+  .fchip:hover{color:var(--ink)}
+  .fchip.on{color:#fff;background:var(--violet-soft);border-color:var(--violet-ring);
+    box-shadow:0 0 0 1px var(--violet-ring)}
+  .clear{flex:none;font-size:13px;font-weight:600;color:var(--gold);background:none;border:none;cursor:pointer;padding:8px 6px}
+
+  /* Rows */
+  .row{margin:22px 0 4px}
+  .row-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+  .row-title{font-family:var(--serif);font-weight:600;font-size:20px}
+  .row-sub{font-size:12px;color:var(--ink-dim);font-weight:600}
+  .scroller{display:flex;gap:14px;overflow-x:auto;padding:2px 18px 8px;margin:0 -18px;
+    scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .scroller::-webkit-scrollbar{display:none}
+
+  /* Book card */
+  .card{flex:none;width:150px;scroll-snap-align:start;cursor:pointer;
+    transition:transform .18s ease}
+  .card:hover{transform:translateY(-4px)}
+  .grid .card{width:auto}
+  .cover{position:relative;aspect-ratio:2/3;border-radius:16px;overflow:hidden;
+    border:1px solid var(--glass-line);display:flex;flex-direction:column;justify-content:flex-end;
+    padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  .cover::before{content:"";position:absolute;inset:0;
+    background:radial-gradient(120% 70% at 50% 22%, rgba(255,255,255,.28), transparent 60%)}
+  .cover-emoji{position:absolute;top:0;left:0;right:0;height:62%;display:flex;align-items:center;justify-content:center;
+    font-size:58px;filter:drop-shadow(0 6px 18px rgba(0,0,0,.35));z-index:1}
+  .cover-emoji::after{content:"";position:absolute;width:90px;height:90px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,247,214,.55),transparent 65%);z-index:-1}
+  .cover-brand{position:relative;z-index:2;font-size:9px;font-weight:700;letter-spacing:1.2px;
+    text-transform:uppercase;color:rgba(255,255,255,.7)}
+  .cover-title{position:relative;z-index:2;font-family:var(--serif);font-weight:600;font-size:16px;
+    line-height:1.12;color:#fff;margin-top:2px;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+  .cover-fmt{position:absolute;top:9px;right:9px;z-index:2;display:flex;gap:4px}
+  .cover-fmt span{font-size:10px;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);
+    border-radius:6px;padding:3px 5px;line-height:1}
+  .badge-anim{position:absolute;top:9px;left:9px;z-index:2;font-size:9px;font-weight:700;
+    letter-spacing:.5px;text-transform:uppercase;color:#1a1330;background:var(--gold);
+    border-radius:6px;padding:3px 6px}
+  .card-meta{margin-top:8px}
+  .card-name{font-weight:600;font-size:13px;line-height:1.2}
+  .card-age{font-size:11px;color:var(--ink-dim);font-weight:600;margin-top:2px}
+
+  /* Results grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px}
+  .results-head{display:flex;align-items:baseline;justify-content:space-between;margin:18px 0 14px}
+  .results-head h2{font-family:var(--serif);font-weight:600;font-size:20px}
+  .results-head span{font-size:13px;color:var(--ink-dim);font-weight:600}
+  .empty{text-align:center;padding:60px 20px;color:var(--ink-soft)}
+  .empty .e-emoji{font-size:44px;opacity:.7}
+  .empty p{margin-top:10px;font-size:15px}
+
+  /* Detail modal */
+  .scrim{position:fixed;inset:0;z-index:60;background:rgba(5,8,22,.72);backdrop-filter:blur(6px);
+    display:none;align-items:flex-end;justify-content:center}
+  .scrim.open{display:flex}
+  .sheet{width:100%;max-width:560px;max-height:92vh;overflow-y:auto;
+    background:linear-gradient(180deg,#141d44,#0d1430);border:1px solid var(--glass-line);
+    border-radius:24px 24px 0 0;padding-bottom:calc(20px + env(safe-area-inset-bottom));
+    animation:rise .28s cubic-bezier(.2,.8,.2,1)}
+  @keyframes rise{from{transform:translateY(40px);opacity:.4}to{transform:translateY(0);opacity:1}}
+  @media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+  @media(min-width:640px){.scrim{align-items:center}.sheet{border-radius:24px}}
+  .sheet-hero{position:relative;height:200px;border-radius:24px 24px 0 0;overflow:hidden}
+  .sheet-hero::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,transparent 30%,rgba(13,20,48,.95) 100%)}
+  .sheet-hero .he{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:96px;filter:drop-shadow(0 10px 30px rgba(0,0,0,.4))}
+  .x{position:absolute;top:12px;right:12px;z-index:3;width:34px;height:34px;border-radius:50%;
+    background:rgba(0,0,0,.45);border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1}
+  .sheet-body{padding:0 22px 22px;margin-top:-30px;position:relative;z-index:2}
+  .sheet-title{font-family:var(--serif);font-weight:700;font-size:27px;line-height:1.08}
+  .sheet-byline{color:var(--ink-soft);font-size:14px;margin-top:6px}
+  .sheet-chips{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0}
+  .sheet-chips .chip.val{color:var(--gold);background:var(--gold-soft);border-color:rgba(233,185,73,.28)}
+  .sheet-chips .chip.mood{color:var(--violet);background:var(--violet-soft);border-color:var(--violet-ring)}
+  .sheet-desc{color:var(--ink-soft);font-size:15px;line-height:1.58;margin:6px 0 18px}
+  .sheet-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .sheet-actions.two{grid-template-columns:1fr 1fr}
+  .big-act{display:flex;flex-direction:column;align-items:center;gap:5px;font-family:var(--sans);
+    font-weight:600;font-size:13px;color:var(--ink);background:var(--glass);border:1px solid var(--glass-line);
+    border-radius:14px;padding:14px 8px;cursor:pointer;min-height:44px}
+  .big-act .ic{font-size:20px}
+  .big-act.read{background:linear-gradient(135deg,#7d6bd0,#9b7dd4);border-color:transparent;color:#fff}
+  .shelf-btn{width:100%;margin-top:10px;font-family:var(--sans);font-weight:600;font-size:14px;
+    color:var(--ink-soft);background:none;border:1px solid var(--glass-line);border-radius:12px;
+    padding:12px;cursor:pointer}
+
+  /* Faux player overlay */
+  .player{position:fixed;inset:0;z-index:80;background:#080b1c;display:none;flex-direction:column}
+  .player.open{display:flex}
+  .player-top{display:flex;align-items:center;gap:12px;padding:calc(14px + env(safe-area-inset-top)) 18px 14px}
+  .player-top .pt-title{flex:1;text-align:center;font-size:12px;font-weight:700;letter-spacing:1px;
+    text-transform:uppercase;color:var(--ink-dim)}
+  .player-top button{background:none;border:none;color:var(--ink);font-size:22px;cursor:pointer;width:34px}
+  .player-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:0 24px;text-align:center}
+  .stage-cover{width:min(70vw,300px);aspect-ratio:2/3;border-radius:18px;display:flex;flex-direction:column;
+    justify-content:flex-end;padding:16px;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .stage-cover .se{position:absolute;top:0;left:0;right:0;height:60%;display:flex;align-items:center;
+    justify-content:center;font-size:84px}
+  .stage-mode{margin-top:22px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold)}
+  .stage-txt{font-family:var(--serif);font-size:20px;line-height:1.4;margin-top:10px;max-width:440px;color:var(--ink)}
+  .stage-note{margin-top:18px;font-size:13px;color:var(--ink-dim)}
+  .player-bar{padding:18px 24px calc(26px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px}
+  .prog{height:5px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden}
+  .prog i{display:block;height:100%;width:34%;background:linear-gradient(90deg,var(--violet),var(--gold));border-radius:999px}
+  .transport{display:flex;align-items:center;justify-content:center;gap:30px}
+  .transport button{background:none;border:none;color:var(--ink);font-size:24px;cursor:pointer}
+  .transport .play{width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,#7d6bd0,#9b7dd4);
+    color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 8px 24px rgba(123,107,208,.4)}
+
+  .toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));transform:translateX(-50%);
+    z-index:90;background:rgba(20,28,68,.96);border:1px solid var(--glass-line);color:var(--ink);
+    font-size:14px;font-weight:500;padding:12px 18px;border-radius:999px;opacity:0;pointer-events:none;
+    transition:opacity .25s,transform .25s}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+
+  .footnote{text-align:center;color:var(--ink-dim);font-size:12px;margin-top:40px;padding:0 24px;line-height:1.6}
+
+  :focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:8px}
+</style>
+</head>
+<body>
+<div class="sky"></div>
+<div class="stars" id="stars"></div>
+
+<header>
+  <div class="bar">
+    <div class="brand">
+      <svg class="owl" viewBox="0 0 64 64" fill="none"><path d="M32 6c-4 5-12 4-14 12-3 11 4 22 14 22s17-11 14-22C44 10 36 11 32 6z" fill="#9b7dd4"/><circle cx="24" cy="26" r="7" fill="#fff"/><circle cx="40" cy="26" r="7" fill="#fff"/><circle cx="24" cy="26" r="3.4" fill="#0a0e27"/><circle cx="40" cy="26" r="3.4" fill="#0a0e27"/><path d="M32 32l-3 4h6l-3-4z" fill="#e9b949"/><path d="M16 44h32l-4 10H20l-4-10z" fill="#e9b949"/></svg>
+      Spizzzy
+    </div>
+    <span class="sub">Library</span>
+    <span class="spacer"></span>
+    <button class="pill-btn">My shelf</button>
+  </div>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="hero" id="hero" aria-label="Featured book"></section>
+
+  <!-- SEARCH + FILTERS -->
+  <div class="pad controls">
+    <div class="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aab3d6" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="search" type="search" placeholder="Search stories by title…" autocomplete="off">
+    </div>
+  </div>
+  <div class="filter-row" id="f-category"></div>
+  <div class="filter-row" id="f-age"></div>
+  <div class="filter-row" id="f-value"></div>
+  <div class="filter-row" id="f-mood"></div>
+
+  <!-- ROWS or RESULTS -->
+  <div id="content" class="pad"></div>
+
+  <p class="footnote">Mockup — a Spizzzy-curated library. Covers and stories shown are placeholders; real illustrated books drop into this same layout.</p>
+</main>
+
+<!-- DETAIL SHEET -->
+<div class="scrim" id="scrim">
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+</div>
+
+<!-- FAUX PLAYER -->
+<div class="player" id="player">
+  <div class="player-top">
+    <button id="player-close" aria-label="Close">⌄</button>
+    <span class="pt-title" id="player-mode-label">Now reading</span>
+    <span style="width:34px"></span>
+  </div>
+  <div class="player-stage" id="player-stage"></div>
+  <div class="player-bar">
+    <div class="prog"><i></i></div>
+    <div class="transport">
+      <button aria-label="Previous">‹</button>
+      <button class="play" aria-label="Play">▶</button>
+      <button aria-label="Next">›</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Mock data ---------- */
+const CATS = ["Big Adventures","Animal Friends","All My Feelings","I Can Do It!","Family & Friends","Wonders of the World","Cozy & Calm"];
+const AGES = ["2–3","4–5","6–8","9–12"];
+const VALUES = ["Courage","Kindness","Perseverance","Friendship","Curiosity","Honesty","Gratitude","Empathy","Independence","Teamwork"];
+const MOODS = ["Cozy","Exciting","Silly","Calming","Heartwarming","Magical","Adventurous","Dreamy"];
+
+const PAL = {
+  space:["#3a2a6e","#6d4fb0"], sea:["#0f3a52","#1d7a8c"], forest:["#1d4633","#3a8a5a"],
+  warm:["#5a2740","#b0506a"], gold:["#5a4520","#c9922e"], night:["#1a2150","#3a4596"],
+  rose:["#542a55","#a05a9a"], ember:["#5a2a1c","#c2603a"], mint:["#1e4a4a","#3aa08a"], dusk:["#2a2c6e","#7a6bc0"]
+};
+function cv(p){return `linear-gradient(165deg,${PAL[p][0]},${PAL[p][1]})`}
+
+const BOOKS = [
+  {t:"Beyond the Stars",e:"🚀",p:"space",c:"Big Adventures",a:"6–8",v:["Curiosity","Courage"],m:["Magical","Adventurous"],f:["read","listen","watch"],dur:"9 min",nar:"Sarah",feat:true,
+   d:"When a tiny rocket lands in the backyard, one curious kid and a giggling little alien set off to count the stars — and discover that home is the best place in the whole galaxy."},
+  {t:"The Jungle Expedition",e:"🦜",p:"forest",c:"Big Adventures",a:"6–8",v:["Curiosity","Perseverance"],m:["Adventurous","Exciting"],f:["read","listen","watch"],dur:"10 min",nar:"George",feat:true,
+   d:"Deep in a vine-tangled jungle, a young explorer follows a bright parrot toward a waterfall that hides a secret no grown-up has ever found."},
+  {t:"Pirate Treasure Hunt",e:"🏴‍☠️",p:"gold",c:"Big Adventures",a:"6–8",v:["Courage","Teamwork"],m:["Exciting","Adventurous"],f:["read","listen","watch"],dur:"11 min",nar:"Bill",feat:true,
+   d:"X marks the spot — but the real treasure is the crew of friends who sail through the storm together to find it."},
+  {t:"The Lighthouse Keeper's Cat",e:"🐈",p:"sea",c:"Animal Friends",a:"4–5",v:["Kindness","Friendship"],m:["Cozy","Heartwarming"],f:["read","listen"],dur:"6 min",nar:"Matilda",
+   d:"Every night the little cat lights the lamp so the fishing boats find their way home. Tonight, the fog is thick — and a lost gull needs her help."},
+  {t:"When I Feel Like a Storm",e:"⛈️",p:"night",c:"All My Feelings",a:"4–5",v:["Empathy"],m:["Calming","Heartwarming"],f:["read","listen"],dur:"5 min",nar:"Alice",feat:true,
+   d:"Big feelings can rumble like thunder. A gentle story about noticing the storm inside, and finding the calm blue sky that always comes after."},
+  {t:"The Littlest Astronaut",e:"🌙",p:"dusk",c:"I Can Do It!",a:"4–5",v:["Courage","Independence"],m:["Dreamy","Magical"],f:["read","listen","watch"],dur:"7 min",nar:"Lily",
+   d:"Everyone says she's too small to reach the moon. So she builds a ladder of brave little tries — one rung at a time."},
+  {t:"Grandpa's Garden",e:"🌻",p:"gold",c:"Family & Friends",a:"4–5",v:["Gratitude","Patience"],m:["Cozy","Heartwarming"],f:["read","listen"],dur:"6 min",nar:"Brian",
+   d:"Seeds take time, Grandpa says. Through one slow summer, a child learns that the best things — sunflowers and grandpas — are worth the wait."},
+  {t:"Race Around the World",e:"🎈",p:"sea",c:"Wonders of the World",a:"6–8",v:["Curiosity","Perseverance"],m:["Exciting","Adventurous"],f:["read","listen","watch"],dur:"10 min",nar:"Daniel",
+   d:"Hop in the hot-air balloon! From snowy peaks to golden deserts, it's a whirlwind tour of the wonders that make our planet so amazing."},
+  {t:"The Brave Little Lantern",e:"🏮",p:"ember",c:"I Can Do It!",a:"4–5",v:["Courage","Kindness"],m:["Cozy","Magical"],f:["read","listen"],dur:"6 min",nar:"Charlotte",
+   d:"The smallest lantern is scared of the dark. But when the village blackout comes, its little flame turns out to be exactly enough."},
+  {t:"Two Friends and a Kite",e:"🪁",p:"mint",c:"Family & Friends",a:"4–5",v:["Friendship","Teamwork"],m:["Silly","Heartwarming"],f:["read","listen"],dur:"5 min",nar:"Sarah",
+   d:"One holds the string, one chases the wind. A bouncy little tale about sharing the sky and never letting go of a friend."},
+  {t:"The Whale Who Lost His Song",e:"🐋",p:"sea",c:"Animal Friends",a:"6–8",v:["Empathy","Perseverance"],m:["Calming","Heartwarming"],f:["read","listen","watch"],dur:"8 min",nar:"George",
+   d:"A young whale wakes one morning with no song to sing. He swims the whole wide ocean to find it — and learns to listen along the way."},
+  {t:"Goodnight, Little Comet",e:"☄️",p:"dusk",c:"Cozy & Calm",a:"2–3",v:["Gratitude"],m:["Dreamy","Calming"],f:["read","listen"],dur:"4 min",nar:"Matilda",feat:true,
+   d:"As the comet drifts past sleepy planets, each one whispers goodnight. The gentlest bedtime glide across a hushed and starry sky."},
+  {t:"The Secret of the Old Map",e:"🗺️",p:"gold",c:"Big Adventures",a:"9–12",v:["Curiosity","Honesty"],m:["Exciting","Magical"],f:["read","listen"],dur:"12 min",nar:"Bill",
+   d:"A faded map in the attic leads to a riddle, a hidden door, and a choice about what's really worth keeping."},
+  {t:"My Loud, Wonderful Family",e:"🏡",p:"warm",c:"Family & Friends",a:"4–5",v:["Gratitude","Empathy"],m:["Silly","Heartwarming"],f:["read","listen"],dur:"6 min",nar:"Alice",
+   d:"Sometimes home is too loud and too busy. But a wandering child discovers that loud is just love being everywhere at once."},
+  {t:"The Dragon Who Was Afraid of Fire",e:"🐉",p:"ember",c:"All My Feelings",a:"6–8",v:["Courage","Honesty"],m:["Silly","Heartwarming"],f:["read","listen","watch"],dur:"9 min",nar:"Daniel",
+   d:"Every dragon breathes fire — except Pip. A warm, funny story about being different and finding the spark that's truly yours."},
+  {t:"Stargazing with Mom",e:"🔭",p:"night",c:"Wonders of the World",a:"6–8",v:["Curiosity","Gratitude"],m:["Dreamy","Calming"],f:["read","listen"],dur:"7 min",nar:"Charlotte",
+   d:"One blanket, one telescope, one quiet night. A child and their mom name the constellations and the things they're thankful for."},
+  {t:"The Tiniest Seed",e:"🌱",p:"forest",c:"Cozy & Calm",a:"2–3",v:["Patience","Perseverance"],m:["Calming","Heartwarming"],f:["read","listen"],dur:"4 min",nar:"Lily",
+   d:"Push, little seed, push! A simple, soothing story of growing — slowly, surely — into something tall and green and proud."},
+  {t:"Detective Daisy and the Missing Sock",e:"🧦",p:"rose",c:"I Can Do It!",a:"4–5",v:["Perseverance","Independence"],m:["Silly","Exciting"],f:["read","listen"],dur:"6 min",nar:"Sarah",
+   d:"One sock has vanished! Magnifying glass in hand, Daisy follows the clues all over the house in this giggly little mystery."},
+  {t:"The Stranger from the Sea",e:"🌊",p:"sea",c:"Big Adventures",a:"9–12",v:["Kindness","Empathy"],m:["Magical","Heartwarming"],f:["read","listen"],dur:"11 min",nar:"Brian",
+   d:"A mysterious visitor washes ashore one stormy night. A thoughtful story about welcoming what we don't yet understand."},
+  {t:"Hugo the Hedgehog Says Sorry",e:"🦔",p:"forest",c:"All My Feelings",a:"2–3",v:["Honesty","Kindness"],m:["Cozy","Heartwarming"],f:["read","listen"],dur:"4 min",nar:"Matilda",
+   d:"Hugo knocked over the acorn tower — and it wasn't even his! A tender first lesson in owning up and making things right."},
+  {t:"The Audition",e:"🎭",p:"warm",c:"I Can Do It!",a:"9–12",v:["Courage","Perseverance"],m:["Heartwarming","Exciting"],f:["read","listen"],dur:"10 min",nar:"Alice",
+   d:"Spotlight, racing heart, one big breath. A story about stage fright, second tries, and the brave kind of magic that lives in showing up."},
+  {t:"Penguin's First Swim",e:"🐧",p:"mint",c:"Animal Friends",a:"2–3",v:["Courage","Friendship"],m:["Silly","Cozy"],f:["read","listen","watch"],dur:"5 min",nar:"Lily",
+   d:"The water looks so cold and so big. With a friend by his side, one little penguin takes the bravest tiny jump of his life."},
+  {t:"The Moon's Birthday Party",e:"🌝",p:"dusk",c:"Cozy & Calm",a:"4–5",v:["Friendship","Gratitude"],m:["Dreamy","Magical"],f:["read","listen"],dur:"6 min",nar:"Charlotte",
+   d:"Every star is invited! A soft, sparkly bedtime story about celebrating the people — and planets — you love."},
+  {t:"Captain of the Cardboard Ship",e:"📦",p:"ember",c:"Family & Friends",a:"4–5",v:["Curiosity","Teamwork"],m:["Silly","Adventurous"],f:["read","listen"],dur:"6 min",nar:"Bill",
+   d:"A rainy day, a big box, and the wildest imaginary voyage two siblings ever sailed across the living-room sea."}
+];
+BOOKS.forEach((b,i)=>b.id=i);
+
+/* ---------- State ---------- */
+const state={cat:null,age:null,val:null,mood:null,q:""};
+let heroIdx=0;
+const featured=BOOKS.filter(b=>b.feat);
+
+/* ---------- Helpers ---------- */
+const $=s=>document.querySelector(s);
+const fmtIcon={read:"📖",listen:"🎧",watch:"▶"};
+function coverHTML(b,big){
+  const fmts=b.f.map(f=>`<span title="${f}">${fmtIcon[f]}</span>`).join("");
+  return `<div class="cover" style="background:${cv(b.p)}">
+    ${b.f.includes("watch")?'<span class="badge-anim">Animated</span>':''}
+    <div class="cover-fmt">${fmts}</div>
+    <div class="cover-emoji">${b.e}</div>
+    <div class="cover-brand">✦ Spizzzy</div>
+    <div class="cover-title">${b.t}</div>
+  </div>`;
+}
+function cardHTML(b){
+  return `<div class="card" tabindex="0" role="button" data-id="${b.id}" aria-label="${b.t}, ages ${b.a}">
+    ${coverHTML(b)}
+    <div class="card-meta"><div class="card-name">${b.t}</div><div class="card-age">Ages ${b.a} · ${b.dur}</div></div>
+  </div>`;
+}
+
+/* ---------- Stars ---------- */
+(function(){let h="";for(let i=0;i<70;i++){h+=`<span class="star" style="left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*4}s"></span>`}$("#stars").innerHTML=h})();
+
+/* ---------- Hero ---------- */
+function renderHero(){
+  const b=featured[heroIdx];
+  $("#hero").innerHTML=`
+    <div class="hero-bg" style="background:${cv(b.p)}"></div>
+    <div class="hero-emoji">${b.e}</div>
+    <div class="hero-in">
+      <span class="tag">★ Featured</span>
+      <h1 class="hero-title">${b.t}</h1>
+      <div class="hero-meta">
+        <span class="chip">${b.c}</span><span class="chip">Ages ${b.a}</span><span class="chip">${b.dur}</span>
+        ${b.f.includes("watch")?'<span class="chip">Animated</span>':''}
+      </div>
+      <p class="hero-blurb">${b.d}</p>
+      <div class="hero-actions">
+        <button class="act primary" data-open="${b.id}">Open book</button>
+        <button class="act ghost" data-play="read" data-id="${b.id}">📖 Read</button>
+        <button class="act ghost" data-play="listen" data-id="${b.id}">🎧 Listen</button>
+      </div>
+    </div>
+    <div class="hero-dots">${featured.map((_,i)=>`<i class="${i===heroIdx?'on':''}" data-dot="${i}"></i>`).join("")}</div>`;
+}
+setInterval(()=>{if(!$("#scrim").classList.contains("open")&&!$("#player").classList.contains("open")){heroIdx=(heroIdx+1)%featured.length;renderHero()}},6000);
+
+/* ---------- Filters ---------- */
+function buildFilters(){
+  const mk=(arr,key,label)=>`<span class="label">${label}</span>`+arr.map(v=>`<button class="fchip" data-key="${key}" data-val="${v}">${v}</button>`).join("");
+  $("#f-category").innerHTML=mk(CATS,"cat","Category");
+  $("#f-age").innerHTML=mk(AGES,"age","Ages");
+  $("#f-value").innerHTML=mk(VALUES,"val","Values");
+  $("#f-mood").innerHTML=mk(MOODS,"mood","Moods");
+}
+function syncFilterUI(){
+  document.querySelectorAll(".fchip").forEach(c=>{
+    c.classList.toggle("on",state[c.dataset.key]===c.dataset.val);
+  });
+  // clear button
+  const any=state.cat||state.age||state.val||state.mood||state.q;
+  let cb=$("#clearbtn");
+  if(any&&!cb){cb=document.createElement("button");cb.id="clearbtn";cb.className="clear";cb.textContent="Clear all";cb.onclick=clearAll;$("#f-mood").appendChild(cb);}
+  else if(!any&&cb){cb.remove()}
+}
+function clearAll(){state.cat=state.age=state.val=state.mood=null;state.q="";$("#search").value="";syncFilterUI();renderContent()}
+
+/* ---------- Content ---------- */
+function filtered(){
+  return BOOKS.filter(b=>
+    (!state.cat||b.c===state.cat)&&
+    (!state.age||b.a===state.age)&&
+    (!state.val||b.v.includes(state.val))&&
+    (!state.mood||b.m.includes(state.mood))&&
+    (!state.q||b.t.toLowerCase().includes(state.q.toLowerCase()))
+  );
+}
+function row(title,sub,books){
+  if(!books.length)return"";
+  return `<section class="row"><div class="row-head"><h2 class="row-title">${title}</h2><span class="row-sub">${sub}</span></div>
+    <div class="scroller">${books.map(cardHTML).join("")}</div></section>`;
+}
+function renderContent(){
+  const c=$("#content");
+  const active=state.cat||state.age||state.val||state.mood||state.q;
+  if(active){
+    const res=filtered();
+    const parts=[state.cat,state.age&&`ages ${state.age}`,state.val,state.mood,state.q&&`“${state.q}”`].filter(Boolean).join(" · ");
+    c.classList.remove("pad");c.classList.add("pad");
+    if(!res.length){c.innerHTML=`<div class="results-head"><h2>Results</h2></div><div class="empty"><div class="e-emoji">🔭</div><p>No stories match that yet.<br>Try fewer filters — the shelf is still growing.</p></div>`;return}
+    c.innerHTML=`<div class="results-head"><h2>${parts}</h2><span>${res.length} ${res.length===1?'story':'stories'}</span></div><div class="grid">${res.map(cardHTML).join("")}</div>`;
+  }else{
+    c.innerHTML=[
+      row("New this week","Fresh from the studio",BOOKS.slice(0,8)),
+      row("Bedtime &amp; calm","Cozy &amp; Calm · wind-down",BOOKS.filter(b=>b.c==="Cozy & Calm"||b.m.includes("Calming")||b.m.includes("Dreamy"))),
+      row("Big adventures","Quests, journeys &amp; bold missions",BOOKS.filter(b=>b.c==="Big Adventures")),
+      row("Brave hearts","Stories about courage",BOOKS.filter(b=>b.v.includes("Courage"))),
+      row("All the big feelings","Naming &amp; understanding emotions",BOOKS.filter(b=>b.c==="All My Feelings"||b.v.includes("Empathy"))),
+      row("Animal friends","Companions, teachers &amp; partners",BOOKS.filter(b=>b.c==="Animal Friends")),
+      row("Watch &amp; listen","Animated books with narration",BOOKS.filter(b=>b.f.includes("watch")))
+    ].join("");
+  }
+}
+
+/* ---------- Detail sheet ---------- */
+function openSheet(id){
+  const b=BOOKS[id];
+  const fmtBtns=[
+    {k:"read",ic:"📖",l:"Read"},
+    {k:"listen",ic:"🎧",l:"Listen"},
+    b.f.includes("watch")?{k:"watch",ic:"▶",l:"Watch"}:null
+  ].filter(Boolean);
+  const cls=fmtBtns.length===2?"two":"";
+  $("#sheet").innerHTML=`
+    <div class="sheet-hero" style="background:${cv(b.p)}">
+      <div class="he">${b.e}</div>
+      <button class="x" id="sheet-x" aria-label="Close">✕</button>
+    </div>
+    <div class="sheet-body">
+      <h2 class="sheet-title">${b.t}</h2>
+      <div class="sheet-byline">${b.c} · Ages ${b.a} · ${b.dur} · Narrated by ${b.nar}</div>
+      <div class="sheet-chips">
+        ${b.v.map(v=>`<span class="chip val">${v}</span>`).join("")}
+        ${b.m.map(m=>`<span class="chip mood">${m}</span>`).join("")}
+      </div>
+      <p class="sheet-desc">${b.d}</p>
+      <div class="sheet-actions ${cls}">
+        ${fmtBtns.map((f,i)=>`<button class="big-act ${i===0?'read':''}" data-play="${f.k}" data-id="${b.id}"><span class="ic">${f.ic}</span>${f.l}</button>`).join("")}
+      </div>
+      <button class="shelf-btn" id="shelf-add">＋ Add to My shelf</button>
+    </div>`;
+  $("#scrim").classList.add("open");
+  $("#sheet-x").onclick=closeSheet;
+  $("#shelf-add").onclick=()=>{toast("Added to My shelf");};
+}
+function closeSheet(){$("#scrim").classList.remove("open")}
+
+/* ---------- Faux player ---------- */
+const MODE_TXT={read:"Now reading",listen:"Now listening",watch:"Now watching"};
+const SAMPLE="The little rocket hummed softly, and far below, the whole world looked like a sleepy blue marble.";
+function openPlayer(id,mode){
+  const b=BOOKS[id];
+  $("#player-mode-label").textContent=MODE_TXT[mode]||"Now reading";
+  const stage=$("#player-stage");
+  if(mode==="watch"){
+    stage.innerHTML=`<div class="stage-cover" style="background:${cv(b.p)}"><div class="se">${b.e}</div>
+      <div class="cover-brand" style="position:relative;z-index:2">✦ Spizzzy</div>
+      <div class="cover-title" style="position:relative;z-index:2">${b.t}</div></div>
+      <div class="stage-mode">Animated book · ${b.dur}</div>
+      <div class="stage-note">Press play to watch the animated story unfold.</div>`;
+  }else{
+    stage.innerHTML=`<div class="stage-cover" style="background:${cv(b.p)}"><div class="se">${b.e}</div></div>
+      <div class="stage-mode">${b.t} · ${b.nar}</div>
+      <div class="stage-txt">“${SAMPLE}”</div>
+      <div class="stage-note">${mode==="listen"?"Narration plays with gentle music.":"Tap ▶ to read along with highlighting."}</div>`;
+  }
+  $("#player").classList.add("open");
+}
+$("#player-close").onclick=()=>$("#player").classList.remove("open");
+
+/* ---------- Toast ---------- */
+let toastT;
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1800)}
+
+/* ---------- Events ---------- */
+document.addEventListener("click",e=>{
+  const fc=e.target.closest(".fchip");
+  if(fc){const k=fc.dataset.key,v=fc.dataset.val;state[k]=state[k]===v?null:v;syncFilterUI();renderContent();return}
+  const card=e.target.closest(".card");
+  if(card){openSheet(+card.dataset.id);return}
+  const op=e.target.closest("[data-open]");
+  if(op){openSheet(+op.dataset.open);return}
+  const pl=e.target.closest("[data-play]");
+  if(pl){const id=+pl.dataset.id,mode=pl.dataset.play;if($("#scrim").classList.contains("open"))closeSheet();openPlayer(id,mode);return}
+  if(e.target.id==="scrim")closeSheet();
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){closeSheet();$("#player").classList.remove("open")}
+  if(e.key==="Enter"){const card=e.target.closest&&e.target.closest(".card");if(card)openSheet(+card.dataset.id)}
+});
+$("#search").addEventListener("input",e=>{state.q=e.target.value;syncFilterUI();renderContent()});
+
+/* ---------- Init ---------- */
+buildFilters();renderHero();renderContent();
+</script>
+</body>
+</html>

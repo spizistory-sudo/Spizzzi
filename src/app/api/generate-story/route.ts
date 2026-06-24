@@ -234,8 +234,26 @@ async function handleStructuredEnglishStory(
       interests: (body.interests as string[]) || [],
     };
 
-    const photoDesc = (body.photoDescription as string) || undefined;
+    let photoDesc = (body.photoDescription as string) || undefined;
     const styleKey = (body.styleKey as string) || undefined;
+
+    // Guard: never generate a story without a photo description (likeness anchor)
+    if (!photoDesc && body.storagePath) {
+      console.warn('[generate-story] photoDescription missing, re-running photo analysis');
+      try {
+        const { analyzeChildPhoto } = await import('@/lib/ai/photo-analyzer');
+        const { getImageBase64 } = await import('@/lib/supabase/storage');
+        const photoBase64 = await getImageBase64('photos', body.storagePath as string);
+        photoDesc = await analyzeChildPhoto(photoBase64);
+        console.log('[generate-story] Photo re-analysis succeeded, length:', photoDesc.length);
+      } catch (err) {
+        console.error('[generate-story] Photo re-analysis failed:', err instanceof Error ? err.message : err);
+      }
+    }
+    if (!photoDesc) {
+      console.error('[generate-story] aborting: no photoDescription after retries');
+      return NextResponse.json({ error: 'No photo description available. Please re-upload the child photo.' }, { status: 422 });
+    }
 
     const result = await generateEnglishStory(
       childProfile,

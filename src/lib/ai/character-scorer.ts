@@ -1,7 +1,9 @@
 import { getGeminiClient } from './gemini';
+import { withGeminiRetry } from './gemini-retry';
 
 export interface CharacterMatchResult {
-  score: number;
+  scored: boolean;
+  score: number | null;
   mismatches: string[];
 }
 
@@ -12,15 +14,16 @@ export async function scoreCharacterMatch(
   referenceMimeType: string = 'image/png',
 ): Promise<CharacterMatchResult> {
   try {
-    const ai = getGeminiClient();
-    const res = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [{
-        role: 'user',
-        parts: [
-          { inlineData: { mimeType: referenceMimeType, data: referenceBase64 } },
-          { inlineData: { mimeType: imageMimeType, data: imageBase64 } },
-          { text: `Image 1 is a CHARACTER REFERENCE SHEET — the canonical appearance of a children's book protagonist.
+    const result = await withGeminiRetry(async () => {
+      const ai = getGeminiClient();
+      const res = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [{
+          role: 'user',
+          parts: [
+            { inlineData: { mimeType: referenceMimeType, data: referenceBase64 } },
+            { inlineData: { mimeType: imageMimeType, data: imageBase64 } },
+            { text: `Image 1 is a CHARACTER REFERENCE SHEET — the canonical appearance of a children's book protagonist.
 Image 2 is an illustrated page from that book.
 
 Score how well the character in Image 2 matches the reference in Image 1 on these traits:
@@ -36,17 +39,22 @@ Return ONLY valid JSON (no markdown, no backticks):
 
 If all traits match well, return {"score": 90, "mismatches": []}.
 Be strict but fair — art style variation is OK, identity drift is not.` },
-        ],
-      }],
-    });
+          ],
+        }],
+      });
 
-    const text = (res.text || '').trim().replace(/```json\n?|```\n?/g, '').trim();
-    const parsed = JSON.parse(text) as CharacterMatchResult;
-    parsed.score = Math.max(0, Math.min(100, parsed.score || 0));
-    parsed.mismatches = parsed.mismatches || [];
-    return parsed;
+      const text = (res.text || '').trim().replace(/```json\n?|```\n?/g, '').trim();
+      const parsed = JSON.parse(text) as { score: number; mismatches: string[] };
+      return {
+        scored: true,
+        score: Math.max(0, Math.min(100, parsed.score || 0)),
+        mismatches: parsed.mismatches || [],
+      };
+    }, { callName: 'character-scorer' });
+
+    return result;
   } catch (err) {
-    console.warn('[character-scorer] Scoring failed, returning pass-by-default:', err instanceof Error ? err.message : err);
-    return { score: 80, mismatches: [] };
+    console.error('[character-scorer] Scoring failed after retries:', err instanceof Error ? err.message : err);
+    return { scored: false, score: null, mismatches: [] };
   }
 }

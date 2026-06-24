@@ -104,8 +104,8 @@ export async function POST(req: Request) {
           15_000,
           'Character match scoring',
         );
-        console.log(`[generate-character-sheet] Sheet score: ${match.score}, mismatches: ${match.mismatches.join(', ') || 'none'}`);
-        if (match.score < 60) {
+        console.log(`[generate-character-sheet] Sheet scored=${match.scored}, score=${match.score}, mismatches: ${match.mismatches.join(', ') || 'none'}`);
+        if (!match.scored || (match.score !== null && match.score < 60)) {
           console.log('[generate-character-sheet] Sheet below threshold (60), regenerating once');
           try {
             const retry = await withTimeout(

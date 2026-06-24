@@ -329,7 +329,7 @@ async function generateAllIllustrations(params: {
       // Generate with scored drift gate (character sheet comparison)
       const IDENTITY_MIN_SCORE = parseInt(process.env.IDENTITY_MIN_SCORE || '70', 10);
       const IDENTITY_MAX_RETRIES = parseInt(process.env.IDENTITY_MAX_RETRIES || '2', 10);
-      let bestResult: { buffer: Buffer; modelUsed: string; score: number } | null = null;
+      let bestResult: { buffer: Buffer; modelUsed: string; score: number; needsReview?: boolean } | null = null;
       let genAttempt = 0;
       let lastMismatches: string[] = [];
 
@@ -355,13 +355,15 @@ async function generateAllIllustrations(params: {
         }
 
         // Score against character sheet (if available)
-        let score = 80;
+        let score: number | null = 80;
+        let scored = true;
         let mismatches: string[] = [];
         if (characterSheetBase64) {
           const match = await scoreCharacterMatch(
             genResult.buffer.toString('base64'),
             characterSheetBase64,
           );
+          scored = match.scored;
           score = match.score;
           mismatches = match.mismatches;
           lastMismatches = mismatches;
@@ -376,27 +378,29 @@ async function generateAllIllustrations(params: {
             fallbackTriggered: false,
             referencesAttached: {},
             durationMs: 0,
-            success: true,
-            errorMessage: score >= IDENTITY_MIN_SCORE ? undefined : `score=${score} mismatches=[${mismatches.join(', ')}]`,
+            success: scored,
+            errorMessage: !scored ? 'scoring_failed' : (score !== null && score >= IDENTITY_MIN_SCORE ? undefined : `score=${score} mismatches=[${mismatches.join(', ')}]`),
           });
 
-          console.log(`[generate-illustrations] Page ${page.page_number} attempt ${genAttempt}: score=${score}, mismatches=${mismatches.join(', ') || 'none'}`);
+          console.log(`[generate-illustrations] Page ${page.page_number} attempt ${genAttempt}: scored=${scored}, score=${score}, mismatches=${mismatches.join(', ') || 'none'}`);
         }
 
-        if (!bestResult || score > bestResult.score) {
-          bestResult = { ...genResult, score };
+        const numericScore = score ?? 0;
+        if (!bestResult || numericScore > (bestResult.score ?? 0)) {
+          bestResult = { ...genResult, score: numericScore, needsReview: !scored };
         }
 
-        if (score >= IDENTITY_MIN_SCORE) break;
+        if (scored && numericScore >= IDENTITY_MIN_SCORE) break;
+        if (!scored && genAttempt > 1) break;
 
         if (genAttempt <= IDENTITY_MAX_RETRIES) {
-          console.warn(`[generate-illustrations] Page ${page.page_number} score ${score} < ${IDENTITY_MIN_SCORE}, retrying (${genAttempt}/${IDENTITY_MAX_RETRIES + 1})`);
+          console.warn(`[generate-illustrations] Page ${page.page_number} ${!scored ? 'scoring failed' : `score ${score} < ${IDENTITY_MIN_SCORE}`}, retrying (${genAttempt}/${IDENTITY_MAX_RETRIES + 1})`);
           retryCount++;
         }
       }
 
-      if (bestResult && bestResult.score < IDENTITY_MIN_SCORE) {
-        console.warn(`[generate-illustrations] Page ${page.page_number} best score ${bestResult.score} still below threshold ${IDENTITY_MIN_SCORE}. Accepting best attempt.`);
+      if (bestResult && (bestResult.score ?? 0) < IDENTITY_MIN_SCORE) {
+        console.warn(`[generate-illustrations] Page ${page.page_number} best score ${bestResult.score} still below threshold ${IDENTITY_MIN_SCORE}. ${bestResult.needsReview ? 'Marking needs_review.' : 'Accepting best attempt.'}`);
       }
 
       const finalResult = bestResult!;
@@ -420,12 +424,16 @@ async function generateAllIllustrations(params: {
       const storagePath = `${bookId}/page-${page.page_number}.png`;
       const imageUrl = await uploadImage('illustrations', storagePath, finalResult.buffer);
 
+      if (finalResult.needsReview) {
+        console.warn(`[generate-illustrations] Page ${page.page_number} marked needs_review (scoring failed, identity unverified)`);
+      }
+
       await supabase
         .from('pages')
         .update({ illustration_url: imageUrl, illustration_status: 'complete' })
         .eq('id', page.id);
 
-      return { pageNumber: page.page_number, status: 'complete' as const, url: imageUrl };
+      return { pageNumber: page.page_number, status: 'complete' as const, url: imageUrl, needsReview: finalResult.needsReview };
     })
   );
 

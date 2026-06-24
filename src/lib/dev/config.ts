@@ -11,6 +11,12 @@ export function isDevPhotoAnalysis(): boolean {
 }
 
 export function isDevIllustrations(): boolean {
+  if (process.env.NODE_ENV === 'production' && process.env.DEV_ILLUSTRATIONS !== 'true') return false;
+  return process.env.DEV_ILLUSTRATIONS === 'true';
+}
+
+export function useFluxRenderer(): boolean {
+  if (process.env.NODE_ENV === 'production') return false;
   return process.env.DEV_ILLUSTRATIONS === 'true';
 }
 

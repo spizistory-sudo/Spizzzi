@@ -2,7 +2,7 @@ import { getGeminiClient } from './gemini';
 import { ART_STYLES, type ArtStyleKey } from './prompts/style-references';
 import { generateWithRateLimit } from './rate-limit';
 import type { Part } from '@google/genai';
-import { isDevIllustrations } from '@/lib/dev/config';
+import { useFluxRenderer } from '@/lib/dev/config';
 import { generateImageWithFlux2Pro, type ReferenceImage } from './fal-client';
 
 export const PRIMARY_MODEL = 'gemini-3-pro-image-preview';
@@ -135,7 +135,7 @@ This is a CHARACTER REFERENCE — it will be used as the identity anchor for all
 
   const fullPrompt = `${promptText}\n\nREFERENCE IMAGES:\n${refDescriptions}\nGenerate in PORTRAIT orientation (3:4 aspect ratio).`;
 
-  if (isDevIllustrations()) {
+  if (useFluxRenderer()) {
     console.log(`[character-sheet] Using FLUX 2 Pro (DEV_ILLUSTRATIONS)`);
     const buffer = await generateWithRateLimit(() =>
       buildFlux2ProRequest(fullPrompt, { childPhotoBase64: allPhotos[0], stylePreviewBase64 })
@@ -214,7 +214,7 @@ TECHNICAL RULES:
 ${ANTI_TEXT_RULES}
 We will add the title separately with CSS.`;
 
-  if (isDevIllustrations()) {
+  if (useFluxRenderer()) {
     console.log(`[DEV_ILLUSTRATIONS] Using FLUX 2 Pro for cover (${styleKey})`);
     const buffer = await generateWithRateLimit(() =>
       buildFlux2ProRequest(promptText, { childPhotoBase64: allChildPhotos[0], characterSheetBase64, stylePreviewBase64 })
@@ -444,7 +444,7 @@ ${ANTI_TEXT_RULES}${extraAntiText}
 Before generating, verify: (1) Does the SCENE match the setting and action? ${hasSecondaryChars ? '(2) Are ALL listed characters visible in the frame? (3) Is each character visually DISTINCT?' : '(2) Is the protagonist\'s identity correct?'} If any fails, regenerate.
 === END FINAL CHECK ===`;
 
-  if (isDevIllustrations()) {
+  if (useFluxRenderer()) {
     console.log(`[DEV_ILLUSTRATIONS] Using FLUX 2 Pro for page ${pageNumber}`);
     const buffer = await generateWithRateLimit(() =>
       buildFlux2ProRequest(promptText, { characterCrops, characterSheetBase64, coverImageBase64, childPhotoBase64, stylePreviewBase64 })
