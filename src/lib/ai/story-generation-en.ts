@@ -26,10 +26,23 @@ import { ChildProfile } from '@/lib/ai/curation-en';
 // TYPES
 // -----------------------------------------------------------------------------
 
+export interface IllustrationBriefCharacter {
+  name: string;
+  role: 'protagonist' | 'secondary';
+  appearance: string;
+}
+
+export interface IllustrationBrief {
+  setting: string;
+  characters_in_frame: IllustrationBriefCharacter[];
+  action: string;
+}
+
 export interface GeneratedSpread {
   spread_number: number;
   text: string;
   illustration_prompt: string;
+  illustration_brief?: IllustrationBrief;
 }
 
 export interface GeneratedStory {
@@ -76,8 +89,15 @@ You'll receive a things_to_avoid list. These are the ways this kind of story com
 ## Rule 5: Each spread is a SCENE
 A spread is one moment, one setting, one beat. The text on a spread should be readable in one breath of focused attention. Don't pack two scenes into one spread.
 
-## Rule 6: Every spread needs a vivid illustration_prompt
+## Rule 6: Every spread needs a vivid illustration_prompt AND illustration_brief
 The illustration prompt is in ENGLISH (always — it goes to an image model). It should describe exactly what's on the page: who is there, what they're doing, where, what mood, what colors. Be specific. The image model takes it literally.
+
+In addition, every spread MUST include an illustration_brief — a structured object that breaks the scene into three parts the image model uses to compose the image:
+- "setting": one vivid sentence describing WHERE this moment happens with culturally specific, concrete, visual detail (architecture, landscape, objects, colors, lighting). Not generic — make it unmistakable. Example: "a sunny Mexican courtyard filled with bright orange marigolds, terracotta walls, and a worn wooden table."
+- "characters_in_frame": an array of characters VISIBLE in this scene. ALWAYS include the protagonist. For each secondary character in this page's moment, invent a plausible appearance (age, hair, build, simple outfit). Format: [{"name": "Tani", "role": "protagonist", "appearance": "as described in character bible"}, {"name": "Inés", "role": "secondary", "appearance": "a friendly Mexican girl about 9, dark hair in two braids, simple yellow dress"}]
+- "action": one sentence describing the single key visual moment — the gesture, exchange, or movement to illustrate. Include key props. If the page has multiple beats, pick the most illustratable one. Example: "Inés hands Tani a piece of golden-brown sweet bread (concha); Tani reaches for it, both smiling."
+
+The illustration_brief is the image model's primary instruction. Make it vivid and specific.
 
 ## Rule 7: No moralizing
 Don't end with "And so the child learned that..." Don't have a character announce the lesson. The lesson lives in the story or it doesn't live at all.
@@ -119,7 +139,15 @@ Return ONLY valid JSON in this exact structure. No prose before or after, no mar
     {
       "spread_number": 1,
       "text": "The text on this spread. May contain dialogue and short paragraphs.",
-      "illustration_prompt": "A specific English description of what should be illustrated on this spread, including subject, setting, mood, and color palette."
+      "illustration_prompt": "A specific English description of what should be illustrated on this spread, including subject, setting, mood, and color palette.",
+      "illustration_brief": {
+        "setting": "One vivid sentence — where this moment happens, with culturally specific concrete detail.",
+        "characters_in_frame": [
+          {"name": "Child name", "role": "protagonist", "appearance": "as described in character bible"},
+          {"name": "Secondary name", "role": "secondary", "appearance": "brief plausible appearance"}
+        ],
+        "action": "One sentence — the single key visual moment to illustrate, including key props."
+      }
     }
   ],
   "metadata": {

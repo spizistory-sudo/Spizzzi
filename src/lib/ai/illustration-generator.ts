@@ -329,67 +329,117 @@ export async function generatePageIllustration(
     console.warn('[illustration] WARNING: Character description is too short or missing:', characterDescription);
   }
 
-  const sceneInvolvesText = /\b(read|reading|book|sign|letter|note|paper|write|writing|page|library|chalkboard|menu)\b/i.test(illustrationPrompt);
+  // Parse illustration brief if embedded in the prompt
+  let brief: { setting?: string; characters_in_frame?: Array<{ name: string; role: string; appearance: string }>; action?: string } | null = null;
+  let rawIllustrationPrompt = illustrationPrompt;
+  const briefMatch = illustrationPrompt.match(/<!--BRIEF:([\s\S]*?):BRIEF-->\n?/);
+  if (briefMatch) {
+    try {
+      brief = JSON.parse(briefMatch[1]);
+      rawIllustrationPrompt = illustrationPrompt.replace(briefMatch[0], '').trim();
+    } catch { /* parsing failed, use raw prompt */ }
+  }
+
+  const sceneInvolvesText = /\b(read|reading|book|sign|letter|note|paper|write|writing|page|library|chalkboard|menu)\b/i.test(rawIllustrationPrompt);
   const extraAntiText = sceneInvolvesText
     ? `\nSPECIAL NOTE: This scene involves objects that typically contain text. ALL such objects MUST be visually blank — no text, no letters, no markings. Books must be closed or have blank pages. Signs must be blank.`
     : '';
 
-  // Build reference image descriptions for the prompt
+  const protagonistName = characterDescription.match(/\b[A-Z][a-z]+\b/)?.[0] || 'the child';
+
+  // Build reference image descriptions
   const refDescriptions: string[] = [];
   let refIdx = 1;
-  const protagonistCrop = characterCrops?.find(c => c.name === characterDescription.split('\n')[0]?.match(/\b[A-Z][a-z]+\b/)?.[0]) || characterCrops?.[0];
-  if (protagonistCrop) refDescriptions.push(`- Image ${refIdx++}: ${protagonistCrop.name}'s portrait extracted from the cover. The character on this page MUST look like this portrait — same face, hair, skin tone, outfit.`);
+  const protagonistCrop = characterCrops?.find(c => c.name === protagonistName) || characterCrops?.[0];
+  if (protagonistCrop) refDescriptions.push(`- Image ${refIdx++}: ${protagonistCrop.name}'s portrait from the cover — the PROTAGONIST. Match exactly.`);
   const otherCrops = characterCrops?.filter(c => c !== protagonistCrop) || [];
   for (const crop of otherCrops) {
     if (refIdx > 8) break;
-    refDescriptions.push(`- Image ${refIdx++}: ${crop.name}'s portrait — must match this appearance on this page.`);
+    refDescriptions.push(`- Image ${refIdx++}: ${crop.name}'s portrait — must match this appearance.`);
   }
-  if (previousPageBase64) refDescriptions.push(`- Image ${refIdx++}: The previous page of this book — for visual continuity, world and style must match.`);
-  if (coverImageBase64) refDescriptions.push(`- Image ${refIdx++}: The full cover — for overall scene/style reference.`);
-  if (childPhotoBase64) refDescriptions.push(`- Image ${refIdx++}: The child's original photo — identity backup.`);
-  if (stylePreviewBase64) refDescriptions.push(`- Image ${refIdx++}: Style swatch — rendering technique ONLY, not layout or character.`);
+  if (characterSheetBase64) refDescriptions.push(`- Image ${refIdx++}: Character sheet — the LOCKED protagonist design. Match exactly.`);
+  if (previousPageBase64) refDescriptions.push(`- Image ${refIdx++}: Previous page — for visual continuity.`);
+  if (coverImageBase64) refDescriptions.push(`- Image ${refIdx++}: Cover — scene/style reference.`);
+  if (childPhotoBase64) refDescriptions.push(`- Image ${refIdx++}: Child's photo — identity backup for PROTAGONIST only.`);
+  if (stylePreviewBase64) refDescriptions.push(`- Image ${refIdx++}: Style swatch — rendering technique ONLY.`);
+  refDescriptions.push(`\nREFERENCES DEFINE THE PROTAGONIST ONLY. Other characters in the scene are NOT in the references — render them fresh from their descriptions below.`);
 
-  const promptText = `=== ABSOLUTE IDENTITY LOCK — READ FIRST ===
+  // Build scene-first prompt
+  let sceneBlock: string;
+  let charactersBlock: string;
 
-The protagonist of this book is ${characterDescription.match(/\b[A-Z][a-z]+\b/)?.[0] || 'the child'}.
+  if (brief) {
+    sceneBlock = `=== SCENE — THIS IS THE MOST IMPORTANT SECTION ===
+
+SETTING: ${brief.setting}
+
+ACTION: ${brief.action}
+
+Illustrate this EXACT moment in this EXACT place. The setting must be unmistakable — specific architecture, landscape, objects, colors, and lighting as described.
+
+=== END SCENE ===`;
+
+    const protagonistChars = (brief.characters_in_frame || []).filter(c => c.role === 'protagonist');
+    const secondaryChars = (brief.characters_in_frame || []).filter(c => c.role === 'secondary');
+
+    const charLines: string[] = [];
+    for (const c of protagonistChars) {
+      charLines.push(`- ${c.name} (PROTAGONIST): Must match the character sheet and reference photos exactly — same face, hair, skin tone, build, outfit. ${characterDescription.substring(0, 150)}`);
+    }
+    for (const c of secondaryChars) {
+      charLines.push(`- ${c.name} (SECONDARY): ${c.appearance}. This is a DIFFERENT person from the protagonist — do NOT give them the protagonist's face, hair, skin tone, or outfit.`);
+    }
+
+    charactersBlock = `=== CHARACTERS IN THIS SCENE ===
+${charLines.join('\n')}
+
+IDENTITY FIREWALL: The reference images (photos, character sheet, cover) define ONLY the protagonist (${protagonistName}). Secondary characters are DISTINCT individuals with their OWN appearance as described above. Do NOT clone the protagonist's features onto anyone else.
+=== END CHARACTERS ===`;
+  } else {
+    sceneBlock = `=== SCENE TO ILLUSTRATE ===
+${rawIllustrationPrompt}
+=== END SCENE ===`;
+
+    charactersBlock = `=== PROTAGONIST ===
+${protagonistName} must match the character sheet and reference photos exactly — same face, hair, skin tone, build, outfit.
 ${characterDescription.substring(0, 200)}
+=== END PROTAGONIST ===`;
+  }
 
-These traits are FIXED and NON-NEGOTIABLE across every page of this book.
-DO NOT change the protagonist's race based on the scene.
-DO NOT change skin tone to match the background or setting.
-DO NOT let the art style override the character's identity.
-DO NOT draw a different-looking child even if the scene suggests one.
+  const promptText = `PURE IMAGE OUTPUT — NO TEXT WHATSOEVER.
 
+${sceneBlock}
+
+${charactersBlock}
+
+=== PROTAGONIST IDENTITY LOCK ===
+${protagonistName}'s appearance is FIXED and NON-NEGOTIABLE:
+${characterDescription.substring(0, 200)}
+DO NOT change the protagonist's race, skin tone, or hair based on the scene or setting.
+DO NOT let the art style override the protagonist's identity.
+This lock applies ONLY to the protagonist — secondary characters have their own described appearances.
 === END IDENTITY LOCK ===
 
-${visualBibleBlock || ''}PURE IMAGE OUTPUT — NO TEXT WHATSOEVER. Do not render any words, letters, numbers, or written symbols anywhere in this image.
-
-=== REFERENCE IMAGES ATTACHED ===
+${visualBibleBlock || ''}
+=== REFERENCE IMAGES ===
 ${refDescriptions.join('\n')}
 === END REFERENCES ===
 
-SCENE TO ILLUSTRATE:
-${illustrationPrompt}
-
 ART STYLE:
 ${style.stylePrompt}
-
-CHARACTER CONSISTENCY RULES:
-- The main character must look identical to the description above — same face, hair, eyes, skin, clothes on EVERY page
-- The main character appears ONCE per illustration — not duplicated, not mirrored, not shown from two angles
-- All side characters must remain visually identical to how they appeared on earlier pages
-- EVERY person must have a complete, clearly drawn face with visible eyes, nose, and mouth
 
 TECHNICAL RULES:
 - Generate ONLY the scene as a flat digital painting
 - Do NOT draw a book, book pages, page edges, binding, spine, or any book frame
 - Do NOT add any border, frame, vignette, or edge effects
 - Fill the entire canvas edge to edge — no white borders, no margins, no frames
+- EVERY person must have a complete, clearly drawn face with visible eyes, nose, and mouth
+- The protagonist appears ONCE — not duplicated, not mirrored
 ${ANTI_TEXT_RULES}${extraAntiText}
 - Mood: ${mood}
 
-=== FINAL CHECK BEFORE GENERATING ===
-Before generating, verify: Is the character's race, skin tone, hair color/style the same as the Identity Lock above and the portrait references? If not, the image is WRONG — regenerate with the correct identity.
+=== FINAL CHECK ===
+Before generating, verify: (1) Does the SCENE match the setting and action described above? (2) Is the PROTAGONIST's identity correct per the lock? (3) Are secondary characters DISTINCT from the protagonist? If any fails, regenerate.
 === END FINAL CHECK ===`;
 
   if (isDevIllustrations()) {

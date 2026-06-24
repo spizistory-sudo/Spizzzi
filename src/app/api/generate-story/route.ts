@@ -278,13 +278,19 @@ async function handleStructuredEnglishStory(
     }
 
     // Insert pages — mirrors Hebrew structured pattern
-    const pageRecords = result.spreads.map((spread) => ({
-      book_id: book.id,
-      page_number: spread.spread_number,
-      text_content: spread.text,
-      text_for_tts: spread.text, // English: same as text (no niqqud stripping needed)
-      illustration_prompt: spread.illustration_prompt,
-    }));
+    const pageRecords = result.spreads.map((spread) => {
+      let promptWithBrief = spread.illustration_prompt;
+      if (spread.illustration_brief) {
+        promptWithBrief = `<!--BRIEF:${JSON.stringify(spread.illustration_brief)}:BRIEF-->\n${spread.illustration_prompt}`;
+      }
+      return {
+        book_id: book.id,
+        page_number: spread.spread_number,
+        text_content: spread.text,
+        text_for_tts: spread.text,
+        illustration_prompt: promptWithBrief,
+      };
+    });
 
     const { error: pagesError } = await supabase.from('pages').insert(pageRecords);
     if (pagesError) {
