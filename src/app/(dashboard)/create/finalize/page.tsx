@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Volume2, VolumeX } from 'lucide-react';
 import { useCreationWizard } from '@/stores/creation-wizard';
 import { createClient } from '@/lib/supabase/client';
 import WizardProgress from '@/components/wizard/WizardProgress';
@@ -104,6 +105,10 @@ function FinalizePage() {
   const [smoothProgress, setSmoothProgress] = useState(0);
   const [rotatingIdx, setRotatingIdx] = useState(0);
   const buildingMusicRef = useRef<HTMLAudioElement | null>(null);
+  const [musicMuted, setMusicMuted] = useState(() => {
+    if (typeof window !== 'undefined') return sessionStorage.getItem('spizzzy_gen_music_muted') === '1';
+    return false;
+  });
 
   // Audio preview refs
   const voicePreviewRef = useRef<HTMLAudioElement | null>(null);
@@ -271,7 +276,6 @@ function FinalizePage() {
   useEffect(() => {
     if (phase !== 'building' && phase !== 'done') return;
 
-    // Resolve selected music URL
     let musicSrc: string | null = null;
     if (selectedMusicId) {
       const fallbackTrack = FALLBACK_TRACKS.find((t) => t.id === selectedMusicId);
@@ -282,6 +286,7 @@ function FinalizePage() {
       const audio = new Audio(musicSrc);
       audio.loop = true;
       audio.volume = 0.3;
+      audio.muted = musicMuted;
       audio.play().catch(() => console.log('[building] Music autoplay blocked'));
       buildingMusicRef.current = audio;
     }
@@ -292,7 +297,23 @@ function FinalizePage() {
         buildingMusicRef.current = null;
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, selectedMusicId]);
+
+  // Sync muted state to audio element
+  useEffect(() => {
+    if (buildingMusicRef.current) {
+      buildingMusicRef.current.muted = musicMuted;
+    }
+  }, [musicMuted]);
+
+  function toggleMusicMute() {
+    setMusicMuted((prev) => {
+      const next = !prev;
+      sessionStorage.setItem('spizzzy_gen_music_muted', next ? '1' : '0');
+      return next;
+    });
+  }
 
   if (!storyId || !childName) return null;
 
@@ -509,6 +530,33 @@ function FinalizePage() {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-4">
         <VideoBackground />
+
+        {/* Mute toggle */}
+        <button
+          onClick={toggleMusicMute}
+          aria-label={musicMuted ? 'Unmute music' : 'Mute music'}
+          className="fixed z-[60] pt-safe"
+          style={{
+            top: 'calc(16px + env(safe-area-inset-top, 0px))',
+            right: 16,
+            width: 44,
+            height: 44,
+            borderRadius: '50%',
+            background: 'rgba(255, 255, 255, 0.06)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            color: musicMuted ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.75)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'color 0.2s, border-color 0.2s',
+          }}
+        >
+          {musicMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+        </button>
+
         <div className="relative z-10 flex flex-col items-center">
         {/* Cover with fade-in — hidden during story writing */}
         {buildPhase !== 'writing_story' && (
