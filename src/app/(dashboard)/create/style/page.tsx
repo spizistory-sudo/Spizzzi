@@ -16,27 +16,12 @@ export default function StylePage() {
   const navigatingRef = useRef(false);
 
   function handleSelect(key: ArtStyleKey) {
+    if (navigatingRef.current) return;
     setSelected(key);
     setSelectedStyle(key);
-    // On phone: tap-to-advance (no Continue button)
-    if (typeof window !== 'undefined' && window.innerWidth < 640 && !navigatingRef.current) {
-      navigatingRef.current = true;
-      setStep('details');
-      setTimeout(() => router.push('/create/details'), 150);
-    }
-  }
-
-  function handleContinue() {
-    if (!selected || navigatingRef.current) return;
     navigatingRef.current = true;
     setStep('details');
-    router.push('/create/details');
-  }
-
-  function handleSurprise() {
-    setSelectedStyle('pixar');
-    setStep('details');
-    router.push('/create/details');
+    setTimeout(() => router.push('/create/details'), 150);
   }
 
   return (
@@ -102,22 +87,6 @@ export default function StylePage() {
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-6 pb-8">
         <button onClick={() => router.push('/create')} className="btn-secondary min-h-[44px]">
           &larr; Back
-        </button>
-        <button onClick={handleContinue} className="hidden sm:inline-flex btn-primary min-h-[44px]" disabled={!selected}
-          style={{ opacity: selected ? 1 : 0.5, cursor: selected ? 'pointer' : 'not-allowed' }}
-        >
-          Continue &rarr;
-        </button>
-        <button onClick={handleSurprise} className="hidden sm:inline-flex"
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'rgba(255,255,255,0.50)', fontSize: '0.88rem', fontFamily: 'var(--font-body)',
-            textDecoration: 'underline', textUnderlineOffset: '3px',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.75)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.50)'; }}
-        >
-          Surprise me &#10024;
         </button>
       </div>
     </div>

@@ -477,6 +477,49 @@ function FinalizePage() {
     }).catch((err) => console.error('Failed to start narration:', err));
   }
 
+  async function retryBuild() {
+    if (!bookId) {
+      router.push('/create');
+      return;
+    }
+    console.log('[finalize] Retrying build for existing bookId:', bookId);
+
+    // Reset book status so polling picks up fresh progress
+    await supabase.from('books').update({ status: 'generating' }).eq('id', bookId);
+    await supabase.from('pages').update({ illustration_status: 'pending', illustration_url: null }).eq('book_id', bookId).in('illustration_status', ['error']);
+
+    setPhase('building');
+    setBuildPhase('cover_generating');
+    setBuildProgress({ illustrationsComplete: 0, narrationsComplete: 0, total: generatedStory?.pages?.length ? generatedStory.pages.length * 2 : 6 });
+    setCoverUrl(null);
+
+    // Re-fire the same build sequence (sheet → cover → pages + narration)
+    try {
+      await fetch('/api/generate-character-sheet', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId }),
+      }).catch(() => {});
+
+      const coverRes = await fetch('/api/generate-cover', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId }),
+      });
+      if (!coverRes.ok) {
+        setBuildPhase('failed');
+        return;
+      }
+
+      fetch('/api/generate-illustrations', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId }),
+      }).catch((err) => console.error('Failed to start illustrations:', err));
+
+      fetch('/api/generate-narration', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId, voiceId: selectedVoiceId, language }),
+      }).catch((err) => console.error('Failed to start narration:', err));
+    } catch (err) {
+      console.error('[finalize] Retry build error:', err);
+      setBuildPhase('failed');
+    }
+  }
+
   // ── Full-screen failure overlay ──
   if (buildPhase === 'failed') {
     return (
@@ -491,7 +534,7 @@ function FinalizePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center w-full max-w-[320px] mx-auto">
             <button
-              onClick={() => router.push('/create')}
+              onClick={retryBuild}
               className="w-full sm:w-auto px-6 py-3 min-h-[48px] bg-purple-600 hover:bg-purple-700 active:bg-purple-800 rounded-full text-white font-semibold transition"
             >
               Try Again

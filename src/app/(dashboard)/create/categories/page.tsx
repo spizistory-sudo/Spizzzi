@@ -35,21 +35,12 @@ export default function CategoriesPage() {
   const activeCategories = CATEGORIES.filter((c) => c.status === 'active');
 
   function handleSelect(id: string) {
+    if (navigatingRef.current) return;
     setSelected(id);
     setCategoryId(id);
-    // On phone: tap-to-advance
-    if (typeof window !== 'undefined' && window.innerWidth < 640 && !navigatingRef.current) {
-      navigatingRef.current = true;
-      setStep('stories');
-      setTimeout(() => router.push('/create/stories'), 150);
-    }
-  }
-
-  function handleContinue() {
-    if (!selected || navigatingRef.current) return;
     navigatingRef.current = true;
     setStep('stories');
-    router.push('/create/stories');
+    setTimeout(() => router.push('/create/stories'), 150);
   }
 
   return (
@@ -118,11 +109,6 @@ export default function CategoriesPage() {
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-6 pb-8">
         <button onClick={() => router.push('/create/details')} className="btn-secondary min-h-[44px]">
           &larr; Back
-        </button>
-        <button onClick={handleContinue} className="hidden sm:inline-flex btn-primary min-h-[44px]" disabled={!selected}
-          style={{ opacity: selected ? 1 : 0.5, cursor: selected ? 'pointer' : 'not-allowed' }}
-        >
-          Continue &rarr;
         </button>
       </div>
     </div>
