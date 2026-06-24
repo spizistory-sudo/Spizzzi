@@ -83,6 +83,7 @@ function FinalizePage() {
     selectedStyleKey,
     photoDescription,
     uploadedPhotos,
+    photoStoragePaths,
     selectedVoiceId,
     selectedMusicId,
     setSelectedVoice,
@@ -368,13 +369,14 @@ function FinalizePage() {
     // Backstop: if photoDescription is missing but we have a photo, re-analyze before generating
     let effectivePhotoDescription = photoDescription;
     const childPhoto = uploadedPhotos.find((p) => p.label === 'child');
-    if (!effectivePhotoDescription && childPhoto) {
+    const childPhotoPath = childPhoto?.storagePath || photoStoragePaths.find(p => p.label === 'child')?.storagePath;
+    if (!effectivePhotoDescription && childPhotoPath) {
       console.warn('[finalize] photoDescription missing, re-analyzing photo before story generation');
       try {
         const reanalyzeRes = await fetch('/api/analyze-photo-standalone', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ storagePath: childPhoto.storagePath }),
+          body: JSON.stringify({ storagePath: childPhotoPath }),
         });
         if (reanalyzeRes.ok) {
           const { description } = await reanalyzeRes.json();
@@ -403,7 +405,7 @@ function FinalizePage() {
           traits: childTraits,
           interests: childInterests,
           photoDescription: effectivePhotoDescription || undefined,
-          storagePath: childPhoto?.storagePath || undefined,
+          storagePath: childPhotoPath || undefined,
           styleKey: selectedStyleKey || undefined,
         }),
       });
@@ -420,20 +422,29 @@ function FinalizePage() {
       setGeneratedStory(storyData.story, newBookId);
       console.log('[finalize] Story generated, bookId:', newBookId);
 
-      // Save uploaded photos to DB with the new bookId
-      if (uploadedPhotos.length > 0) {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const photoRows = uploadedPhotos.map((p) => ({
-              book_id: newBookId,
-              user_id: user.id,
-              storage_path: p.storagePath,
-              label: p.label,
-            }));
-            await supabase.from('photos').insert(photoRows);
+      // Save photos to DB with the new bookId (use uploadedPhotos if available, fall back to persisted storagePaths)
+      const photoPaths = uploadedPhotos.length > 0
+        ? uploadedPhotos.map((p) => ({ storagePath: p.storagePath, label: p.label }))
+        : photoStoragePaths;
+
+      if (photoPaths.length > 0) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const photoRows = photoPaths.map((p) => ({
+            book_id: newBookId,
+            user_id: user.id,
+            storage_path: p.storagePath,
+            label: p.label,
+          }));
+          const { error: photoInsertError } = await supabase.from('photos').insert(photoRows);
+          if (photoInsertError) {
+            console.error('[finalize] Photo DB insert FAILED — illustrations will have no face reference:', photoInsertError.message);
+          } else {
+            console.log(`[finalize] ${photoRows.length} photo(s) saved to DB for book ${newBookId}`);
           }
-        } catch { /* continue */ }
+        }
+      } else {
+        console.warn('[finalize] No photos available to insert — illustrations will render without face reference');
       }
 
       // Save music + voice selection to metadata

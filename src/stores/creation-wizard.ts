@@ -42,6 +42,7 @@ interface WizardState {
 
   // Step 3: Photos
   uploadedPhotos: UploadedPhoto[];
+  photoStoragePaths: Array<{ storagePath: string; label: string }>;
   characterDescription: string | null;
   photoDescription: string | null;
 
@@ -112,6 +113,7 @@ const initialState = {
   curationResult: null as unknown,
   curationCachedFor: null as string | null,
   uploadedPhotos: [] as UploadedPhoto[],
+  photoStoragePaths: [] as Array<{ storagePath: string; label: string }>,
   characterDescription: null as string | null,
   photoDescription: null as string | null,
   generatedStory: null,
@@ -144,12 +146,25 @@ export const useCreationWizard = create<WizardState>()(
   setTraitDetails: (details) => set({ traitDetails: details }),
 
   addPhoto: (photo) =>
-    set((state) => ({ uploadedPhotos: [...state.uploadedPhotos, photo] })),
+    set((state) => {
+      const newPhotos = [...state.uploadedPhotos, photo];
+      return {
+        uploadedPhotos: newPhotos,
+        photoStoragePaths: newPhotos.filter(p => p.label === 'child').map(p => ({ storagePath: p.storagePath, label: p.label })),
+      };
+    }),
 
   removePhoto: (id) =>
-    set((state) => ({
-      uploadedPhotos: state.uploadedPhotos.filter((p) => p.id !== id),
-    })),
+    set((state) => {
+      const removed = state.uploadedPhotos.find(p => p.id === id);
+      const newPhotos = state.uploadedPhotos.filter((p) => p.id !== id);
+      return {
+        uploadedPhotos: newPhotos,
+        photoStoragePaths: removed
+          ? state.photoStoragePaths.filter(p => p.storagePath !== removed.storagePath)
+          : state.photoStoragePaths,
+      };
+    }),
 
   setCharacterDescription: (desc) => set({ characterDescription: desc }),
 
@@ -227,6 +242,7 @@ export const useCreationWizard = create<WizardState>()(
         selectedStyleKey: state.selectedStyleKey,
         storyId: state.storyId,
         photoDescription: state.photoDescription,
+        photoStoragePaths: state.photoStoragePaths,
         selectedVoiceId: state.selectedVoiceId,
         selectedMusicId: state.selectedMusicId,
         language: state.language,
