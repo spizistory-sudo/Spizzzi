@@ -369,31 +369,34 @@ export async function generatePageIllustration(
   let charactersBlock: string;
 
   if (brief) {
+    const protagonistChars = (brief.characters_in_frame || []).filter(c => c.role === 'protagonist');
+    const secondaryChars = (brief.characters_in_frame || []).filter(c => c.role === 'secondary');
+    const totalChars = protagonistChars.length + secondaryChars.length;
+    const isMultiChar = secondaryChars.length > 0;
+    const allNames = [...protagonistChars, ...secondaryChars].map(c => c.name).join(' and ');
+
     sceneBlock = `=== SCENE — THIS IS THE MOST IMPORTANT SECTION ===
 
-SETTING: ${brief.setting}
+${isMultiChar ? `⚠️ THIS IS A ${totalChars}-CHARACTER SCENE. You MUST draw ALL ${totalChars} characters listed below: ${allNames}. A scene with only the protagonist is WRONG.\n` : ''}SETTING: ${brief.setting}
 
 ACTION: ${brief.action}
 
-Illustrate this EXACT moment in this EXACT place. The setting must be unmistakable — specific architecture, landscape, objects, colors, and lighting as described.
+Illustrate this EXACT moment in this EXACT place. ${isMultiChar ? `BOTH/ALL characters must be visibly present and interacting as described in the action. Do NOT omit any character.` : ''} The setting must be unmistakable — specific architecture, landscape, objects, colors, and lighting as described.
 
 === END SCENE ===`;
 
-    const protagonistChars = (brief.characters_in_frame || []).filter(c => c.role === 'protagonist');
-    const secondaryChars = (brief.characters_in_frame || []).filter(c => c.role === 'secondary');
-
     const charLines: string[] = [];
     for (const c of protagonistChars) {
-      charLines.push(`- ${c.name} (PROTAGONIST): Must match the character sheet and reference photos exactly — same face, hair, skin tone, build, outfit. ${characterDescription.substring(0, 150)}`);
+      charLines.push(`- ${c.name} (PROTAGONIST): Match the character sheet / reference photos for face, hair, skin tone, build. ${characterDescription.substring(0, 100)}`);
     }
     for (const c of secondaryChars) {
-      charLines.push(`- ${c.name} (SECONDARY): ${c.appearance}. This is a DIFFERENT person from the protagonist — do NOT give them the protagonist's face, hair, skin tone, or outfit.`);
+      charLines.push(`- ${c.name} (SECONDARY — MUST BE DRAWN, do NOT omit): ${c.appearance}. This is a DIFFERENT person from ${protagonistName} — different face, different hair, different skin tone, different outfit. Draw them clearly visible and interacting with the protagonist.`);
     }
 
-    charactersBlock = `=== CHARACTERS IN THIS SCENE ===
+    charactersBlock = `=== CHARACTERS IN THIS SCENE — ALL MUST APPEAR ===
 ${charLines.join('\n')}
 
-IDENTITY FIREWALL: The reference images (photos, character sheet, cover) define ONLY the protagonist (${protagonistName}). Secondary characters are DISTINCT individuals with their OWN appearance as described above. Do NOT clone the protagonist's features onto anyone else.
+${isMultiChar ? `CRITICAL: This illustration MUST show ${totalChars} distinct characters. If you only draw ${protagonistName} alone, the image is WRONG. ${secondaryChars.map(c => c.name).join(', ')} must be clearly visible in the frame.\n` : ''}IDENTITY FIREWALL: Reference images define ONLY ${protagonistName}. Secondary characters are DISTINCT individuals with their OWN appearance. Do NOT clone ${protagonistName}'s features onto anyone else.
 === END CHARACTERS ===`;
   } else {
     sceneBlock = `=== SCENE TO ILLUSTRATE ===
@@ -406,19 +409,18 @@ ${characterDescription.substring(0, 200)}
 === END PROTAGONIST ===`;
   }
 
+  const hasSecondaryChars = brief && (brief.characters_in_frame || []).some(c => c.role === 'secondary');
+
   const promptText = `PURE IMAGE OUTPUT — NO TEXT WHATSOEVER.
 
 ${sceneBlock}
 
 ${charactersBlock}
 
-=== PROTAGONIST IDENTITY LOCK ===
-${protagonistName}'s appearance is FIXED and NON-NEGOTIABLE:
-${characterDescription.substring(0, 200)}
-DO NOT change the protagonist's race, skin tone, or hair based on the scene or setting.
-DO NOT let the art style override the protagonist's identity.
-This lock applies ONLY to the protagonist — secondary characters have their own described appearances.
-=== END IDENTITY LOCK ===
+=== PROTAGONIST IDENTITY (face/hair/skin only) ===
+${protagonistName}: ${characterDescription.substring(0, 150)}
+Keep ${protagonistName}'s face, hair, and skin tone consistent with the character sheet.${hasSecondaryChars ? ` Other characters in this scene have their OWN distinct appearance as described above.` : ''}
+=== END PROTAGONIST IDENTITY ===
 
 ${visualBibleBlock || ''}
 === REFERENCE IMAGES ===
@@ -434,12 +436,12 @@ TECHNICAL RULES:
 - Do NOT add any border, frame, vignette, or edge effects
 - Fill the entire canvas edge to edge — no white borders, no margins, no frames
 - EVERY person must have a complete, clearly drawn face with visible eyes, nose, and mouth
-- The protagonist appears ONCE — not duplicated, not mirrored
+${hasSecondaryChars ? `- ALL listed characters must appear — do NOT draw the protagonist alone` : `- The protagonist appears ONCE — not duplicated, not mirrored`}
 ${ANTI_TEXT_RULES}${extraAntiText}
 - Mood: ${mood}
 
 === FINAL CHECK ===
-Before generating, verify: (1) Does the SCENE match the setting and action described above? (2) Is the PROTAGONIST's identity correct per the lock? (3) Are secondary characters DISTINCT from the protagonist? If any fails, regenerate.
+Before generating, verify: (1) Does the SCENE match the setting and action? ${hasSecondaryChars ? '(2) Are ALL listed characters visible in the frame? (3) Is each character visually DISTINCT?' : '(2) Is the protagonist\'s identity correct?'} If any fails, regenerate.
 === END FINAL CHECK ===`;
 
   if (isDevIllustrations()) {
