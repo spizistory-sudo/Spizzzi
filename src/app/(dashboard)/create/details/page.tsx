@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCreationWizard } from '@/stores/creation-wizard';
 import WizardProgress from '@/components/wizard/WizardProgress';
@@ -106,14 +106,18 @@ export default function DetailsPage() {
     setInterests(prev => prev.includes(id) ? prev.filter(i => i !== id) : prev.length < 5 ? [...prev, id] : prev);
   }
 
+  const submittingRef = useRef(false);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submittingRef.current) return;
     setError(null);
     if (!name.trim()) { setError("Please enter your child's name"); return; }
     if (!age || age < AGE_MIN || age > AGE_MAX) { setError(`Please select an age (${AGE_MIN}-${AGE_MAX})`); return; }
     if (!gender) { setError('Please select a gender'); return; }
     if (!hasChildPhoto) { setError('Please upload at least one photo of your child'); return; }
 
+    submittingRef.current = true;
     setChildDetails(name.trim(), age, traits);
     setChildGender(gender);
     setChildInterests(interests);
@@ -130,14 +134,19 @@ export default function DetailsPage() {
         });
         if (res.ok) {
           const { description } = await res.json();
-          setPhotoDescription(description);
-          setPhotoError(null);
-          console.log('[details] Photo analyzed, stored in wizard state');
+          if (description) {
+            setPhotoDescription(description);
+            setPhotoError(null);
+            console.log('[details] photoDescription stored, length:', description.length);
+            // Wait for Zustand persist to flush to sessionStorage
+            await new Promise((r) => setTimeout(r, 100));
+          }
         } else {
           const errorData = await res.json().catch(() => ({}));
-          if (errorData.error === 'NO_PERSON_DETECTED') {
+          if (errorData.error === 'NO_PERSON_DETECTED' || errorData.error === 'MULTIPLE_FACES' || errorData.error === 'LOW_QUALITY') {
             setPhotoError(errorData.message || "We couldn't find a person in this photo. Please upload a clear photo of the child.");
             setAnalyzing(false);
+            submittingRef.current = false;
             return;
           }
           console.warn('[details] Photo analysis failed, continuing without');

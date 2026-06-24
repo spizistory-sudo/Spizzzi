@@ -365,6 +365,30 @@ function FinalizePage() {
 
     // STEP 1: Generate story (Opus) — creates the book row + pages in DB
     let newBookId: string;
+    // Backstop: if photoDescription is missing but we have a photo, re-analyze before generating
+    let effectivePhotoDescription = photoDescription;
+    const childPhoto = uploadedPhotos.find((p) => p.label === 'child');
+    if (!effectivePhotoDescription && childPhoto) {
+      console.warn('[finalize] photoDescription missing, re-analyzing photo before story generation');
+      try {
+        const reanalyzeRes = await fetch('/api/analyze-photo-standalone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storagePath: childPhoto.storagePath }),
+        });
+        if (reanalyzeRes.ok) {
+          const { description } = await reanalyzeRes.json();
+          if (description) {
+            effectivePhotoDescription = description;
+            useCreationWizard.getState().setPhotoDescription(description);
+            console.log('[finalize] Backstop re-analysis succeeded, length:', description.length);
+          }
+        }
+      } catch (err) {
+        console.warn('[finalize] Backstop re-analysis failed:', err);
+      }
+    }
+
     try {
       console.log('[finalize] Starting story generation...');
       const storyRes = await fetch('/api/generate-story', {
@@ -378,7 +402,8 @@ function FinalizePage() {
           gender: childGender || 'boy',
           traits: childTraits,
           interests: childInterests,
-          photoDescription: photoDescription || undefined,
+          photoDescription: effectivePhotoDescription || undefined,
+          storagePath: childPhoto?.storagePath || undefined,
           styleKey: selectedStyleKey || undefined,
         }),
       });
