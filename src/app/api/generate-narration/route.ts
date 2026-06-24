@@ -6,6 +6,7 @@ import { uploadAudio } from '@/lib/supabase/storage';
 import { isDevMode, isDevNarration } from '@/lib/dev/config';
 import { checkBookFullyComplete, triggerSuccessEmail } from '@/lib/email/book-completion-trigger';
 import { generateSilentMp3 } from '@/lib/dev/mock-data';
+import { withTimeout } from '@/lib/ai/timeout';
 
 export const maxDuration = 300;
 
@@ -139,27 +140,28 @@ export async function POST(req: Request) {
           }
 
           console.log('[narration] Calling ElevenLabs with model:', model, 'voiceId:', effectiveVoiceId);
-          let audioStream;
-          try {
-            audioStream = await elevenlabs!.textToSpeech.convert(
-              effectiveVoiceId,
-              {
-                text: textToNarrate,
-                modelId: model,
-                voiceSettings,
-              }
-            );
-          } catch (err: any) {
-            console.error('[narration] ElevenLabs FULL ERROR:', JSON.stringify(err), err?.message, err?.body);
-            throw err;
-          }
-
-          const reader = audioStream.getReader();
           const chunks: Buffer[] = [];
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            chunks.push(Buffer.from(value));
+          try {
+            await withTimeout((async () => {
+              const audioStream = await elevenlabs!.textToSpeech.convert(
+                effectiveVoiceId,
+                {
+                  text: textToNarrate,
+                  modelId: model,
+                  voiceSettings,
+                }
+              );
+              const reader = audioStream.getReader();
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                chunks.push(Buffer.from(value));
+              }
+            })(), 60_000, `ElevenLabs TTS page ${page.page_number}`);
+          } catch (err: unknown) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            console.error(`[narration] ElevenLabs FULL ERROR (page ${page.page_number}):`, errMsg);
+            throw err;
           }
           audioBuffer = Buffer.concat(chunks);
           durationMs = Math.round((audioBuffer.length / 16000) * 1000);

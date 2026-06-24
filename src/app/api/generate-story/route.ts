@@ -112,9 +112,10 @@ export async function POST(req: Request) {
       story,
     });
   } catch (err) {
-    console.error('Story generation error:', err);
+    const storyError = err instanceof Error ? err : new Error(String(err));
+    console.error('[generate-story] ERROR:', storyError.message, storyError.stack);
     return NextResponse.json(
-      { error: 'Failed to generate story. Please try again.' },
+      { error: 'Failed to generate story. Please try again.', bookFailed: true },
       { status: 500 }
     );
   }

@@ -6,7 +6,6 @@ import type { ArtStyleKey } from '@/lib/ai/prompts/style-references';
 import { logGeneration } from '@/lib/ai/generation-logger';
 import { visualBibleToPromptBlock, type VisualBible } from '@/lib/ai/visual-bible';
 import { checkBookFullyComplete, triggerSuccessEmail, triggerFailureEmail } from '@/lib/email/book-completion-trigger';
-import { verifyPageIdentity } from '@/lib/ai/identity-verifier';
 import { scoreCharacterMatch } from '@/lib/ai/character-scorer';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -14,6 +13,7 @@ import * as path from 'path';
 export const maxDuration = 300;
 
 export async function POST(req: Request) {
+  let bookId: string | undefined;
   try {
     const supabase = await createClient();
     const {
@@ -23,7 +23,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { bookId } = await req.json();
+    const body = await req.json();
+    bookId = body.bookId as string;
     if (!bookId) {
       return NextResponse.json({ error: 'bookId is required' }, { status: 400 });
     }
@@ -254,9 +255,22 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ status: 'complete', total: pages.length, results });
   } catch (err) {
-    console.error('Illustration generation error:', err);
+    const illError = err instanceof Error ? err : new Error(String(err));
+    console.error('[generate-illustrations] ERROR:', illError.message, illError.stack);
+    if (bookId) {
+      try {
+        const { createClient: createServiceClient } = await import('@supabase/supabase-js');
+        const svc = createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+        const { data: metaRead } = await svc.from('books').select('metadata').eq('id', bookId).limit(1);
+        await svc.from('books').update({
+          status: 'failed',
+          metadata: { ...((metaRead?.[0]?.metadata as Record<string, unknown>) || {}), failure_reason: 'illustrations_error', failure_stage: 'illustrations', failure_detail: illError.message },
+        }).eq('id', bookId);
+        try { await triggerFailureEmail(bookId); } catch { /* non-fatal */ }
+      } catch { /* best-effort */ }
+    }
     return NextResponse.json(
-      { error: 'Failed to start illustration generation' },
+      { error: 'Failed to generate illustrations', bookFailed: true },
       { status: 500 }
     );
   }

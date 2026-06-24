@@ -2,7 +2,8 @@ import { getGeminiClient } from './gemini';
 import type { VisualBible } from './visual-bible';
 
 export type VerificationResult = {
-  passes: boolean;
+  passes: boolean | null;
+  verified: boolean;
   reason: string;
   raceMatch: boolean;
   skinToneMatch: boolean;
@@ -62,9 +63,9 @@ Be strict. If unsure whether a trait matches, return false.` },
     const text = (response.text || '').trim().replace(/```json\n?|```\n?/g, '').trim();
     const parsed = JSON.parse(text) as VerificationResult;
     console.log(`[identity-verifier] Result: passes=${parsed.passes}, reason="${parsed.reason}"`);
-    return parsed;
+    return { ...parsed, verified: true };
   } catch (err) {
-    console.warn('[identity-verifier] Verification error (accepting page):', err instanceof Error ? err.message : String(err));
-    return { passes: true, reason: 'verification skipped due to error', raceMatch: true, skinToneMatch: true, hairMatch: true, genderMatch: true, ageRangeMatch: true };
+    console.warn('[identity-verifier] could not verify, accepting without regen:', err instanceof Error ? err.message : String(err));
+    return { passes: null, verified: false, reason: 'verification failed due to error', raceMatch: false, skinToneMatch: false, hairMatch: false, genderMatch: false, ageRangeMatch: false };
   }
 }
