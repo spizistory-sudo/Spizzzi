@@ -3,23 +3,12 @@ import { createClient } from '@/lib/supabase/server';
 import { getImageBase64 } from '@/lib/supabase/storage';
 import { generateCharacterSheet } from '@/lib/ai/illustration-generator';
 import { scoreCharacterMatch } from '@/lib/ai/character-scorer';
+import { withTimeout } from '@/lib/ai/timeout';
 import type { ArtStyleKey } from '@/lib/ai/prompts/style-references';
 
 export const maxDuration = 300;
 
 const SHEET_TIMEOUT_MS = 60_000;
-
-async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  let timer: ReturnType<typeof setTimeout>;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
-  });
-  try {
-    return await Promise.race([promise, timeout]);
-  } finally {
-    clearTimeout(timer!);
-  }
-}
 
 export async function POST(req: Request) {
   try {
