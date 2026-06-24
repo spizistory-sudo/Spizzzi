@@ -452,22 +452,3 @@ function validateGeneratedStory(
 }
 
 // -----------------------------------------------------------------------------
-// TEST HELPER (not exported for production use)
-// -----------------------------------------------------------------------------
-
-/**
- * Returns the prompts that would be sent to Claude — useful for debugging
- * the prompt without spending API tokens.
- */
-export function previewGenerationPrompts(
-  child: ChildProfile,
-  storyId: string,
-): { system: string; user: string } | null {
-  const story = getStoryById(storyId);
-  if (!story) return null;
-
-  return {
-    system: STORY_SYSTEM_PROMPT_EN,
-    user: buildGenerationMessage(child, story),
-  };
-}
