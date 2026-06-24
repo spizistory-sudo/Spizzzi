@@ -1,11 +1,14 @@
 import { getGeminiClient } from './gemini';
 import { ART_STYLES, type ArtStyleKey } from './prompts/style-references';
 import { generateWithRateLimit } from './rate-limit';
+import { withGeminiRetry } from './gemini-retry';
 import type { Part } from '@google/genai';
 import { useFluxRenderer } from '@/lib/dev/config';
 import { generateImageWithFlux2Pro, type ReferenceImage } from './fal-client';
+import { generateImageWithGptImage2, type GptImageRef } from './openai-image';
 
 export const PRIMARY_MODEL = 'gemini-3-pro-image-preview';
+export const GPT_IMAGE_MODEL = 'gpt-image-1';
 export const FALLBACK_MODEL = 'flux-2-pro';
 
 export type GenerationResult = { buffer: Buffer; modelUsed: string };
@@ -250,57 +253,57 @@ PHOTO = who the character IS. CHARACTER SHEET = the locked character design in t
 
   console.log(`[illustration-generator] generateCoverImage: ${styleKey}, model: ${PRIMARY_MODEL}`);
 
-  return generateWithRateLimit(async () => {
-    const ai = getGeminiClient();
-
-    let geminiError: Error | null = null;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        const parts: Part[] = [];
-        for (const photo of allChildPhotos) {
-          parts.push({ inlineData: { mimeType: 'image/jpeg', data: photo } });
-        }
-        if (characterSheetBase64) {
-          parts.push({ inlineData: { mimeType: 'image/png', data: characterSheetBase64 } });
-        }
-        if (stylePreviewBase64) {
-          parts.push({ inlineData: { mimeType: 'image/png', data: stylePreviewBase64 } });
-        }
-        parts.push({ text: fullPrompt });
-
-        const response = await ai.models.generateContent({
-          model: PRIMARY_MODEL,
-          contents: [{ role: 'user', parts }],
-          config: { responseModalities: ['image', 'text'] },
-        });
-
-        const imageBuffer = extractImageFromResponse(response);
-        if (!imageBuffer) {
-          console.warn(`[illustration-generator] ${PRIMARY_MODEL} returned no image on attempt ${attempt}`);
-          geminiError = new Error('No image in response');
-          break;
-        }
-
-        console.log(`[illustration-generator] Cover generated via ${PRIMARY_MODEL} (attempt ${attempt}), ${imageBuffer.length} bytes`);
-        return { buffer: imageBuffer, modelUsed: PRIMARY_MODEL };
-      } catch (err) {
-        geminiError = err instanceof Error ? err : new Error(String(err));
-        const status = extractStatusCode(geminiError);
-        if ((status === 503 || status === 429) && attempt < 3) {
-          const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
-          console.log(`[illustration-generator] ${PRIMARY_MODEL} cover attempt ${attempt} got ${status}, retrying in ${delayMs}ms`);
-          await new Promise(resolve => setTimeout(resolve, delayMs));
-          continue;
-        }
-        break;
+  // Tier 1: Gemini 3 Pro Image (with retry)
+  try {
+    const imageBuffer = await withGeminiRetry(async () => {
+      const ai = getGeminiClient();
+      const parts: Part[] = [];
+      for (const photo of allChildPhotos) {
+        parts.push({ inlineData: { mimeType: 'image/jpeg', data: photo } });
       }
-    }
+      if (characterSheetBase64) {
+        parts.push({ inlineData: { mimeType: 'image/png', data: characterSheetBase64 } });
+      }
+      if (stylePreviewBase64) {
+        parts.push({ inlineData: { mimeType: 'image/png', data: stylePreviewBase64 } });
+      }
+      parts.push({ text: fullPrompt });
 
-    console.error(`[illustration-generator] ${PRIMARY_MODEL} cover FAILED after retries — no fallback for covers:`, {
-      message: geminiError?.message,
-    });
-    throw geminiError || new Error('Cover generation failed after all retries');
-  });
+      const response = await ai.models.generateContent({
+        model: PRIMARY_MODEL,
+        contents: [{ role: 'user', parts }],
+        config: { responseModalities: ['image', 'text'] },
+      });
+
+      const buf = extractImageFromResponse(response);
+      if (!buf) throw new Error('No image in Gemini response');
+      return buf;
+    }, { callName: 'cover-gemini' });
+
+    console.log(`[illustration] Cover generated via ${PRIMARY_MODEL}, ${imageBuffer.length} bytes`);
+    return { buffer: imageBuffer, modelUsed: PRIMARY_MODEL };
+  } catch (geminiErr) {
+    console.warn(`[illustration] Gemini cover failed after retries, falling back to GPT Image 2:`, geminiErr instanceof Error ? geminiErr.message : geminiErr);
+  }
+
+  // Tier 2: GPT Image 2 (sheet-first anchoring)
+  try {
+    const gptRefs: GptImageRef[] = [];
+    if (characterSheetBase64) gptRefs.push({ base64: characterSheetBase64 });
+    if (stylePreviewBase64) gptRefs.push({ base64: stylePreviewBase64 });
+    if (allChildPhotos[0]) gptRefs.push({ base64: allChildPhotos[0], mimeType: 'image/jpeg' });
+
+    const gptBuffer = await generateImageWithGptImage2({ prompt: fullPrompt, referenceImages: gptRefs, size: 'portrait' });
+    console.log(`[illustration] Cover generated via ${GPT_IMAGE_MODEL}, ${gptBuffer.length} bytes`);
+    return { buffer: gptBuffer, modelUsed: GPT_IMAGE_MODEL };
+  } catch (gptErr) {
+    console.warn(`[illustration] GPT Image 2 cover failed, last-resort FLUX:`, gptErr instanceof Error ? gptErr.message : gptErr);
+  }
+
+  // Tier 3: FLUX 2 Pro (last resort)
+  const fluxBuffer = await buildFlux2ProRequest(fullPrompt, { childPhotoBase64: allChildPhotos[0], characterSheetBase64, stylePreviewBase64 });
+  console.log(`[illustration] Cover generated via ${FALLBACK_MODEL} (last resort), ${fluxBuffer.length} bytes`);
+  return { buffer: fluxBuffer, modelUsed: FALLBACK_MODEL };
 }
 
 export async function generatePageIllustration(
@@ -472,44 +475,19 @@ Before generating, verify: (1) Does the SCENE match the setting and action? ${ha
     return { buffer: fb, modelUsed: FALLBACK_MODEL };
   }
 
-  return generateWithRateLimit(async () => {
-    const ai = getGeminiClient();
-
-    try {
+  // Tier 1: Gemini 3 Pro Image (with retry)
+  try {
+    const imageBuffer = await withGeminiRetry(async () => {
+      const ai = getGeminiClient();
       const parts: Part[] = [];
-      // Order: character crops → previous page → cover → photo → style preview
-      // Cap at 10 images total
       let imgCount = 0;
-      if (protagonistCrop && imgCount < 10) {
-        parts.push({ inlineData: { mimeType: 'image/png', data: protagonistCrop.base64 } });
-        imgCount++;
-      }
-      for (const crop of otherCrops) {
-        if (imgCount >= 10) break;
-        parts.push({ inlineData: { mimeType: 'image/png', data: crop.base64 } });
-        imgCount++;
-      }
-      if (characterSheetBase64 && imgCount < 10) {
-        parts.push({ inlineData: { mimeType: 'image/png', data: characterSheetBase64 } });
-        imgCount++;
-      }
-      if (previousPageBase64 && imgCount < 10) {
-        parts.push({ inlineData: { mimeType: 'image/png', data: previousPageBase64 } });
-        imgCount++;
-      }
-      if (coverImageBase64 && imgCount < 10) {
-        parts.push({ inlineData: { mimeType: 'image/png', data: coverImageBase64 } });
-        imgCount++;
-      }
-      for (const photo of allChildPhotos) {
-        if (imgCount >= 10) break;
-        parts.push({ inlineData: { mimeType: 'image/jpeg', data: photo } });
-        imgCount++;
-      }
-      if (stylePreviewBase64 && imgCount < 10) {
-        parts.push({ inlineData: { mimeType: 'image/png', data: stylePreviewBase64 } });
-        imgCount++;
-      }
+      if (protagonistCrop && imgCount < 10) { parts.push({ inlineData: { mimeType: 'image/png', data: protagonistCrop.base64 } }); imgCount++; }
+      for (const crop of otherCrops) { if (imgCount >= 10) break; parts.push({ inlineData: { mimeType: 'image/png', data: crop.base64 } }); imgCount++; }
+      if (characterSheetBase64 && imgCount < 10) { parts.push({ inlineData: { mimeType: 'image/png', data: characterSheetBase64 } }); imgCount++; }
+      if (previousPageBase64 && imgCount < 10) { parts.push({ inlineData: { mimeType: 'image/png', data: previousPageBase64 } }); imgCount++; }
+      if (coverImageBase64 && imgCount < 10) { parts.push({ inlineData: { mimeType: 'image/png', data: coverImageBase64 } }); imgCount++; }
+      for (const photo of allChildPhotos) { if (imgCount >= 10) break; parts.push({ inlineData: { mimeType: 'image/jpeg', data: photo } }); imgCount++; }
+      if (stylePreviewBase64 && imgCount < 10) { parts.push({ inlineData: { mimeType: 'image/png', data: stylePreviewBase64 } }); imgCount++; }
       parts.push({ text: fullPrompt });
 
       const response = await ai.models.generateContent({
@@ -518,22 +496,36 @@ Before generating, verify: (1) Does the SCENE match the setting and action? ${ha
         config: { responseModalities: ['image', 'text'] },
       });
 
-      const imageBuffer = extractImageFromResponse(response);
-      if (!imageBuffer) {
-        console.warn(`[illustration-generator] ${PRIMARY_MODEL} returned no image for page ${pageNumber}, trying FLUX.2 Pro fallback`);
-        const fb = await buildFlux2ProRequest(fullPrompt, { characterCrops, characterSheetBase64, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
-        return { buffer: fb, modelUsed: FALLBACK_MODEL };
-      }
+      const buf = extractImageFromResponse(response);
+      if (!buf) throw new Error('No image in Gemini response');
+      return buf;
+    }, { callName: `page-${pageNumber}-gemini` });
 
-      return { buffer: imageBuffer, modelUsed: PRIMARY_MODEL };
-    } catch (err) {
-      console.error(`[illustration-generator] ${PRIMARY_MODEL} page ${pageNumber} FAILED, trying FLUX.2 Pro fallback:`, {
-        message: err instanceof Error ? err.message : String(err),
-      });
-      const fb = await buildFlux2ProRequest(fullPrompt, { characterCrops, characterSheetBase64, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
-      return { buffer: fb, modelUsed: FALLBACK_MODEL };
-    }
-  });
+    console.log(`[illustration] Page ${pageNumber} generated via ${PRIMARY_MODEL}, ${imageBuffer.length} bytes`);
+    return { buffer: imageBuffer, modelUsed: PRIMARY_MODEL };
+  } catch (geminiErr) {
+    console.warn(`[illustration] Gemini page ${pageNumber} failed after retries, falling back to GPT Image 2:`, geminiErr instanceof Error ? geminiErr.message : geminiErr);
+  }
+
+  // Tier 2: GPT Image 2 (sheet-first anchoring)
+  try {
+    const gptRefs: GptImageRef[] = [];
+    if (characterSheetBase64) gptRefs.push({ base64: characterSheetBase64 });
+    if (stylePreviewBase64) gptRefs.push({ base64: stylePreviewBase64 });
+    if (coverImageBase64) gptRefs.push({ base64: coverImageBase64 });
+    if (allChildPhotos[0]) gptRefs.push({ base64: allChildPhotos[0], mimeType: 'image/jpeg' });
+
+    const gptBuffer = await generateImageWithGptImage2({ prompt: fullPrompt, referenceImages: gptRefs, size: 'portrait' });
+    console.log(`[illustration] Page ${pageNumber} generated via ${GPT_IMAGE_MODEL}, ${gptBuffer.length} bytes`);
+    return { buffer: gptBuffer, modelUsed: GPT_IMAGE_MODEL };
+  } catch (gptErr) {
+    console.warn(`[illustration] GPT Image 2 page ${pageNumber} failed, last-resort FLUX:`, gptErr instanceof Error ? gptErr.message : gptErr);
+  }
+
+  // Tier 3: FLUX 2 Pro (last resort)
+  const fluxBuffer = await buildFlux2ProRequest(fullPrompt, { characterCrops, characterSheetBase64, coverImageBase64, childPhotoBase64, stylePreviewBase64 });
+  console.log(`[illustration] Page ${pageNumber} generated via ${FALLBACK_MODEL} (last resort), ${fluxBuffer.length} bytes`);
+  return { buffer: fluxBuffer, modelUsed: FALLBACK_MODEL };
 }
 
 async function buildFlux2ProRequest(
