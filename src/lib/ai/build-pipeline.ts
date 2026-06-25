@@ -20,11 +20,28 @@ function getServiceSupabase() {
   );
 }
 
-function loadStylePreview(styleKey: string): string | undefined {
+async function loadStylePreview(styleKey: string): Promise<string | undefined> {
+  // Try filesystem first (works in Next.js API routes)
   try {
     const previewPath = path.join(process.cwd(), 'public', 'images', 'styles', `${styleKey}.png`);
     if (fs.existsSync(previewPath)) return fs.readFileSync(previewPath).toString('base64');
   } catch { /* skip */ }
+
+  // Fallback: fetch from the public URL (works in Trigger.dev worker)
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_VERCEL_URL;
+  if (siteUrl) {
+    try {
+      const base = siteUrl.startsWith('http') ? siteUrl : `https://${siteUrl}`;
+      const res = await fetch(`${base}/images/styles/${styleKey}.png`);
+      if (res.ok) {
+        const buf = Buffer.from(await res.arrayBuffer());
+        console.log(`[build-pipeline] Style preview loaded from URL for ${styleKey}`);
+        return buf.toString('base64');
+      }
+    } catch { /* skip */ }
+  }
+
+  console.warn(`[build-pipeline] Style preview not available for ${styleKey}`);
   return undefined;
 }
 
@@ -73,7 +90,7 @@ export async function runCharacterSheet(bookId: string, onProgress?: (p: BuildPr
   const styleKey = (meta.style_key as ArtStyleKey) || 'storybook';
   const characterDescription = buildCharacterDescription(meta);
   const childPhotosBase64 = await loadChildPhotos(supabase, bookId);
-  const stylePreviewBase64 = loadStylePreview(styleKey);
+  const stylePreviewBase64 = await loadStylePreview(styleKey);
 
   console.log(`[build-pipeline:sheet] Generating for ${bookId}, style: ${styleKey}, photos: ${childPhotosBase64.length}`);
 
@@ -119,7 +136,7 @@ export async function runCoverGeneration(bookId: string, onProgress?: (p: BuildP
   const characterDescription = buildCharacterDescription(meta);
   const childPhotosBase64 = await loadChildPhotos(supabase, bookId);
   const childPhotoBase64 = childPhotosBase64[0];
-  const stylePreviewBase64 = loadStylePreview(styleKey);
+  const stylePreviewBase64 = await loadStylePreview(styleKey);
 
   let characterSheetBase64: string | undefined;
   try { characterSheetBase64 = await getImageBase64('covers', `character-sheets/${bookId}/sheet.png`); } catch { /* skip */ }
@@ -181,7 +198,7 @@ export async function runIllustrations(bookId: string, onProgress?: (p: BuildPro
   const characterBible = (meta.character_bible as string) || '';
   const childPhotosBase64 = await loadChildPhotos(supabase, bookId);
   const childPhotoBase64 = childPhotosBase64[0];
-  const stylePreviewBase64 = loadStylePreview(styleKey);
+  const stylePreviewBase64 = await loadStylePreview(styleKey);
   const normalizedGender = normalizeGender(meta);
 
   let characterSheetBase64: string | undefined;
@@ -190,7 +207,15 @@ export async function runIllustrations(bookId: string, onProgress?: (p: BuildPro
   const { data: selectedCover } = await supabase.from('cover_options').select('image_url').eq('book_id', bookId).eq('is_selected', true).limit(1);
   let coverImageBase64: string | undefined;
   if (selectedCover?.[0]?.image_url) {
-    try { coverImageBase64 = await getImageBase64('covers', `${bookId}/cover-${styleKey}.png`); } catch { /* skip */ }
+    const coverPath = `${bookId}/cover-${styleKey}.png`;
+    try {
+      coverImageBase64 = await getImageBase64('covers', coverPath);
+      console.log(`[build-pipeline:illustrations] Cover loaded from ${coverPath}`);
+    } catch (err) {
+      console.warn(`[build-pipeline:illustrations] Cover load failed for ${coverPath}:`, err instanceof Error ? err.message : err);
+    }
+  } else {
+    console.warn(`[build-pipeline:illustrations] No selected cover found for ${bookId}`);
   }
 
   const visualBible = meta.visual_bible as VisualBible | undefined;
@@ -207,7 +232,7 @@ export async function runIllustrations(bookId: string, onProgress?: (p: BuildPro
   const pages = ((book.pages || []) as Array<{ id: string; page_number: number; illustration_prompt: string | null; mood: string | null }>)
     .sort((a, b) => a.page_number - b.page_number);
 
-  console.log(`[build-pipeline:illustrations] ${pages.length} pages for ${bookId}`);
+  console.log(`[build-pipeline:illustrations] ${pages.length} pages for ${bookId}, refs: photo=${!!childPhotoBase64} photos=${childPhotosBase64.length} cover=${!!coverImageBase64} style=${!!stylePreviewBase64} sheet=${!!characterSheetBase64} crops=${characterCrops?.length || 0}`);
 
   const IDENTITY_MIN_SCORE = parseInt(process.env.IDENTITY_MIN_SCORE || '70', 10);
   const IDENTITY_MAX_RETRIES = parseInt(process.env.IDENTITY_MAX_RETRIES || '2', 10);

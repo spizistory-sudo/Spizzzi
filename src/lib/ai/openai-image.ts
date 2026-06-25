@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import OpenAI, { toFile } from 'openai';
 
 let _client: OpenAI | null = null;
 
@@ -26,24 +26,35 @@ export async function generateImageWithGptImage2(params: {
   const sizeMap = { portrait: '1024x1536' as const, landscape: '1536x1024' as const, square: '1024x1024' as const };
   const imageSize = sizeMap[size];
 
-  // Build input images array for GPT Image 2
-  const inputImages: Array<{ image: string; detail?: 'auto' }> = [];
-  for (const ref of referenceImages.slice(0, 4)) {
-    const mime = ref.mimeType || 'image/png';
-    inputImages.push({ image: `data:${mime};base64,${ref.base64}` });
-  }
+  console.log(`[gpt-image-2] Generating with ${referenceImages.length} reference images, size: ${imageSize}, prompt length: ${prompt.length}`);
 
-  console.log(`[gpt-image-2] Generating with ${inputImages.length} reference images, size: ${imageSize}, prompt length: ${prompt.length}`);
-
-  const response = await client.images.generate({
-    model: 'gpt-image-1',
-    prompt,
-    n: 1,
-    size: imageSize,
-    output_format: 'png',
-    ...(inputImages.length > 0 ? { image: inputImages.map(i => i.image) } : {}),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
+  let response: any;
+
+  if (referenceImages.length > 0) {
+    const imageFiles = [];
+    for (const ref of referenceImages.slice(0, 4)) {
+      const buffer = Buffer.from(ref.base64, 'base64');
+      const file = await toFile(buffer, 'reference.png', { type: ref.mimeType || 'image/png' });
+      imageFiles.push(file);
+    }
+
+    response = await client.images.edit({
+      model: 'gpt-image-1',
+      prompt,
+      image: imageFiles,
+      size: imageSize,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+  } else {
+    response = await client.images.generate({
+      model: 'gpt-image-1',
+      prompt,
+      n: 1,
+      size: imageSize,
+      output_format: 'png',
+    });
+  }
 
   const result = response as { data?: Array<{ b64_json?: string; url?: string }> };
   const imageData = result.data?.[0];
