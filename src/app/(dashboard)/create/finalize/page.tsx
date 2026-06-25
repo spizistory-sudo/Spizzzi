@@ -463,9 +463,33 @@ function FinalizePage() {
     // Update progress now that we know page count
     const pageCount = generatedStory?.pages?.length || 3;
     setBuildProgress({ illustrationsComplete: 0, narrationsComplete: 0, total: pageCount * 2 });
+    setBuildPhase('cover_generating');
+
+    const useWorker = process.env.NEXT_PUBLIC_USE_WORKER_BUILD !== 'false';
+
+    if (useWorker) {
+      // WORKER PATH: enqueue the background job (proven via R78a)
+      try {
+        console.log(`[finalize] using worker build for ${newBookId}`);
+        const enqueueRes = await fetch('/api/enqueue-build', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId: newBookId }),
+        });
+        if (enqueueRes.ok) {
+          const { runId } = await enqueueRes.json();
+          console.log(`[finalize] Worker enqueued, runId: ${runId}`);
+          // Build screen polls book-status as usual — worker updates status
+          return;
+        }
+        console.warn('[finalize] Worker enqueue failed, falling back to legacy inline build');
+      } catch (err) {
+        console.warn('[finalize] Worker enqueue error, falling back to legacy inline build:', err);
+      }
+    }
+
+    // LEGACY INLINE PATH (fallback or USE_WORKER_BUILD=false)
+    console.log(`[finalize] using legacy inline build for ${newBookId}`);
 
     // STEP 2a: Generate canonical character sheet (identity anchor for cover + pages)
-    setBuildPhase('cover_generating');
     try {
       console.log('[finalize] Generating character sheet...');
       const sheetRes = await fetch('/api/generate-character-sheet', {
