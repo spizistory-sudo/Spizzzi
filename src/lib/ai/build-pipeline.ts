@@ -159,7 +159,8 @@ export async function runCoverGeneration(bookId: string, onProgress?: (p: BuildP
 
   // Clear any existing cover_options for this book before inserting (retry-safe)
   await supabase.from('cover_options').delete().eq('book_id', bookId);
-  const { error: coverInsertError } = await supabase.from('cover_options').insert({ book_id: bookId, style_name: styleKey, image_url: imageUrl, is_selected: true });
+  const { ART_STYLES } = await import('./prompts/style-references');
+  const { error: coverInsertError } = await supabase.from('cover_options').insert({ book_id: bookId, style_name: styleKey, image_url: imageUrl, style_prompt: ART_STYLES[styleKey].stylePrompt, is_selected: true });
   if (coverInsertError) console.error(`[build-pipeline:cover] Cover insert error:`, coverInsertError.message);
   else console.log(`[build-pipeline:cover] Cover saved, is_selected=true`);
 
