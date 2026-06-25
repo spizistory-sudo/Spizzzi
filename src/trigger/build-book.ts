@@ -3,6 +3,7 @@ import { runFullBuild } from "@/lib/ai/build-pipeline";
 
 export const buildBook = task({
   id: "build-book",
+  maxDuration: 3600,
   run: async (payload: { bookId: string }) => {
     const { bookId } = payload;
     console.log(`[trigger:build-book] Starting full build for ${bookId}`);
