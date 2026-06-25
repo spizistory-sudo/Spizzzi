@@ -273,13 +273,19 @@ export async function runIllustrations(bookId: string, onProgress?: (p: BuildPro
         });
 
         let score = 80;
+        let shouldAccept = true;
         if (characterSheetBase64) {
           const match = await scoreCharacterMatch(genResult.buffer.toString('base64'), characterSheetBase64);
-          score = match.score ?? 0;
-          lastMismatches = match.mismatches;
+          if (match.scored && match.score !== null) {
+            score = match.score;
+            lastMismatches = match.mismatches;
+            shouldAccept = score >= IDENTITY_MIN_SCORE;
+          } else {
+            console.log(`[build-pipeline:illustrations] [scorer] could not score page ${page.page_number}, accepting without regen`);
+          }
         }
         if (!bestResult || score > bestResult.score) bestResult = { ...genResult, score };
-        if (score >= IDENTITY_MIN_SCORE) break;
+        if (shouldAccept) break;
       } catch (err) {
         console.warn(`[build-pipeline:illustrations] Page ${page.page_number} attempt ${attempt + 1} failed:`, err instanceof Error ? err.message : err);
         if (attempt === IDENTITY_MAX_RETRIES) break;
