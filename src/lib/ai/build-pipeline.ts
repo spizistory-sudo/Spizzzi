@@ -68,9 +68,15 @@ function normalizeGender(meta: Record<string, unknown>): string {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function loadChildPhotos(supabase: any, bookId: string): Promise<string[]> {
   const photos: string[] = [];
-  const { data } = await supabase.from('photos').select('storage_path').eq('book_id', bookId).eq('label', 'child').order('created_at', { ascending: true });
+  const { data, error } = await supabase.from('photos').select('storage_path').eq('book_id', bookId).eq('label', 'child').order('created_at', { ascending: true });
+  if (error) console.error(`[build-pipeline] Photo query error for ${bookId}:`, error.message);
+  console.log(`[build-pipeline] Photo query for ${bookId}: ${(data || []).length} rows found`);
   for (const p of (data || []) as Array<{ storage_path: string }>) {
-    try { photos.push(await getImageBase64('photos', p.storage_path)); } catch { /* skip */ }
+    try {
+      photos.push(await getImageBase64('photos', p.storage_path));
+    } catch (err) {
+      console.warn(`[build-pipeline] Failed to load photo ${p.storage_path}:`, err instanceof Error ? err.message : err);
+    }
   }
   return photos;
 }
@@ -143,7 +149,7 @@ export async function runCoverGeneration(bookId: string, onProgress?: (p: BuildP
 
   const themeDescription = (meta.main_theme as string) || (meta.key_message as string) || book.title;
 
-  console.log(`[build-pipeline:cover] Generating for ${bookId}, style: ${styleKey}`);
+  console.log(`[build-pipeline:cover] Generating for ${bookId}, style: ${styleKey}, photos: ${childPhotosBase64.length}, sheet: ${!!characterSheetBase64}`);
   await supabase.from('books').update({ status: 'generating', cover_style: styleKey }).eq('id', bookId);
 
   const coverResult = await generateCoverImage({ styleKey, bookTitle: book.title, characterDescription, themeDescription, childPhotoBase64, childPhotosBase64, characterSheetBase64, stylePreviewBase64 });
@@ -151,7 +157,11 @@ export async function runCoverGeneration(bookId: string, onProgress?: (p: BuildP
   const storagePath = `${bookId}/cover-${styleKey}.png`;
   const imageUrl = await uploadImage('covers', storagePath, coverResult.buffer);
 
-  await supabase.from('cover_options').insert({ book_id: bookId, style_name: styleKey, image_url: imageUrl, is_selected: true });
+  // Clear any existing cover_options for this book before inserting (retry-safe)
+  await supabase.from('cover_options').delete().eq('book_id', bookId);
+  const { error: coverInsertError } = await supabase.from('cover_options').insert({ book_id: bookId, style_name: styleKey, image_url: imageUrl, is_selected: true });
+  if (coverInsertError) console.error(`[build-pipeline:cover] Cover insert error:`, coverInsertError.message);
+  else console.log(`[build-pipeline:cover] Cover saved, is_selected=true`);
 
   const lockMeta = ((await supabase.from('books').select('metadata').eq('id', bookId).limit(1)).data?.[0]?.metadata || {}) as Record<string, unknown>;
   await supabase.from('books').update({ metadata: { ...lockMeta, illustration_model: coverResult.modelUsed } }).eq('id', bookId);
