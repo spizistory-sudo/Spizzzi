@@ -237,10 +237,32 @@ Shared `ANTI_TEXT_RULES` constant in illustration-generator.ts. Exhaustive list:
 |---|---|---|---|
 | `isDevMode()` | `DEV_MODE=true` | off | Mock story (skips Gemini), silent narration, skip animation |
 | `isDevNarration()` | `DEV_NARRATION=true` | off | Use real ElevenLabs even when DEV_MODE=true |
-| `isDevIllustrations()` | `DEV_ILLUSTRATIONS=true` | off | Use FLUX.2 Pro instead of Gemini 3 Pro |
+| `useFluxRenderer()` | `DEV_ILLUSTRATIONS=true` | off | Use FLUX.2 Pro instead of Gemini 3 Pro (dev only, prod always Gemini) |
 | `getTestPageCount()` | `TEST_PAGE_COUNT=3` | null | Override page count (both HE and EN flows) |
 
 **Current Vercel config:** `TEST_PAGE_COUNT=3` (3-spread books for iteration speed).
+
+---
+
+## 7b. Trigger.dev Background Jobs
+
+**Status:** Foundation proven + cloud-deployed. Worker CAN build a full book (R78a). Finalize NOT yet switched (R78b).
+
+**Project ref:** `proj_hjzuvdayyaauyebsqqyq`
+
+**Architecture:**
+- `trigger.config.ts` — Trigger.dev project config, maxDuration 300, tasks in `src/trigger/`
+- `src/trigger/build-book.ts` — task `build-book` that calls `runFullBuild(bookId)` from `src/lib/ai/build-pipeline.ts`
+- `src/lib/ai/build-pipeline.ts` — shared orchestration module: `runFullBuild` → `runCharacterSheet` → `runCoverGeneration` → `runIllustrations` + `runNarration` (parallel). Uses the SAME generation functions as the live API routes.
+
+**Env vars (Trigger.dev Production environment):**
+- `TRIGGER_SECRET_KEY` — from Trigger.dev dashboard
+- `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` — for DB/storage
+- `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `FAL_KEY`, `ELEVENLABS_API_KEY` — for AI providers
+
+**Admin test endpoint:** POST `/api/internal-test/test-trigger` with `{ "bookId": "<id>" }` (admin-only, isAdmin guard).
+
+**Dev vs Prod:** TRIGGER_SECRET_KEY must be the PROD key in Vercel; worker env vars must be set in Trigger.dev's Production environment.
 
 ---
 
