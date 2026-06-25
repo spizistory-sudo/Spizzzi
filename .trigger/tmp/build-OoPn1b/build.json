@@ -1,0 +1,102 @@
+{
+  "build": {
+  },
+  "cliPackageVersion": "4.4.6",
+  "config": {
+    "dirs": [
+      "src/trigger"
+    ],
+    "project": "proj_hjzuvdayyaauyebsqqyq"
+  },
+  "configPath": "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-OoPn1b/Projects/storymagic/trigger.config.mjs",
+  "contentHash": "97c78d298e7c0250be8efca74c1fb923",
+  "customConditions": [
+  ],
+  "deploy": {
+    "env": {
+    }
+  },
+  "environment": "dev",
+  "externals": [
+    {
+      "name": "import-in-the-middle",
+      "version": "1.11.0"
+    }
+  ],
+  "files": [
+    {
+      "entry": "src/trigger/build-book.ts",
+      "out": "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-OoPn1b/Projects/storymagic/src/trigger/build-book.mjs"
+    }
+  ],
+  "indexWorkerEntryPoint": "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-OoPn1b/.npm/_npx/f51a09bd0abf5f10/node_modules/trigger.dev/dist/esm/entryPoints/dev-index-worker.mjs",
+  "otelImportHook": {
+    "include": [
+    ]
+  },
+  "outputHashes": {
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/.npm/_npx/f51a09bd0abf5f10/node_modules/trigger.dev/dist/esm/entryPoints/dev-index-worker.mjs": "1rt3x3AFua0",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/.npm/_npx/f51a09bd0abf5f10/node_modules/trigger.dev/dist/esm/entryPoints/dev-index-worker.mjs.map": "aaOO2Dudsxw",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/.npm/_npx/f51a09bd0abf5f10/node_modules/trigger.dev/dist/esm/entryPoints/dev-run-worker.mjs": "AFBIoVHXzcc",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/.npm/_npx/f51a09bd0abf5f10/node_modules/trigger.dev/dist/esm/entryPoints/dev-run-worker.mjs.map": "T+qko51PeLo",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/Projects/storymagic/src/trigger/build-book.mjs": "rjj2G3C3eC0",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/Projects/storymagic/src/trigger/build-book.mjs.map": "TKR1kHGsr8w",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/Projects/storymagic/trigger.config.mjs": "Hvt0lPRREyk",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/Projects/storymagic/trigger.config.mjs.map": "65YovepeOLc",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/chunk-6L3DBTMP.mjs": "pnVzG1Cs3O8",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/chunk-6L3DBTMP.mjs.map": "JZmVvNwm4gI",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/chunk-ATL7Z2HD.mjs": "tXUBQx2mBm8",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/chunk-ATL7Z2HD.mjs.map": "oRLLG+4nZd8",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/chunk-CTDAWCTK.mjs": "pjmNPzgoVKg",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/chunk-CTDAWCTK.mjs.map": "922Py0nEmuE",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/chunk-FUV6SSYK.mjs": "Mad/q9MtDLc",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/chunk-FUV6SSYK.mjs.map": "9IFojZihDyA",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/chunk-WZGQJWAS.mjs": "Y9pY3LOEHVY",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/chunk-WZGQJWAS.mjs.map": "LMPzUuAiOIM",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/chunk-YWPWLCTP.mjs": "ABVt9Vl1wiA",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/chunk-YWPWLCTP.mjs.map": "9Pwea9eleHQ",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/crypto.node-5HPPZ5PO.mjs": "Hosiis4RK5g",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/crypto.node-5HPPZ5PO.mjs.map": "f+DirqJ/vQY",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/crypto.node-OZIG7C7V.mjs": "xL7AWEo5LhA",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/crypto.node-OZIG7C7V.mjs.map": "0b4tlwmkM3g",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/esm-HF64XN43.mjs": "/ASyNSMg03k",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/esm-HF64XN43.mjs.map": "CYqZQcavdAI",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/esm-UJZXZXFH.mjs": "vyj8FKrApaI",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/esm-UJZXZXFH.mjs.map": "VON93E1In1A",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/getMachineId-bsd-CQRW3DPG.mjs": "244piLhuSIA",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/getMachineId-bsd-CQRW3DPG.mjs.map": "dIKKZ8MMNl8",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/getMachineId-darwin-VNZGFVBR.mjs": "960+ecDyqc0",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/getMachineId-darwin-VNZGFVBR.mjs.map": "xJrfS7fTZLk",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/getMachineId-linux-TYVV4ZLT.mjs": "Mu4BzqEE9PY",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/getMachineId-linux-TYVV4ZLT.mjs.map": "iGLn8Cz4sPg",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/getMachineId-unsupported-5IRX77GI.mjs": "Ca/HGT5QNLM",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/getMachineId-unsupported-5IRX77GI.mjs.map": "L7KXQNW7Eqw",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/getMachineId-win-KAUWWGCN.mjs": "9b/UQB1v9SE",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/getMachineId-win-KAUWWGCN.mjs.map": "O6wx6Q5hFOU",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/s2s-3ZRIPYYD.mjs": "+6xdP4AKcy8",
+    "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/s2s-3ZRIPYYD.mjs.map": "cMXIJWjI/3w"
+  },
+  "outputPath": "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-OoPn1b",
+  "packageVersion": "4.4.6",
+  "runWorkerEntryPoint": "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-OoPn1b/.npm/_npx/f51a09bd0abf5f10/node_modules/trigger.dev/dist/esm/entryPoints/dev-run-worker.mjs",
+  "runtime": "node",
+  "sources": {
+    "package.json": {
+      "contentHash": "4cf04b676f1c2dc79ae7c964dad2f84d",
+      "contents": "eJx1VE2T4iAQvfsrUp4X8qlO5uRhf4dVmHQiOwgUYNSZmv++HYIk7rinkH5N8/r1g69VkqwlO8P6PVlbp8z9zHrerH+N8QGM5UqOUEZzmk1RbfjA3LjBmQv4kG0M185i6At/MdDCMO6ScHMJrhNCtDIuKbNsKoIpxwsXbUya/gJkHTMuQtNfgASXHgHrVyGKRHl3Jw1zTKiegKcs9S1x9pYEcumPJIqMQ4EeJBhs6t26uwCiDQwcrmND62WJRxp5ThsLYZ1vr0ULGmQLsuGwEGTPpDsZpXlDGE9t+zGWPmS0zmn+ILEHAQNIwY42nZfkj6dxKGi1zO2YGCs1gsOkyCGnNd1EvFeqFzAyZjzA1Y5G9fcGWOOIbrvUjHQNGJ9V0ZIWMcleNDsyC6m1ZnLB5iUaFoEqMq1pNaddm/QEQqOZQtNYZG7EMS6uXLaNtalW1uE3MCkWZy2zBu7d9yPF8L4HQ9FvUeCKVnT7yOgM+tyQs3LB1Ie8oOXbLIrg/clJLvvAIadFPR8gLg1vgXjhgqL5QlHJpOLe0IcNXpZdjKOHfbEtso1tKx0Hs6VVNZeJ5fOaZv+ESavO/4M066ETXAevZLSc8eaEN2hStaRvMwkDFmcfSKAWcWYWN+gwrLKaXbWYwog+6f+p2uigKPnnBW+vfKiCj0ixvCjD79d3xd012FSqdhpzMbt2QhYjqF9BD50WcKscyGEK7tAUkXZ4SEagfo6RRsmO9+T1AP1x/lmYmvN9rb5XfwGrzm3C"
+    },
+    "src/trigger/build-book.ts": {
+      "contentHash": "735ada45b1a67ac9bcb55c5f2578bf75",
+      "contents": "eJyVUl1v0zAUfe+vuIt4cKQsBfGW0cFa8lAxsamlCDRNmZu4lWlqB9tpmbL8d66dr04wCd4s+5zje849fF9IZaACQ/UOatgouQfvg1F8u2UqzNhhrLPd+PDWuxjxDpsqRg2b5ZwJM3B0WdA11WzcHc5/aGSN2C9HS6XQBtYlz7OplDuYuC9JNQLgWQSeezlf45MX4J0qRQRUP4oUSEEfc0kRVIF9n+NJ44RiC7UPk0uwGtB+0EFwrgm0xIv+XeYszOWWPNy1DqPh23sorORGKnhVNSL1g48GBvHOGUqfZkAcBKBQMmVah0wcws/xty/J7Wp6PZ8ly9Xt1fRqGSerxfVZ8BdwD1jGi6/zWZwsbq7j5FP8vUU/n6KCjBoaOaPOJj1SPgzX6od2LcSzIO353aVmOUsN8XgWgOEmZwFGSU2pA9gzQ63wAGY/LdAL2kj7+5zvuSFvuqn4BsiZhbwP717f++06hsCZUlK9ELnz0McNQhpcQCkyG3yjopgplUDTukxtYBFsaK5xblyAlsI2B8kJMhPH9KBuqPVpZtYcJkUsFocMO7Pw9AQVtohqWLBUquxd06wASrET8iguG7H/iLgsUJiRLgXog7X9DUP3NYbfhJHYzkUg2BE+WpYfGjlf3izdEMSHuqtL/eJWTrrxD/U+Km4ME89rDsR1IWpvbEDuova7Pfy5BaNK1s3QdqmpZM9uFoEOahT5DRhfYao="
+    },
+    "trigger.config.ts": {
+      "contentHash": "a1944b389d5ba5910e013d81c869ca8f",
+      "contents": "eJxdjrEKgzAYhPc8xU9mUcFNKRS0iF1axK0USTXaWDSaRDFV371qO3U5juPu41jdcqFA6ZbCBIlgZUmFz5uClbBAIXgN+Ki+sZnTwZL5yxoc7CFEx32a8Ubuuk7cP8IBJgTQCl7RTLmbyaiUJm0GM4mjMDzF6TW+nE9+kkYBzDPgrZs+q3c/5ERrQnpNH7LrdIeNlVSTMegFUYw3Lji2vWU5E9KFG5Yis35H8d1Ai4c+VPZLKw=="
+    },
+    "tsconfig.json": {
+      "contentHash": "517d503cef6e676ca80c0d61f9c0973a",
+      "contents": "eJxtUctOwzAQvOcrohwjmgAXJE5IqAcqKiQ4ogo58ao19Uv2JgRF+Xdsx2mblFM0M7vjnUmfpGlWK6EZB/OmkSlps8e0d7QTkJg9oMPZ+uP+9u4huxl5zipHfgbgIFUiKiMoGIIhFYczC1ZCh1mAu+hCOFc/G/8cmgYiaY9Mv7Lq+QD1caGgYTXOOanWgi04sFtFGw4v0l2h9FwUQfKJ4kUz/h2s4o0vwU9UjaSulWnEeLGFjVVyO7lcODOnEgQ6aotU37bzjgZIjSsPpiVZGxAgkfD5gubNnoVfMbXcx69PTUSIcK40TYdZtZrg4fwfHfFU5hdejihKa2pHRmaXTCaDt/CH8YbCaSe8tQLZFrRAO52f52V+DU/pCr9U4q8GWy5GR4lC+78coHA4iZky6JYHKQpfIpbtx5Ih+QM6jLvQ"
+    }
+  },
+  "target": "dev"
+}

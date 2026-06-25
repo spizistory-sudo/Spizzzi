@@ -1,0 +1,23 @@
+{
+  "configPath": "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/Projects/storymagic/trigger.config.mjs",
+  "customConditions": [
+  ],
+  "prompts": [
+  ],
+  "queues": [
+  ],
+  "runtime": "node",
+  "runtimeVersion": "25.8.0",
+  "tasks": [
+    {
+      "entryPoint": "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/Projects/storymagic/src/trigger/build-book.mjs",
+      "filePath": "src/trigger/build-book.ts",
+      "id": "build-book",
+      "maxDuration": 300
+    }
+  ],
+  "timings": {
+    "src/trigger/build-book.ts": 49.057500000000005
+  },
+  "workerEntryPoint": "/Users/yossicohen/Projects/storymagic/.trigger/tmp/build-dndGag/.npm/_npx/f51a09bd0abf5f10/node_modules/trigger.dev/dist/esm/entryPoints/dev-run-worker.mjs"
+}

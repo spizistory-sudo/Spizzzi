@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../trigger.config.ts"],
+  "sourcesContent": ["import type { TriggerConfig } from \"@trigger.dev/sdk/v3\";\n\nexport const config: TriggerConfig = {\n  project: process.env.TRIGGER_PROJECT_ID || \"proj_hjzuvdayyaauyebsqqyq\",\n  maxDuration: 300,\n  dirs: [\"src/trigger\"],\n  build: {},\n};\nexport const resolveEnvVars = undefined;"],
+  "mappings": ";;;;;AAAA;AAEO,IAAM,SAAwB;AAAA,EACnC,SAAS,QAAQ,IAAI,sBAAsB;AAAA,EAC3C,aAAa;AAAA,EACb,MAAM,CAAC,aAAa;AAAA,EACpB,OAAO,CAAC;AACV;AACO,IAAM,iBAAiB;",
+  "names": []
+}
