@@ -95,8 +95,11 @@ export default function DetailsPage() {
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [showOptional, setShowOptional] = useState(childTraits.length > 0 || childInterests.length > 0);
   const [analyzing, setAnalyzing] = useState(false);
+  const [useDescription, setUseDescription] = useState(false);
+  const [rawDescription, setRawDescription] = useState('');
 
   const hasChildPhoto = uploadedPhotos.some((p) => p.label === 'child');
+  const hasCharacterInput = hasChildPhoto || (useDescription && rawDescription.trim().length >= 20);
 
   function toggleTrait(id: string) {
     setTraits(prev => prev.includes(id) ? prev.filter(t => t !== id) : prev.length < 4 ? [...prev, id] : prev);
@@ -115,46 +118,76 @@ export default function DetailsPage() {
     if (!name.trim()) { setError("Please enter your child's name"); return; }
     if (!age || age < AGE_MIN || age > AGE_MAX) { setError(`Please select an age (${AGE_MIN}-${AGE_MAX})`); return; }
     if (!gender) { setError('Please select a gender'); return; }
-    if (!hasChildPhoto) { setError('Please upload at least one photo of your child'); return; }
+    if (!hasCharacterInput) { setError(useDescription ? 'Please describe your child (at least 20 characters)' : 'Please upload at least one photo of your child'); return; }
 
     submittingRef.current = true;
     setChildDetails(name.trim(), age, traits);
     setChildGender(gender);
     setChildInterests(interests);
 
-    // Analyze uploaded child photo before advancing
-    const childPhoto = uploadedPhotos.find((p) => p.label === 'child');
-    if (childPhoto) {
+    if (useDescription && rawDescription.trim().length >= 20) {
+      // Normalize parent's description into the rich photoDescription format
       setAnalyzing(true);
       try {
-        const res = await fetch('/api/analyze-photo-standalone', {
+        const res = await fetch('/api/normalize-description', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ storagePath: childPhoto.storagePath }),
+          body: JSON.stringify({ rawDescription: rawDescription.trim() }),
         });
         if (res.ok) {
           const { description } = await res.json();
           if (description) {
             setPhotoDescription(description);
             setPhotoError(null);
-            console.log('[details] photoDescription stored, length:', description.length);
-            // Wait for Zustand persist to flush to sessionStorage
+            console.log('[details] Normalized description stored, length:', description.length);
             await new Promise((r) => setTimeout(r, 100));
           }
         } else {
-          const errorData = await res.json().catch(() => ({}));
-          if (errorData.error === 'NO_PERSON_DETECTED' || errorData.error === 'MULTIPLE_FACES' || errorData.error === 'LOW_QUALITY') {
-            setPhotoError(errorData.message || "We couldn't find a person in this photo. Please upload a clear photo of the child.");
-            setAnalyzing(false);
-            submittingRef.current = false;
-            return;
-          }
-          console.warn('[details] Photo analysis failed, continuing without');
+          console.warn('[details] Description normalization failed, using raw text');
+          setPhotoDescription(rawDescription.trim());
+          await new Promise((r) => setTimeout(r, 100));
         }
       } catch (err) {
-        console.warn('[details] Photo analysis error:', err);
+        console.warn('[details] Description normalization error, using raw text:', err);
+        setPhotoDescription(rawDescription.trim());
+        await new Promise((r) => setTimeout(r, 100));
       } finally {
         setAnalyzing(false);
+      }
+    } else {
+      // Analyze uploaded child photo before advancing
+      const childPhoto = uploadedPhotos.find((p) => p.label === 'child');
+      if (childPhoto) {
+        setAnalyzing(true);
+        try {
+          const res = await fetch('/api/analyze-photo-standalone', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ storagePath: childPhoto.storagePath }),
+          });
+          if (res.ok) {
+            const { description } = await res.json();
+            if (description) {
+              setPhotoDescription(description);
+              setPhotoError(null);
+              console.log('[details] photoDescription stored, length:', description.length);
+              await new Promise((r) => setTimeout(r, 100));
+            }
+          } else {
+            const errorData = await res.json().catch(() => ({}));
+            if (errorData.error === 'NO_PERSON_DETECTED' || errorData.error === 'MULTIPLE_FACES' || errorData.error === 'LOW_QUALITY') {
+              setPhotoError(errorData.message || "We couldn't find a person in this photo. Please upload a clear photo of the child.");
+              setAnalyzing(false);
+              submittingRef.current = false;
+              return;
+            }
+            console.warn('[details] Photo analysis failed, continuing without');
+          }
+        } catch (err) {
+          console.warn('[details] Photo analysis error:', err);
+        } finally {
+          setAnalyzing(false);
+        }
       }
     }
 
@@ -162,7 +195,7 @@ export default function DetailsPage() {
     router.push('/create/categories');
   }
 
-  const isValid = name.trim() && age && gender && hasChildPhoto && !analyzing;
+  const isValid = name.trim() && age && gender && hasCharacterInput && !analyzing;
 
   return (
     <div>
@@ -341,16 +374,58 @@ export default function DetailsPage() {
           )}
         </div>
 
-        {/* Photo upload */}
+        {/* Photo upload OR text description */}
         <div>
-          <label style={labelStyle}>Add photos of your child (1–3)</label>
-          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.84rem', marginBottom: 12, fontFamily: 'var(--font-body)' }}>
-            Clear solo photos from different angles help the AI match your child best.
-          </p>
-          <PhotoUpload childName={name.trim() || undefined} />
-          <div className="mt-3">
-            <ComingSoon title="Family & Pets" description="Add photos of your family or pets and include them in the story." />
-          </div>
+          {!useDescription ? (
+            <>
+              <label style={labelStyle}>Add photos of your child (1–3)</label>
+              <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.84rem', marginBottom: 12, fontFamily: 'var(--font-body)' }}>
+                Clear solo photos from different angles help the AI match your child best.
+              </p>
+              <PhotoUpload childName={name.trim() || undefined} />
+              <button
+                type="button"
+                onClick={() => setUseDescription(true)}
+                className="mt-3"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontSize: '0.84rem', fontFamily: 'var(--font-body)', textDecoration: 'underline', textUnderlineOffset: '3px', padding: 0 }}
+              >
+                Don&apos;t want to upload a photo? Describe your child instead.
+              </button>
+            </>
+          ) : (
+            <>
+              <label style={labelStyle}>Describe your child</label>
+              <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.84rem', marginBottom: 12, fontFamily: 'var(--font-body)' }}>
+                The more detail you give, the closer we can make the character. Try to include: skin tone, hair color and style, eye color, ethnicity, approximate age, and anything distinctive (glasses, freckles, favorite outfit).
+              </p>
+              <textarea
+                value={rawDescription}
+                onChange={(e) => setRawDescription(e.target.value)}
+                placeholder="e.g. A 6-year-old girl with warm brown skin, long curly black hair in two puffs, dark brown eyes, and a big smile. Often wears a yellow dress."
+                rows={4}
+                style={{
+                  ...inputStyle,
+                  resize: 'vertical',
+                  minHeight: 100,
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(126,200,227,0.60)'; e.currentTarget.style.boxShadow = 'inset 0 0 16px rgba(126,200,227,0.06), 0 0 0 3px rgba(126,200,227,0.12)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.boxShadow = 'none'; }}
+              />
+              {rawDescription.trim().length > 0 && rawDescription.trim().length < 20 && (
+                <p style={{ color: 'rgba(255,150,150,0.85)', fontSize: '0.78rem', marginTop: 6 }}>
+                  Please write at least 20 characters ({20 - rawDescription.trim().length} more needed)
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => setUseDescription(false)}
+                className="mt-3"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontSize: '0.84rem', fontFamily: 'var(--font-body)', textDecoration: 'underline', textUnderlineOffset: '3px', padding: 0 }}
+              >
+                Upload a photo instead
+              </button>
+            </>
+          )}
           {photoError && (
             <div style={{ marginTop: 12, padding: 12, background: 'rgba(220,50,50,0.15)', border: '1px solid rgba(220,50,50,0.30)', borderRadius: '0.75rem', color: 'rgba(255,150,150,0.95)', fontSize: '0.84rem' }}>
               {photoError}
