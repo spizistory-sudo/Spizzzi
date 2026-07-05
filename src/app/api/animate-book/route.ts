@@ -15,15 +15,19 @@ export async function POST(req: Request) {
 
     const { bookId } = await req.json();
 
-    // Verify book belongs to user
     const { data: books } = await supabase
       .from('books')
-      .select('id, user_id')
+      .select('id, user_id, metadata')
       .eq('id', bookId)
       .eq('user_id', user.id)
       .limit(1);
 
     if (!books || books.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+    const bookMeta = (books[0].metadata || {}) as Record<string, unknown>;
+    const styleKey = bookMeta.style_key as string | undefined;
+    const { ART_STYLES } = await import('@/lib/ai/prompts/style-references');
+    const styleName = styleKey && ART_STYLES[styleKey as keyof typeof ART_STYLES]?.name;
 
     // Log all pages for debugging
     const { data: allPages } = await supabase
@@ -64,7 +68,7 @@ export async function POST(req: Request) {
 
     // Generate motion prompts for all pages in parallel
     const promptResults = await Promise.allSettled(
-      pagesToAnimate.map((page) => generateAnimationPrompt(page.text_content || ''))
+      pagesToAnimate.map((page) => generateAnimationPrompt(page.text_content || '', styleName || undefined))
     );
 
     const primaryModel = getAnimationModel();

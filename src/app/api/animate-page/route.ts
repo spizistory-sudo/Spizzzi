@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 
     const { data: books } = await supabase
       .from('books')
-      .select('id, user_id')
+      .select('id, user_id, metadata')
       .eq('id', bookId)
       .eq('user_id', user.id)
       .limit(1);
@@ -47,7 +47,11 @@ export async function POST(req: Request) {
 
     await supabase.from('pages').update({ video_status: 'generating' }).eq('id', pageId);
 
-    const prompt = await generateAnimationPrompt(page.text_content);
+    const bookMeta = (books[0].metadata || {}) as Record<string, unknown>;
+    const styleKey = bookMeta.style_key as string | undefined;
+    const { ART_STYLES } = await import('@/lib/ai/prompts/style-references');
+    const styleName = styleKey && ART_STYLES[styleKey as keyof typeof ART_STYLES]?.name;
+    const prompt = await generateAnimationPrompt(page.text_content, styleName || undefined);
     const model = getAnimationModel();
 
     console.log(`[animate-page] using ${model.key} for page ${page.page_number}`);
