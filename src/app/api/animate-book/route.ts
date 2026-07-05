@@ -3,15 +3,9 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { fal } from '@fal-ai/client';
 import { generateAnimationPrompt } from '@/lib/animation-prompts';
+import { getAnimationModel, buildAnimationInput, ANIMATION_MODELS } from '@/lib/animation-config';
 
 fal.config({ credentials: process.env.FAL_KEY });
-
-const PRIMARY_MODEL = 'fal-ai/minimax/hailuo-02/standard/image-to-video';
-const FALLBACK_MODEL = 'fal-ai/kling-video/v1.6/standard/image-to-video';
-
-// Hailuo-02 max is 10s. Change to '6' during dev to save credits.
-const HAILUO_DURATION = '10';
-const KLING_DURATION = '5';
 
 export async function POST(req: Request) {
   try {
@@ -73,7 +67,11 @@ export async function POST(req: Request) {
       pagesToAnimate.map((page) => generateAnimationPrompt(page.text_content || ''))
     );
 
-    // Submit all pages to fal.ai in parallel
+    const primaryModel = getAnimationModel();
+    const fallbackModel = primaryModel.key === 'minimax' ? ANIMATION_MODELS.kling : ANIMATION_MODELS.minimax;
+
+    console.log(`[animate-book] Using ${primaryModel.key} (fallback: ${fallbackModel.key})`);
+
     const submissionResults = await Promise.allSettled(
       pagesToAnimate.map(async (page, i) => {
         const prompt = promptResults[i].status === 'fulfilled'
@@ -83,39 +81,27 @@ export async function POST(req: Request) {
         console.log(`[animate-book] Submitting page ${page.page_number}, prompt: ${prompt.substring(0, 80)}...`);
 
         let requestId: string;
-        let modelUsed: 'minimax' | 'kling';
+        let modelUsed = primaryModel;
 
-        // Try MiniMax first, fall back to Kling on failure
         try {
-          const result = await fal.queue.submit(PRIMARY_MODEL, {
-            input: {
-              image_url: page.illustration_url!,
-              prompt,
-              prompt_optimizer: true,
-              duration: HAILUO_DURATION,
-              resolution: '768P',
-            },
+          const result = await fal.queue.submit(primaryModel.falId, {
+            input: buildAnimationInput(primaryModel, page.illustration_url!, prompt),
           });
           requestId = result.request_id;
-          modelUsed = 'minimax';
-          console.log(`[animate-book] Page ${page.page_number} submitted to MiniMax: ${requestId}`);
+          console.log(`[animate-book] Page ${page.page_number} submitted to ${primaryModel.key}: ${requestId}`);
         } catch (primaryErr) {
-          console.warn(`[animate-book] MiniMax failed for page ${page.page_number}, falling back to Kling:`, primaryErr);
-          const result = await fal.queue.submit(FALLBACK_MODEL, {
-            input: {
-              image_url: page.illustration_url!,
-              prompt,
-              duration: KLING_DURATION,
-            },
+          console.warn(`[animate-book] ${primaryModel.key} failed for page ${page.page_number}, falling back to ${fallbackModel.key}:`, primaryErr);
+          const result = await fal.queue.submit(fallbackModel.falId, {
+            input: buildAnimationInput(fallbackModel, page.illustration_url!, prompt),
           });
           requestId = result.request_id;
-          modelUsed = 'kling';
-          console.log(`[animate-book] Page ${page.page_number} submitted to Kling (fallback): ${requestId}`);
+          modelUsed = fallbackModel;
+          console.log(`[animate-book] Page ${page.page_number} submitted to ${fallbackModel.key} (fallback): ${requestId}`);
         }
 
         await supabase
           .from('pages')
-          .update({ video_status: 'generating', video_url: `fal:${modelUsed}:${requestId}` })
+          .update({ video_status: 'generating', video_url: `fal:${modelUsed.key}:${requestId}` })
           .eq('id', page.id);
 
         return { pageId: page.id, pageNumber: page.page_number, requestId };

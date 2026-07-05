@@ -2,13 +2,13 @@ export const maxDuration = 60;
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { fal } from '@fal-ai/client';
+import { ANIMATION_MODELS } from '@/lib/animation-config';
 
 fal.config({ credentials: process.env.FAL_KEY });
 
-const MODELS: Record<string, string> = {
-  minimax: 'fal-ai/minimax/hailuo-02/standard/image-to-video',
-  kling: 'fal-ai/kling-video/v1.6/standard/image-to-video',
-};
+const MODELS: Record<string, string> = Object.fromEntries(
+  Object.entries(ANIMATION_MODELS).map(([key, m]) => [key, m.falId])
+);
 
 export async function GET(req: Request) {
   try {

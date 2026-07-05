@@ -3,11 +3,9 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { fal } from '@fal-ai/client';
 import { generateAnimationPrompt } from '@/lib/animation-prompts';
+import { getAnimationModel, buildAnimationInput } from '@/lib/animation-config';
 
 fal.config({ credentials: process.env.FAL_KEY });
-
-// Hailuo-02 max is 10s. Change to '6' during dev to save credits.
-const HAILUO_DURATION = '10';
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -22,7 +20,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'pageId and bookId required' }, { status: 400 });
     }
 
-    // Get page + verify ownership
     const { data: pages } = await supabase
       .from('pages')
       .select('*')
@@ -33,7 +30,6 @@ export async function POST(req: Request) {
     const page = pages?.[0];
     if (!page) return NextResponse.json({ error: 'Page not found' }, { status: 404 });
 
-    // Verify book ownership
     const { data: books } = await supabase
       .from('books')
       .select('id, user_id')
@@ -49,50 +45,35 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No illustration to animate' }, { status: 400 });
     }
 
-    // Mark as generating
-    await supabase
-      .from('pages')
-      .update({ video_status: 'generating' })
-      .eq('id', pageId);
+    await supabase.from('pages').update({ video_status: 'generating' }).eq('id', pageId);
 
-    // Generate animation prompt
     const prompt = await generateAnimationPrompt(page.text_content);
+    const model = getAnimationModel();
 
-    console.log('[animate-page] Submitting to Kling 2.5 Turbo, page:', page.page_number);
+    console.log(`[animate-page] using ${model.key} for page ${page.page_number}`);
 
-    // Submit to MiniMax Hailuo-02 via fal.ai queue
-    const result = await fal.queue.submit('fal-ai/minimax/hailuo-02/standard/image-to-video', {
-      input: {
-        image_url: page.illustration_url,
-        prompt,
-        prompt_optimizer: true,
-        duration: HAILUO_DURATION,
-        resolution: '768P',
-      },
+    const result = await fal.queue.submit(model.falId, {
+      input: buildAnimationInput(model, page.illustration_url, prompt),
     });
 
     const requestId = result.request_id;
 
-    // Save the fal request_id so we can poll it
     await supabase
       .from('pages')
-      .update({ video_status: 'generating', video_url: `fal:${requestId}` })
+      .update({ video_status: 'generating', video_url: `fal:${model.key}:${requestId}` })
       .eq('id', pageId);
 
-    console.log('[animate-page] Submitted, requestId:', requestId);
+    console.log(`[animate-page] Submitted to ${model.key}, requestId: ${requestId}`);
 
-    return NextResponse.json({ success: true, requestId });
+    return NextResponse.json({ success: true, requestId, model: model.key });
   } catch (err) {
     console.error('[animate-page]', err);
-
-    // Reset status on error
     try {
       if (pageId) {
         const supabase = await createClient();
         await supabase.from('pages').update({ video_status: 'error' }).eq('id', pageId);
       }
     } catch { /* best effort */ }
-
     return NextResponse.json({ error: 'Animation failed' }, { status: 500 });
   }
 }
