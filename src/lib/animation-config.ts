@@ -11,13 +11,13 @@ const MODELS: Record<AnimationModelKey, AnimationModel> = {
   kling: {
     key: 'kling',
     falId: 'fal-ai/kling-video/v2.1/standard/image-to-video',
-    duration: '5',
+    duration: '10',
     extraParams: {},
   },
   seedance: {
     key: 'seedance',
     falId: 'fal-ai/seedance-1-lite/image-to-video',
-    duration: '5',
+    duration: '10',
     extraParams: {},
   },
   minimax: {
