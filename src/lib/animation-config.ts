@@ -33,6 +33,18 @@ export function getAnimationModel(): AnimationModel {
   return MODELS[key] || MODELS.kling;
 }
 
+const DEFAULT_FALLBACK: Record<AnimationModelKey, AnimationModelKey> = {
+  kling: 'seedance',
+  seedance: 'kling',
+  minimax: 'kling',
+};
+
+export function getFallbackModel(primary: AnimationModel): AnimationModel {
+  const override = process.env.ANIMATION_FALLBACK_MODEL as AnimationModelKey | undefined;
+  if (override && MODELS[override] && override !== primary.key) return MODELS[override];
+  return MODELS[DEFAULT_FALLBACK[primary.key]];
+}
+
 export function buildAnimationInput(model: AnimationModel, imageUrl: string, prompt: string): Record<string, unknown> {
   return {
     image_url: imageUrl,

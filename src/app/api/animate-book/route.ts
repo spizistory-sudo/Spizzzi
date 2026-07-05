@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { fal } from '@fal-ai/client';
 import { generateAnimationPrompt } from '@/lib/animation-prompts';
-import { getAnimationModel, buildAnimationInput, ANIMATION_MODELS } from '@/lib/animation-config';
+import { getAnimationModel, getFallbackModel, buildAnimationInput } from '@/lib/animation-config';
 
 fal.config({ credentials: process.env.FAL_KEY });
 
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     );
 
     const primaryModel = getAnimationModel();
-    const fallbackModel = primaryModel.key === 'minimax' ? ANIMATION_MODELS.kling : ANIMATION_MODELS.minimax;
+    const fallbackModel = getFallbackModel(primaryModel);
 
     console.log(`[animate-book] Using ${primaryModel.key} (fallback: ${fallbackModel.key})`);
 
