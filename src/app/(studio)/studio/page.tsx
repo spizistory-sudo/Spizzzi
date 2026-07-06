@@ -35,6 +35,8 @@ const STATUS_COLORS: Record<string, string> = {
   failed: 'rgba(255,100,80,0.85)',
 };
 
+const IN_PROGRESS = new Set(['developing_idea', 'writing', 'checking', 'illustrating']);
+
 const COLUMNS = [
   { key: 'spark', label: 'Spark', statuses: ['spark'] },
   { key: 'production', label: 'In Production', statuses: ['developing_idea', 'idea_ready', 'writing', 'checking', 'needs_revision', 'illustrating'] },
@@ -75,6 +77,9 @@ function StatusBadge({ status }: { status: string }) {
       borderRadius: 6,
       whiteSpace: 'nowrap',
     }}>
+      {IN_PROGRESS.has(status) && (
+        <span style={{ display: 'inline-block', animation: 'spin 1.2s linear infinite', marginRight: 4 }}>&#9676;</span>
+      )}
       {status.replace(/_/g, ' ')}
     </span>
   );

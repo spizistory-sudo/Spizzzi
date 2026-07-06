@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/lib/auth/admin';
-import { getBook, deleteBook, saveReview } from '@/lib/studio/db';
+import { getBook, deleteBook, saveReview, updateBookStatus } from '@/lib/studio/db';
 
 async function checkAdmin() {
   const supabase = await createClient();
@@ -42,6 +42,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (body.review_verdict) {
       const book = await saveReview(id, body.review_verdict, body.review_notes);
       return NextResponse.json({ book });
+    }
+    if (body.update_brief) {
+      const book = await getBook(id);
+      if (!book) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      const updated = await updateBookStatus(id, book.status as Parameters<typeof updateBookStatus>[1], { brief: body.update_brief });
+      return NextResponse.json({ book: updated });
     }
     return NextResponse.json({ error: 'No action' }, { status: 400 });
   } catch (err) {
