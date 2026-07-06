@@ -5,7 +5,8 @@ export const developIdea = task({
   id: "develop-idea",
   maxDuration: 300,
   run: async (payload: { bookId: string }) => {
-    console.log(`[trigger:develop-idea] Starting for ${payload.bookId}`);
+    console.log(`[trigger:develop-idea] ========== TASK STARTED for ${payload.bookId} ==========`);
+    console.log(`[trigger:develop-idea] Environment check: ANTHROPIC_API_KEY=${process.env.ANTHROPIC_API_KEY ? 'set' : 'MISSING'}, SUPABASE_URL=${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'MISSING'}, SERVICE_KEY=${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'MISSING'}`);
 
     const book = await runStage({
       bookId: payload.bookId,
@@ -42,7 +43,7 @@ Return ONLY the JSON object. No prose, no code fences.`,
       buildUserMessage: (book) => JSON.stringify(book.spark, null, 2),
     });
 
-    console.log(`[trigger:develop-idea] Done: ${book.status}`);
+    console.log(`[trigger:develop-idea] ========== TASK COMPLETE: ${book.status} ==========`);
     return { success: true, bookId: payload.bookId, status: book.status };
   },
 });

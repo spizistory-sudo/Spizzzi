@@ -11,6 +11,7 @@ function getServiceClient() {
 
 export async function loadKnowledge(ageBand: string): Promise<string> {
   const db = getServiceClient();
+  console.log(`[stage-runner] Loading knowledge for age_band=${ageBand}...`);
   const { data, error } = await db
     .from('library_knowledge')
     .select('title, content')
@@ -18,8 +19,12 @@ export async function loadKnowledge(ageBand: string): Promise<string> {
     .or(`age_band.eq.all,age_band.eq.${ageBand}`);
 
   if (error) throw new Error(`Failed to load knowledge: ${error.message}`);
-  if (!data || data.length === 0) return '';
+  if (!data || data.length === 0) {
+    console.warn('[stage-runner] No knowledge rows found — bible may not be seeded');
+    return '';
+  }
 
+  console.log(`[stage-runner] Loaded ${data.length} knowledge row(s): ${data.map(r => r.title).join(', ')}`);
   return data.map(row => `--- ${row.title} ---\n${row.content}`).join('\n\n');
 }
 
@@ -46,8 +51,11 @@ export async function runStage(config: StageConfig): Promise<LibraryBook> {
     buildSystemPrompt, buildUserMessage, resultField,
   } = config;
 
+  console.log(`[stage-runner] === Starting stage: ${fromStatus} → ${activeStatus} → ${successStatus} for book ${bookId} ===`);
+
   const book = await getBook(bookId);
   if (!book) throw new Error(`Book ${bookId} not found`);
+  console.log(`[stage-runner] Book loaded. Current status: '${book.status}', spark.age_band: '${book.spark.age_band}'`);
 
   if (book.status !== fromStatus) {
     console.log(`[stage-runner] Book ${bookId} is '${book.status}', expected '${fromStatus}' — skipping duplicate`);
@@ -55,14 +63,18 @@ export async function runStage(config: StageConfig): Promise<LibraryBook> {
   }
 
   await updateBookStatus(bookId, activeStatus);
-  console.log(`[stage-runner] Book ${bookId} → ${activeStatus}`);
+  console.log(`[stage-runner] Status updated: ${bookId} → '${activeStatus}'`);
 
   try {
     const knowledge = await loadKnowledge(book.spark.age_band);
+    console.log(`[stage-runner] Knowledge loaded (${knowledge.length} chars)`);
+
     const systemPrompt = buildSystemPrompt(knowledge);
     const userMessage = buildUserMessage(book);
+    console.log(`[stage-runner] Prompts built. System: ${systemPrompt.length} chars, User: ${userMessage.length} chars`);
 
     const anthropic = getAnthropicClient();
+    console.log(`[stage-runner] Anthropic client ready`);
 
     let parsed: Record<string, unknown> | null = null;
 
@@ -74,22 +86,28 @@ export async function runStage(config: StageConfig): Promise<LibraryBook> {
           : `${userMessage}\n\nIMPORTANT: Return ONLY valid JSON. No markdown, no code fences, no explanatory prose before or after the JSON object.`,
       }];
 
-      console.log(`[stage-runner] Calling ${model} (attempt ${attempt + 1})...`);
+      console.log(`[stage-runner] Calling ${model} (attempt ${attempt + 1}, max_tokens=${maxTokens})...`);
+      const startTime = Date.now();
       const response = await anthropic.messages.create({
         model,
         max_tokens: maxTokens,
         system: systemPrompt,
         messages,
       });
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
       const raw = response.content[0]?.type === 'text' ? response.content[0].text : '';
+      console.log(`[stage-runner] Response received in ${elapsed}s. Raw length: ${raw.length} chars. Stop reason: ${response.stop_reason}. Usage: ${response.usage?.input_tokens}in/${response.usage?.output_tokens}out`);
+
       const cleaned = stripCodeFences(raw);
 
       try {
         parsed = JSON.parse(cleaned);
+        console.log(`[stage-runner] JSON parsed successfully (${Object.keys(parsed!).length} top-level keys)`);
         break;
       } catch (parseErr) {
-        console.warn(`[stage-runner] JSON parse failed (attempt ${attempt + 1}):`, parseErr instanceof Error ? parseErr.message : parseErr);
+        console.warn(`[stage-runner] JSON parse failed (attempt ${attempt + 1}): ${parseErr instanceof Error ? parseErr.message : parseErr}`);
+        console.warn(`[stage-runner] Raw output preview: ${cleaned.slice(0, 300)}...`);
         if (attempt === 1) {
           throw new Error(`JSON parse failed after 2 attempts. Raw output (first 500 chars): ${cleaned.slice(0, 500)}`);
         }
@@ -98,12 +116,13 @@ export async function runStage(config: StageConfig): Promise<LibraryBook> {
 
     if (!parsed) throw new Error('No parsed result');
 
+    console.log(`[stage-runner] Saving ${resultField} and advancing to '${successStatus}'...`);
     const result = await updateBookStatus(bookId, successStatus, { [resultField]: parsed });
-    console.log(`[stage-runner] Book ${bookId} → ${successStatus}`);
+    console.log(`[stage-runner] === Stage complete: ${bookId} → '${successStatus}' ===`);
     return result;
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error(`[stage-runner] Stage failed for ${bookId}:`, errorMsg);
+    console.error(`[stage-runner] === Stage FAILED for ${bookId}: ${errorMsg} ===`);
     await updateBookStatus(bookId, 'failed', { last_error: errorMsg });
     throw err;
   }

@@ -5,7 +5,8 @@ export const writeStory = task({
   id: "write-story",
   maxDuration: 600,
   run: async (payload: { bookId: string }) => {
-    console.log(`[trigger:write-story] Starting for ${payload.bookId}`);
+    console.log(`[trigger:write-story] ========== TASK STARTED for ${payload.bookId} ==========`);
+    console.log(`[trigger:write-story] Environment check: ANTHROPIC_API_KEY=${process.env.ANTHROPIC_API_KEY ? 'set' : 'MISSING'}, SUPABASE_URL=${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'MISSING'}, SERVICE_KEY=${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'MISSING'}`);
 
     const book = await runStage({
       bookId: payload.bookId,
@@ -69,7 +70,7 @@ Return ONLY the JSON object. No prose, no code fences, no explanations.`,
       },
     });
 
-    console.log(`[trigger:write-story] Done: ${book.status}`);
+    console.log(`[trigger:write-story] ========== TASK COMPLETE: ${book.status} ==========`);
     return { success: true, bookId: payload.bookId, status: book.status };
   },
 });
