@@ -37,7 +37,8 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/library') ||
     pathname.startsWith('/create') ||
     pathname.startsWith('/explore') ||
-    pathname.startsWith('/admin');
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/studio');
 
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
@@ -72,8 +73,8 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Admin route guard: non-admins can't access /admin
-  if (user && pathname.startsWith('/admin') && !isAdmin(user.email)) {
+  // Admin route guard: non-admins can't access /admin or /studio
+  if (user && (pathname.startsWith('/admin') || pathname.startsWith('/studio')) && !isAdmin(user.email)) {
     const url = request.nextUrl.clone();
     url.pathname = '/library';
     return NextResponse.redirect(url);
