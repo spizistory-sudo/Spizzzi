@@ -50,12 +50,14 @@ interface Story {
 interface HardGate { gate: string; pass: boolean; note: string }
 interface ScoreEntry { dimension: string; score: number; note: string }
 interface CheckerReport {
+  rubric_applied?: string;
   hard_gates?: HardGate[];
   scores?: ScoreEntry[];
   all_gates_pass?: boolean;
   average_score?: number;
   min_score?: number;
-  verdict?: 'pass' | 'revise';
+  verdict?: 'pass' | 'revise' | 'escalated';
+  escalated_to_human?: boolean;
   revision_guidance?: string;
   summary?: string;
 }
@@ -379,14 +381,24 @@ function CheckerReportSection({ report, revisionCount }: { report: CheckerReport
     );
   }
 
-  const verdictColor = report.verdict === 'pass' ? 'rgba(100,220,140,0.85)' : 'rgba(255,160,60,0.85)';
+  const verdictColor = report.verdict === 'pass' ? 'rgba(100,220,140,0.85)'
+    : report.verdict === 'escalated' ? 'rgba(126,200,227,0.85)'
+    : 'rgba(255,160,60,0.85)';
   const gatesPassed = report.hard_gates?.filter(g => g.pass).length ?? 0;
   const gatesTotal = report.hard_gates?.length ?? 0;
+  const verdictLabel = report.verdict === 'pass' ? 'Passed'
+    : report.verdict === 'escalated' ? 'Escalated to Human'
+    : 'Needs Revision';
 
   return (
     <div style={{ marginBottom: 24 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
         <h3 style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.8)', margin: 0 }}>Checker Report</h3>
+        {report.rubric_applied && (
+          <span style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6, color: 'rgba(155,125,212,0.85)', background: 'rgba(155,125,212,0.1)' }}>
+            {report.rubric_applied}
+          </span>
+        )}
         {revisionCount > 0 && (
           <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6, color: 'rgba(255,160,60,0.85)', background: 'rgba(255,160,60,0.1)' }}>
             Revision {revisionCount}
@@ -399,11 +411,13 @@ function CheckerReportSection({ report, revisionCount }: { report: CheckerReport
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: '1.1rem', fontWeight: 700, color: verdictColor, textTransform: 'uppercase' }}>
-              {report.verdict === 'pass' ? 'Passed' : 'Needs Revision'}
+              {verdictLabel}
             </span>
-            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
-              Gates: {gatesPassed}/{gatesTotal}
-            </span>
+            {gatesTotal > 0 && (
+              <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
+                Gates: {gatesPassed}/{gatesTotal}
+              </span>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 12, fontSize: '0.78rem' }}>
             {report.average_score != null && (
