@@ -14,7 +14,8 @@ export const writeStory = task({
       activeStatus: 'writing',
       successStatus: 'checking',
       model: 'claude-opus-4-7',
-      maxTokens: 12000,
+      maxTokens: 32000,
+      useStreaming: true,
       resultField: 'story',
       buildSystemPrompt: (knowledge) => `${knowledge}
 

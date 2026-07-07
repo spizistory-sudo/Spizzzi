@@ -14,7 +14,7 @@ export const developIdea = task({
       activeStatus: 'developing_idea',
       successStatus: 'idea_ready',
       model: 'claude-sonnet-4-5-20250929',
-      maxTokens: 4000,
+      maxTokens: 8192,
       resultField: 'brief',
       buildSystemPrompt: (knowledge) => `${knowledge}
 

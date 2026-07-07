@@ -39,15 +39,72 @@ interface StageConfig {
   successStatus: LibraryBookStatus;
   model: string;
   maxTokens: number;
+  useStreaming?: boolean;
   buildSystemPrompt: (knowledge: string) => string;
   buildUserMessage: (book: LibraryBook) => string;
   resultField: 'brief' | 'story' | 'checker_report';
 }
 
+async function callAnthropicStreaming(
+  model: string,
+  maxTokens: number,
+  systemPrompt: string,
+  userMessage: string,
+): Promise<{ text: string; stopReason: string; inputTokens: number; outputTokens: number }> {
+  const anthropic = getAnthropicClient();
+  console.log(`[stage-runner] Starting streaming call to ${model} (max_tokens=${maxTokens})...`);
+  const startTime = Date.now();
+
+  const stream = anthropic.messages.stream({
+    model,
+    max_tokens: maxTokens,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userMessage }],
+  });
+
+  const response = await stream.finalMessage();
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+  const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
+  const stopReason = response.stop_reason || 'unknown';
+  const inputTokens = response.usage?.input_tokens || 0;
+  const outputTokens = response.usage?.output_tokens || 0;
+
+  console.log(`[stage-runner] Stream complete in ${elapsed}s. Output: ${text.length} chars. Stop: ${stopReason}. Tokens: ${inputTokens}in/${outputTokens}out`);
+  return { text, stopReason, inputTokens, outputTokens };
+}
+
+async function callAnthropicDirect(
+  model: string,
+  maxTokens: number,
+  systemPrompt: string,
+  userMessage: string,
+): Promise<{ text: string; stopReason: string; inputTokens: number; outputTokens: number }> {
+  const anthropic = getAnthropicClient();
+  console.log(`[stage-runner] Calling ${model} (max_tokens=${maxTokens})...`);
+  const startTime = Date.now();
+
+  const response = await anthropic.messages.create({
+    model,
+    max_tokens: maxTokens,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userMessage }],
+  });
+
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
+  const stopReason = response.stop_reason || 'unknown';
+  const inputTokens = response.usage?.input_tokens || 0;
+  const outputTokens = response.usage?.output_tokens || 0;
+
+  console.log(`[stage-runner] Response in ${elapsed}s. Output: ${text.length} chars. Stop: ${stopReason}. Tokens: ${inputTokens}in/${outputTokens}out`);
+  return { text, stopReason, inputTokens, outputTokens };
+}
+
 export async function runStage(config: StageConfig): Promise<LibraryBook> {
   const {
     bookId, fromStatus, activeStatus, successStatus,
-    model, maxTokens,
+    model, maxTokens, useStreaming,
     buildSystemPrompt, buildUserMessage, resultField,
   } = config;
 
@@ -73,33 +130,25 @@ export async function runStage(config: StageConfig): Promise<LibraryBook> {
     const userMessage = buildUserMessage(book);
     console.log(`[stage-runner] Prompts built. System: ${systemPrompt.length} chars, User: ${userMessage.length} chars`);
 
-    const anthropic = getAnthropicClient();
-    console.log(`[stage-runner] Anthropic client ready`);
+    const callFn = useStreaming ? callAnthropicStreaming : callAnthropicDirect;
 
     let parsed: Record<string, unknown> | null = null;
 
     for (let attempt = 0; attempt < 2; attempt++) {
-      const messages: Array<{ role: 'user'; content: string }> = [{
-        role: 'user',
-        content: attempt === 0
-          ? userMessage
-          : `${userMessage}\n\nIMPORTANT: Return ONLY valid JSON. No markdown, no code fences, no explanatory prose before or after the JSON object.`,
-      }];
+      const message = attempt === 0
+        ? userMessage
+        : `${userMessage}\n\nIMPORTANT: Return ONLY valid JSON. No markdown, no code fences, no explanatory prose before or after the JSON object.`;
 
-      console.log(`[stage-runner] Calling ${model} (attempt ${attempt + 1}, max_tokens=${maxTokens})...`);
-      const startTime = Date.now();
-      const response = await anthropic.messages.create({
-        model,
-        max_tokens: maxTokens,
-        system: systemPrompt,
-        messages,
-      });
-      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.log(`[stage-runner] Attempt ${attempt + 1}/2...`);
+      const result = await callFn(model, maxTokens, systemPrompt, message);
 
-      const raw = response.content[0]?.type === 'text' ? response.content[0].text : '';
-      console.log(`[stage-runner] Response received in ${elapsed}s. Raw length: ${raw.length} chars. Stop reason: ${response.stop_reason}. Usage: ${response.usage?.input_tokens}in/${response.usage?.output_tokens}out`);
+      if (result.stopReason === 'max_tokens') {
+        const errorMsg = `Output truncated (stop_reason=max_tokens). Got ${result.text.length} chars / ${result.outputTokens} tokens before cutoff. Raise max_tokens (currently ${maxTokens}).`;
+        console.error(`[stage-runner] TRUNCATION: ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
 
-      const cleaned = stripCodeFences(raw);
+      const cleaned = stripCodeFences(result.text);
 
       try {
         parsed = JSON.parse(cleaned);
@@ -107,9 +156,9 @@ export async function runStage(config: StageConfig): Promise<LibraryBook> {
         break;
       } catch (parseErr) {
         console.warn(`[stage-runner] JSON parse failed (attempt ${attempt + 1}): ${parseErr instanceof Error ? parseErr.message : parseErr}`);
-        console.warn(`[stage-runner] Raw output preview: ${cleaned.slice(0, 300)}...`);
+        console.warn(`[stage-runner] Raw output preview: ${cleaned.slice(0, 400)}...`);
         if (attempt === 1) {
-          throw new Error(`JSON parse failed after 2 attempts. Raw output (first 500 chars): ${cleaned.slice(0, 500)}`);
+          throw new Error(`JSON parse failed after 2 attempts (stop_reason=${result.stopReason}, ${result.text.length} chars). Preview: ${cleaned.slice(0, 500)}`);
         }
       }
     }
@@ -117,9 +166,9 @@ export async function runStage(config: StageConfig): Promise<LibraryBook> {
     if (!parsed) throw new Error('No parsed result');
 
     console.log(`[stage-runner] Saving ${resultField} and advancing to '${successStatus}'...`);
-    const result = await updateBookStatus(bookId, successStatus, { [resultField]: parsed });
+    const updated = await updateBookStatus(bookId, successStatus, { [resultField]: parsed });
     console.log(`[stage-runner] === Stage complete: ${bookId} → '${successStatus}' ===`);
-    return result;
+    return updated;
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     console.error(`[stage-runner] === Stage FAILED for ${bookId}: ${errorMsg} ===`);
