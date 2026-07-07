@@ -32,9 +32,9 @@ function stripCodeFences(text: string): string {
   return text.replace(/^```(?:json)?\s*\n?/gm, '').replace(/\n?```\s*$/gm, '').trim();
 }
 
-interface StageConfig {
+export interface StageConfig {
   bookId: string;
-  fromStatus: LibraryBookStatus;
+  fromStatus: LibraryBookStatus | LibraryBookStatus[];
   activeStatus: LibraryBookStatus;
   successStatus: LibraryBookStatus;
   model: string;
@@ -114,13 +114,16 @@ export async function runStage(config: StageConfig): Promise<LibraryBook> {
   if (!book) throw new Error(`Book ${bookId} not found`);
   console.log(`[stage-runner] Book loaded. Current status: '${book.status}', spark.age_band: '${book.spark.age_band}'`);
 
-  if (book.status !== fromStatus) {
-    console.log(`[stage-runner] Book ${bookId} is '${book.status}', expected '${fromStatus}' — skipping duplicate`);
+  const acceptedStatuses = Array.isArray(fromStatus) ? fromStatus : [fromStatus];
+  if (!acceptedStatuses.includes(book.status)) {
+    console.log(`[stage-runner] Book ${bookId} is '${book.status}', expected '${acceptedStatuses.join('|')}' — skipping duplicate`);
     return book;
   }
 
-  await updateBookStatus(bookId, activeStatus);
-  console.log(`[stage-runner] Status updated: ${bookId} → '${activeStatus}'`);
+  if (book.status !== activeStatus) {
+    await updateBookStatus(bookId, activeStatus);
+    console.log(`[stage-runner] Status updated: ${bookId} → '${activeStatus}'`);
+  }
 
   try {
     const knowledge = await loadKnowledge(book.spark.age_band);

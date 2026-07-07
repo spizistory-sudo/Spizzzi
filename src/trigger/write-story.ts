@@ -1,5 +1,6 @@
-import { task } from "@trigger.dev/sdk/v3";
+import { task, tasks } from "@trigger.dev/sdk/v3";
 import { runStage } from "@/lib/studio/stage-runner";
+import type { checkStory } from "./check-story";
 
 export const writeStory = task({
   id: "write-story",
@@ -10,7 +11,7 @@ export const writeStory = task({
 
     const book = await runStage({
       bookId: payload.bookId,
-      fromStatus: 'idea_ready',
+      fromStatus: ['idea_ready', 'needs_revision'],
       activeStatus: 'writing',
       successStatus: 'checking',
       model: 'claude-opus-4-7',
@@ -67,9 +68,46 @@ Provide exactly 3 title_options, with one flagged as recommended: true.
 Return ONLY the JSON object. No prose, no code fences, no explanations.`,
       buildUserMessage: (book) => {
         const brief = book.brief || {};
-        return JSON.stringify(brief, null, 2);
+        const parts: string[] = [];
+
+        parts.push('## Brief\n' + JSON.stringify(brief, null, 2));
+
+        if (book.checker_report && book.revision_count > 0) {
+          const report = book.checker_report as {
+            revision_guidance?: string;
+            hard_gates?: Array<{ gate: string; pass: boolean; note: string }>;
+            scores?: Array<{ dimension: string; score: number; note: string }>;
+          };
+          parts.push(`\n## REVISION ${book.revision_count} — Checker Feedback\n`);
+          if (report.revision_guidance) {
+            parts.push(`Guidance: ${report.revision_guidance}`);
+          }
+          if (report.hard_gates) {
+            const failed = report.hard_gates.filter(g => !g.pass);
+            if (failed.length > 0) {
+              parts.push(`\nFailed hard gates:\n${failed.map(g => `- ${g.gate}: ${g.note}`).join('\n')}`);
+            }
+          }
+          if (report.scores) {
+            const low = report.scores.filter(s => s.score < 3);
+            if (low.length > 0) {
+              parts.push(`\nLow scores:\n${low.map(s => `- ${s.dimension} (${s.score}/5): ${s.note}`).join('\n')}`);
+            }
+          }
+          parts.push(`\n## Previous Draft\n${JSON.stringify(book.story, null, 2)}`);
+          parts.push(`\nFix the issues above. Keep what works, improve what doesn't. Return the complete revised book JSON.`);
+        }
+
+        return parts.join('\n');
       },
     });
+
+    // Auto-chain: enqueue checker
+    if (book.status === 'checking') {
+      console.log(`[trigger:write-story] Auto-chaining to check-story...`);
+      const handle = await tasks.trigger<typeof checkStory>('check-story', { bookId: payload.bookId });
+      console.log(`[trigger:write-story] Enqueued check-story, run: ${handle.id}`);
+    }
 
     console.log(`[trigger:write-story] ========== TASK COMPLETE: ${book.status} ==========`);
     return { success: true, bookId: payload.bookId, status: book.status };

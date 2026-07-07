@@ -47,6 +47,19 @@ interface Story {
   cover_concept?: string;
 }
 
+interface HardGate { gate: string; pass: boolean; note: string }
+interface ScoreEntry { dimension: string; score: number; note: string }
+interface CheckerReport {
+  hard_gates?: HardGate[];
+  scores?: ScoreEntry[];
+  all_gates_pass?: boolean;
+  average_score?: number;
+  min_score?: number;
+  verdict?: 'pass' | 'revise';
+  revision_guidance?: string;
+  summary?: string;
+}
+
 interface LibraryBook {
   id: string;
   created_at: string;
@@ -63,7 +76,7 @@ interface LibraryBook {
   };
   brief: Brief | null;
   story: Story | null;
-  checker_report: Record<string, unknown> | null;
+  checker_report: CheckerReport | null;
   revision_count: number;
   images: Record<string, unknown> | null;
   review_verdict: string | null;
@@ -353,6 +366,124 @@ function StorySection({ story }: { story: Story }) {
   );
 }
 
+/* ── Checker Report Section ── */
+function CheckerReportSection({ report, revisionCount }: { report: CheckerReport | null; revisionCount: number }) {
+  if (!report) {
+    return (
+      <div style={{ marginBottom: 24 }}>
+        <h3 style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.8)', marginBottom: 10 }}>Checker Report</h3>
+        <div className="glass" style={{ padding: '24px 20px', borderRadius: 14, textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+          Waiting for Checker agent...
+        </div>
+      </div>
+    );
+  }
+
+  const verdictColor = report.verdict === 'pass' ? 'rgba(100,220,140,0.85)' : 'rgba(255,160,60,0.85)';
+  const gatesPassed = report.hard_gates?.filter(g => g.pass).length ?? 0;
+  const gatesTotal = report.hard_gates?.length ?? 0;
+
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <h3 style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.8)', margin: 0 }}>Checker Report</h3>
+        {revisionCount > 0 && (
+          <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6, color: 'rgba(255,160,60,0.85)', background: 'rgba(255,160,60,0.1)' }}>
+            Revision {revisionCount}
+          </span>
+        )}
+      </div>
+
+      {/* Verdict banner */}
+      <div className="glass" style={{ padding: '14px 18px', borderRadius: 14, marginBottom: 12, borderColor: verdictColor.replace(/[\d.]+\)$/, '0.25)') }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: '1.1rem', fontWeight: 700, color: verdictColor, textTransform: 'uppercase' }}>
+              {report.verdict === 'pass' ? 'Passed' : 'Needs Revision'}
+            </span>
+            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
+              Gates: {gatesPassed}/{gatesTotal}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 12, fontSize: '0.78rem' }}>
+            {report.average_score != null && (
+              <span style={{ color: report.average_score >= 3.5 ? 'rgba(100,220,140,0.75)' : 'rgba(255,160,60,0.75)' }}>
+                Avg: {report.average_score.toFixed(1)}
+              </span>
+            )}
+            {report.min_score != null && (
+              <span style={{ color: report.min_score >= 3 ? 'rgba(255,255,255,0.4)' : 'rgba(255,100,80,0.75)' }}>
+                Min: {report.min_score}
+              </span>
+            )}
+          </div>
+        </div>
+        {report.summary && (
+          <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.65)', margin: '10px 0 0', lineHeight: 1.5 }}>
+            {report.summary}
+          </p>
+        )}
+      </div>
+
+      {/* Hard gates */}
+      {report.hard_gates && report.hard_gates.length > 0 && (
+        <div className="glass" style={{ padding: '14px 16px', borderRadius: 14, marginBottom: 12 }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 10 }}>Hard Gates</div>
+          {report.hard_gates.map((gate, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: i < report.hard_gates!.length - 1 ? 8 : 0, padding: '6px 0', borderBottom: i < report.hard_gates!.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+              <span style={{ fontSize: '0.82rem', flexShrink: 0, marginTop: 1 }}>
+                {gate.pass ? '✅' : '❌'}
+              </span>
+              <div style={{ flex: 1 }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: gate.pass ? 'rgba(255,255,255,0.7)' : 'rgba(255,100,80,0.85)' }}>
+                  {gate.gate}
+                </span>
+                <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.45)', marginTop: 2, lineHeight: 1.4 }}>
+                  {gate.note}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Scores */}
+      {report.scores && report.scores.length > 0 && (
+        <div className="glass" style={{ padding: '14px 16px', borderRadius: 14, marginBottom: 12 }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 10 }}>Quality Scores</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {report.scores.map((s, i) => {
+              const barColor = s.score >= 4 ? 'rgba(100,220,140,0.7)' : s.score >= 3 ? 'rgba(245,200,66,0.7)' : 'rgba(255,100,80,0.7)';
+              return (
+                <div key={i} style={{ padding: '8px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{s.dimension}</span>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: barColor }}>{s.score}/5</span>
+                  </div>
+                  <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${(s.score / 5) * 100}%`, background: barColor, borderRadius: 2 }} />
+                  </div>
+                  {s.note && <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginTop: 4, lineHeight: 1.3 }}>{s.note}</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Revision guidance */}
+      {report.revision_guidance && (
+        <div className="glass" style={{ padding: '14px 16px', borderRadius: 14, borderColor: 'rgba(255,160,60,0.2)' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,160,60,0.7)', marginBottom: 8 }}>Revision Guidance</div>
+          <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+            {report.revision_guidance}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── JSON Fallback ── */
 function JsonSection({ title, data, emptyText }: { title: string; data: unknown; emptyText: string }) {
   if (!data) {
@@ -478,7 +609,6 @@ export default function BookDetailPage() {
     || book.spark.idea;
 
   const canReview = book.status === 'ready';
-  const devOverride = true;
 
   return (
     <div style={{ maxWidth: 860, margin: '0 auto' }}>
@@ -550,8 +680,27 @@ export default function BookDetailPage() {
       {book.status === 'writing' && (
         <div className="glass" style={{ padding: '20px', borderRadius: 14, marginBottom: 24, textAlign: 'center' }}>
           <Spinner />
-          <span style={{ fontSize: '0.92rem', color: 'rgba(155,125,212,0.85)' }}>Writer is crafting the story...</span>
+          <span style={{ fontSize: '0.92rem', color: 'rgba(155,125,212,0.85)' }}>
+            {book.revision_count > 0 ? `Writer is revising (revision ${book.revision_count})...` : 'Writer is crafting the story...'}
+          </span>
           <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>Polling every 5s</div>
+        </div>
+      )}
+
+      {book.status === 'checking' && (
+        <div className="glass" style={{ padding: '20px', borderRadius: 14, marginBottom: 24, textAlign: 'center' }}>
+          <Spinner />
+          <span style={{ fontSize: '0.92rem', color: 'rgba(155,125,212,0.85)' }}>Checker is grading the story...</span>
+          <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>Polling every 5s</div>
+        </div>
+      )}
+
+      {book.status === 'needs_revision' && (
+        <div className="glass" style={{ padding: '20px', borderRadius: 14, marginBottom: 24, textAlign: 'center', borderColor: 'rgba(255,160,60,0.2)' }}>
+          <span style={{ fontSize: '0.92rem', color: 'rgba(255,160,60,0.85)' }}>
+            Revision {book.revision_count}/3 — bounced back by Checker
+          </span>
+          <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>Writer will be re-enqueued automatically</div>
         </div>
       )}
 
@@ -597,7 +746,7 @@ export default function BookDetailPage() {
       </div>
 
       {/* ── Checker Report ── */}
-      <JsonSection title="Checker Report" data={book.checker_report} emptyText="Waiting for Checker agent..." />
+      <CheckerReportSection report={book.checker_report} revisionCount={book.revision_count} />
 
       {/* ── Illustrations ── */}
       <JsonSection title="Illustrations" data={book.images} emptyText="Waiting for illustration stage..." />
@@ -617,17 +766,14 @@ export default function BookDetailPage() {
             <div>
               <textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} placeholder="Review notes (optional)..." className="input-field" rows={3} style={{ marginBottom: 14, minHeight: 80 }} />
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <button onClick={() => handleReview('approved')} disabled={reviewing || (!canReview && !devOverride)} className="btn-primary"
+                <button onClick={() => handleReview('approved')} disabled={reviewing || !canReview} className="btn-primary"
                   style={{ padding: '10px 24px', fontSize: '0.88rem', background: 'linear-gradient(135deg, rgba(100,220,140,0.7), rgba(80,180,120,0.6))', boxShadow: '0 4px 24px rgba(100,220,140,0.25)' }}>
                   {reviewing ? '...' : 'Approve'}
                 </button>
-                <button onClick={() => handleReview('rejected')} disabled={reviewing || (!canReview && !devOverride)}
+                <button onClick={() => handleReview('rejected')} disabled={reviewing || !canReview}
                   style={{ padding: '10px 24px', fontSize: '0.88rem', background: 'rgba(255,100,80,0.12)', border: '1px solid rgba(255,100,80,0.3)', color: 'rgba(255,100,80,0.85)', borderRadius: 9999, cursor: 'pointer', fontWeight: 600, fontFamily: 'var(--font-body)' }}>
                   {reviewing ? '...' : 'Reject'}
                 </button>
-                {!canReview && devOverride && (
-                  <span style={{ fontSize: '0.7rem', color: 'rgba(255,160,60,0.6)', fontStyle: 'italic' }}>dev override active</span>
-                )}
               </div>
             </div>
           )}
