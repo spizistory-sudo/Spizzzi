@@ -60,6 +60,71 @@ function isChapterBook(book: LibraryBook): boolean {
   return book.spark.age_band === '6-8';
 }
 
+/* ── Reusable ornaments ── */
+
+function LeafOrnament() {
+  return (
+    <svg width="28" height="16" viewBox="0 0 28 16" fill="none" style={{ display: 'block', margin: '0 auto', opacity: 0.45 }}>
+      <path d="M14 2c-3 0-6 2-8 5 2.5-1 5-1.2 8 .5 3-.7 5.5-.5 8-.5-2-3-5-5-8-5z" fill="rgba(175,145,75,0.5)"/>
+      <path d="M14 8c-3 1.7-6 1.5-8 .5C8 11 11 13 14 14c3-1 6-3 8-5.5-2.5 1-5 1.2-8-.5z" fill="rgba(175,145,75,0.35)"/>
+      <line x1="14" y1="2" x2="14" y2="14" stroke="rgba(175,145,75,0.3)" strokeWidth="0.5"/>
+    </svg>
+  );
+}
+
+function Flourish() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+      <div style={{ width: 24, height: 1, background: 'linear-gradient(90deg, transparent, rgba(175,145,75,0.3))' }} />
+      <div style={{ width: 3, height: 3, borderRadius: '50%', background: 'rgba(175,145,75,0.35)' }} />
+      <div style={{ width: 24, height: 1, background: 'linear-gradient(270deg, transparent, rgba(175,145,75,0.3))' }} />
+    </div>
+  );
+}
+
+function TextDivider() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, margin: '16px 0' }}>
+      <div style={{ width: 18, height: 1, background: 'linear-gradient(90deg, transparent, rgba(175,145,75,0.22))' }} />
+      <svg width="8" height="8" viewBox="0 0 8 8" fill="none" style={{ opacity: 0.35 }}>
+        <path d="M4 0.5L5.5 3H7.5L6 4.5L6.5 7L4 5.8L1.5 7L2 4.5L0.5 3H2.5L4 0.5Z" fill="rgba(175,145,75,1)"/>
+      </svg>
+      <div style={{ width: 18, height: 1, background: 'linear-gradient(270deg, transparent, rgba(175,145,75,0.22))' }} />
+    </div>
+  );
+}
+
+function PageNum({ n }: { n: number }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+      <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ opacity: 0.3 }}>
+        <path d="M9 3H2M2 3L4.5 0.8M2 3L4.5 5.2" stroke="rgba(150,125,65,1)" strokeWidth="0.7" strokeLinecap="round"/>
+      </svg>
+      <span style={{ fontSize: '0.68rem', color: 'rgba(140,115,60,0.4)', fontFamily: "'Lora', Georgia, serif", fontStyle: 'italic', letterSpacing: '0.05em' }}>
+        {n}
+      </span>
+      <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ opacity: 0.3, transform: 'scaleX(-1)' }}>
+        <path d="M9 3H2M2 3L4.5 0.8M2 3L4.5 5.2" stroke="rgba(150,125,65,1)" strokeWidth="0.7" strokeLinecap="round"/>
+      </svg>
+    </div>
+  );
+}
+
+function splitTextBlocks(text: string): string[] {
+  const sentences = text.replace(/([.!?])\s+/g, '$1\n').split('\n').filter(s => s.trim());
+  if (sentences.length <= 1) return [text];
+  if (sentences.length <= 3) {
+    const mid = Math.ceil(sentences.length / 2);
+    return [sentences.slice(0, mid).join(' '), sentences.slice(mid).join(' ')];
+  }
+  const third = Math.ceil(sentences.length / 3);
+  return [
+    sentences.slice(0, third).join(' '),
+    sentences.slice(third, third * 2).join(' '),
+    sentences.slice(third * 2).join(' '),
+  ].filter(s => s.trim());
+}
+
 /* ── Main Component ── */
 
 export default function StudioBookReader() {
@@ -163,8 +228,8 @@ export default function StudioBookReader() {
     setReviewing(false);
   }
 
-  if (loading) return <div style={S.loadingScreen}>Loading...</div>;
-  if (!book || !book.story) return <div style={S.loadingScreen}>Book not found or has no story.</div>;
+  if (loading) return <div className="sr-loading">Loading...</div>;
+  if (!book || !book.story) return <div className="sr-loading">Book not found or has no story.</div>;
 
   const title = getTitle(book);
   const coverUrl = getCoverImage(book.images);
@@ -176,57 +241,52 @@ export default function StudioBookReader() {
   }
 
   return (
-    <div style={S.root} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+    <div className="sr-root" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       <style>{READER_CSS}</style>
 
       {/* Close button */}
-      <button onClick={() => router.push(`/studio/book/${id}`)} style={S.closeBtn} aria-label="Close reader">
+      <button onClick={() => router.push(`/studio/book/${id}`)} className="sr-close" aria-label="Close reader">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
 
-      {/* Book */}
-      <div className="sr-book-wrapper" style={S.bookWrapper}>
-        <div className="studio-reader-book" style={S.book}>
-          {/* Spine shadow */}
-          <div className="sr-spine" style={S.spine} />
+      {/* Book case */}
+      <div className="sr-book-case">
+        {/* Spine crease */}
+        <div className="sr-spine" />
 
-          {/* Page thickness edges */}
-          <div className="sr-edge-l" style={S.pageEdgeLeft} />
-          <div className="sr-edge-r" style={S.pageEdgeRight} />
-
-          {/* Content area with transition */}
-          <div className={`sr-page-content ${transitioning ? `sr-turn-${transitionDir}` : ''}`}>
-            {currentView === 0 ? (
-              <CoverView title={title} coverUrl={coverUrl} ageBand={book.spark.age_band} />
-            ) : currentView <= pages.length ? (
-              <SpreadView
-                page={pages[currentView - 1]}
-                imageUrl={getSpreadImage(book.images, pages[currentView - 1].n)}
-                pageNumber={currentView}
-                totalPages={pages.length}
-              />
-            ) : (
-              <EndView
-                title={title}
-                canReview={canReview}
-                reviewNotes={reviewNotes}
-                onNotesChange={setReviewNotes}
-                reviewing={reviewing}
-                onApprove={() => handleReview('approved')}
-                onReject={() => handleReview('rejected')}
-                reviewVerdict={book.review_verdict}
-              />
-            )}
-          </div>
+        {/* Content area with transition */}
+        <div className={`sr-page-content ${transitioning ? `sr-turn-${transitionDir}` : ''}`}>
+          {currentView === 0 ? (
+            <CoverView title={title} coverUrl={coverUrl} ageBand={book.spark.age_band} />
+          ) : currentView <= pages.length ? (
+            <SpreadView
+              page={pages[currentView - 1]}
+              imageUrl={getSpreadImage(book.images, pages[currentView - 1].n)}
+              pageNumber={currentView}
+              totalPages={pages.length}
+            />
+          ) : (
+            <EndView
+              title={title}
+              canReview={canReview}
+              reviewNotes={reviewNotes}
+              onNotesChange={setReviewNotes}
+              reviewing={reviewing}
+              onApprove={() => handleReview('approved')}
+              onReject={() => handleReview('rejected')}
+              reviewVerdict={book.review_verdict}
+            />
+          )}
         </div>
       </div>
 
       {/* Controls */}
-      <div style={S.controlBar}>
+      <div className="sr-controls">
         <button
           onClick={goPrev}
           disabled={currentView === 0 || transitioning}
-          style={{ ...S.navBtn, opacity: currentView === 0 ? 0.25 : 1 }}
+          className="sr-nav-btn"
+          style={{ opacity: currentView === 0 ? 0.25 : 1 }}
           aria-label="Previous page"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -234,7 +294,8 @@ export default function StudioBookReader() {
 
         <button
           onClick={() => setAutoPlay(!autoPlay)}
-          style={{ ...S.autoBtn, background: autoPlay ? 'rgba(155,125,212,0.25)' : 'rgba(255,255,255,0.06)' }}
+          className="sr-auto-btn"
+          style={{ background: autoPlay ? 'rgba(155,125,212,0.25)' : 'rgba(255,255,255,0.06)' }}
           aria-label={autoPlay ? 'Stop auto-play' : 'Auto-play'}
         >
           {autoPlay ? (
@@ -245,13 +306,13 @@ export default function StudioBookReader() {
         </button>
 
         {/* Page dots */}
-        <div style={S.dotsRow}>
+        <div className="sr-dots">
           {Array.from({ length: totalViews }).map((_, i) => (
             <button
               key={i}
               onClick={() => { if (i !== currentView) goTo(i, i > currentView ? 'next' : 'prev'); }}
+              className="sr-dot"
               style={{
-                ...S.dot,
                 width: i === currentView ? 18 : 6,
                 background: i === currentView ? 'rgba(233,185,73,0.9)' : 'rgba(255,255,255,0.22)',
               }}
@@ -263,7 +324,8 @@ export default function StudioBookReader() {
         <button
           onClick={goNext}
           disabled={isLastPage || transitioning}
-          style={{ ...S.navBtn, opacity: isLastPage ? 0.25 : 1 }}
+          className="sr-nav-btn"
+          style={{ opacity: isLastPage ? 0.25 : 1 }}
           aria-label="Next page"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -279,36 +341,31 @@ function CoverView({ title, coverUrl, ageBand }: { title: string; coverUrl: stri
     <div className="sr-spread">
       {/* Left page: title page */}
       <div className="sr-page sr-page-left sr-paper">
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 'clamp(32px, 8%, 56px) clamp(28px, 8%, 52px)', textAlign: 'center', position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.25em', textTransform: 'uppercase', color: 'rgba(130,105,55,0.5)', marginBottom: 10 }}>
-            A Spizzzy Book
-          </div>
-          {/* Flourish divider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'clamp(20px, 5%, 36px)' }}>
-            <div style={{ width: 20, height: 1, background: 'linear-gradient(90deg, transparent, rgba(160,130,70,0.25))' }} />
-            <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(160,130,70,0.2)' }} />
-            <div style={{ width: 20, height: 1, background: 'linear-gradient(270deg, transparent, rgba(160,130,70,0.25))' }} />
-          </div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.3rem, 3.5vw, 2.2rem)', fontWeight: 600, color: 'rgba(50,35,15,0.88)', lineHeight: 1.18, margin: '0 0 12px', maxWidth: 300 }}>
-            {title}
-          </h1>
-          {/* Bottom flourish */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'clamp(12px, 3%, 24px)', marginBottom: 16 }}>
-            <div style={{ width: 20, height: 1, background: 'linear-gradient(90deg, transparent, rgba(160,130,70,0.25))' }} />
-            <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(160,130,70,0.2)' }} />
-            <div style={{ width: 20, height: 1, background: 'linear-gradient(270deg, transparent, rgba(160,130,70,0.25))' }} />
-          </div>
-          <div style={{ fontSize: '0.66rem', color: 'rgba(130,105,55,0.4)', letterSpacing: '0.1em', fontFamily: "'Lora', Georgia, serif", fontStyle: 'italic' }}>
-            Ages {ageBand}
+        <div className="sr-keyline">
+          <div className="sr-text-compose">
+            <LeafOrnament />
+            <div style={{ marginTop: 20 }}>
+              <div style={{ fontSize: '0.58rem', fontWeight: 600, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(150,125,65,0.5)' }}>
+                A Spizzzy Book
+              </div>
+            </div>
+            <div style={{ marginTop: 16 }}><Flourish /></div>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.5rem, 4vw, 2.4rem)', fontWeight: 600, color: 'rgba(48,32,10,0.88)', lineHeight: 1.15, margin: '20px 0 0', maxWidth: 320, textAlign: 'center' }}>
+              {title}
+            </h1>
+            <div style={{ marginTop: 20 }}><Flourish /></div>
+            <div style={{ fontSize: '0.64rem', color: 'rgba(150,125,65,0.42)', letterSpacing: '0.12em', fontFamily: "'Lora', Georgia, serif", fontStyle: 'italic', marginTop: 16 }}>
+              Ages {ageBand}
+            </div>
           </div>
         </div>
       </div>
       {/* Right page: cover image */}
       <div className="sr-page sr-page-right">
         {coverUrl ? (
-          <img src={coverUrl} alt="Cover illustration" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'relative', zIndex: 1 }} />
+          <img src={coverUrl} alt="Cover illustration" className="sr-page-img" />
         ) : (
-          <div style={{ width: '100%', height: '100%', background: 'linear-gradient(145deg, #2a2040, #1a1530)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="sr-img-placeholder">
             <span style={{ fontSize: '3rem', opacity: 0.3 }}>📖</span>
           </div>
         )}
@@ -324,38 +381,30 @@ function SpreadView({ page, imageUrl, pageNumber, totalPages }: {
   pageNumber: number;
   totalPages: number;
 }) {
+  const blocks = splitTextBlocks(page.text);
   return (
     <div className="sr-spread">
       {/* Left page: text */}
       <div className="sr-page sr-page-left sr-paper">
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 'clamp(24px, 5%, 44px) clamp(24px, 7%, 48px) clamp(18px, 3.5%, 28px)', position: 'relative', zIndex: 1 }}>
-          {/* Small page header on first spread */}
-          {pageNumber === 1 && (
-            <div style={{ textAlign: 'center', marginBottom: 'clamp(12px, 3%, 24px)', flexShrink: 0 }}>
-              <div style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(110,85,45,0.45)' }}>
-                {page.title || 'Chapter One'}
-              </div>
-              <div style={{ width: 28, height: 1, background: 'rgba(140,110,60,0.18)', margin: '10px auto 0' }} />
+        <div className="sr-keyline">
+          <div className="sr-text-compose">
+            <LeafOrnament />
+            <div className="sr-text-body">
+              {blocks.map((block, i) => (
+                <div key={i}>
+                  {i > 0 && <TextDivider />}
+                  <p className="sr-story-text">{block}</p>
+                </div>
+              ))}
             </div>
-          )}
-          {/* Story text — vertically centered-to-upper */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', paddingTop: pageNumber === 1 ? 0 : 'clamp(8px, 4%, 28px)', overflow: 'auto' }}>
-            <p className="sr-story-text">
-              {page.text}
-            </p>
-          </div>
-          {/* Page number */}
-          <div style={{ textAlign: 'center', flexShrink: 0, paddingTop: 'clamp(6px, 2%, 14px)' }}>
-            <span style={{ fontSize: '0.66rem', color: 'rgba(130,105,55,0.35)', fontFamily: "'Lora', Georgia, serif", fontStyle: 'italic' }}>
-              {pageNumber}
-            </span>
+            <PageNum n={pageNumber} />
           </div>
         </div>
       </div>
-      {/* Right page: illustration — fills edge-to-edge inside binding */}
+      {/* Right page: illustration */}
       <div className="sr-page sr-page-right">
         {imageUrl ? (
-          <img src={imageUrl} alt={`Illustration for page ${pageNumber}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'relative', zIndex: 1 }} />
+          <img src={imageUrl} alt={`Illustration for page ${pageNumber}`} className="sr-page-img" />
         ) : (
           <ImagePlaceholder pageNumber={pageNumber} totalPages={totalPages} />
         )}
@@ -367,11 +416,7 @@ function SpreadView({ page, imageUrl, pageNumber, totalPages }: {
 /* ── Image Placeholder ── */
 function ImagePlaceholder({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) {
   return (
-    <div style={{
-      width: '100%', height: '100%',
-      background: 'linear-gradient(145deg, rgba(30,25,50,0.95), rgba(20,18,35,0.95))',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
-    }}>
+    <div className="sr-img-placeholder">
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(155,125,212,0.3)" strokeWidth="1.5">
         <rect x="3" y="3" width="18" height="18" rx="3"/>
         <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -398,29 +443,26 @@ function EndView({ title, canReview, reviewNotes, onNotesChange, reviewing, onAp
   return (
     <div className="sr-spread">
       <div className="sr-page sr-page-left sr-paper">
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 'clamp(32px, 8%, 56px) clamp(28px, 8%, 52px)', textAlign: 'center', position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.25em', textTransform: 'uppercase', color: 'rgba(130,105,55,0.45)', marginBottom: 12 }}>
-            The End
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
-            <div style={{ width: 20, height: 1, background: 'linear-gradient(90deg, transparent, rgba(160,130,70,0.25))' }} />
-            <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(160,130,70,0.2)' }} />
-            <div style={{ width: 20, height: 1, background: 'linear-gradient(270deg, transparent, rgba(160,130,70,0.25))' }} />
-          </div>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 600, color: 'rgba(50,35,15,0.72)', lineHeight: 1.2, maxWidth: 280 }}>
-            {title}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 24 }}>
-            <div style={{ width: 20, height: 1, background: 'linear-gradient(90deg, transparent, rgba(160,130,70,0.25))' }} />
-            <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(160,130,70,0.2)' }} />
-            <div style={{ width: 20, height: 1, background: 'linear-gradient(270deg, transparent, rgba(160,130,70,0.25))' }} />
-          </div>
-          <div style={{ fontSize: '0.6rem', color: 'rgba(130,105,55,0.35)', marginTop: 14, letterSpacing: '0.15em', fontFamily: "'Lora', Georgia, serif", fontStyle: 'italic' }}>
-            A Spizzzy Book
+        <div className="sr-keyline">
+          <div className="sr-text-compose">
+            <LeafOrnament />
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: '0.58rem', fontWeight: 600, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(150,125,65,0.45)' }}>
+                The End
+              </div>
+            </div>
+            <div style={{ marginTop: 16 }}><Flourish /></div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', fontWeight: 600, color: 'rgba(48,32,10,0.7)', lineHeight: 1.2, maxWidth: 280, textAlign: 'center', marginTop: 20 }}>
+              {title}
+            </div>
+            <div style={{ marginTop: 20 }}><Flourish /></div>
+            <div style={{ fontSize: '0.58rem', color: 'rgba(150,125,65,0.35)', marginTop: 16, letterSpacing: '0.18em', fontFamily: "'Lora', Georgia, serif", fontStyle: 'italic' }}>
+              A Spizzzy Book
+            </div>
           </div>
         </div>
       </div>
-      <div className="sr-page sr-page-right" style={{ background: 'linear-gradient(170deg, #141028, #0d0a1e)' }}>
+      <div className="sr-page sr-page-right sr-review-page">
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%', padding: '32px 28px' }}>
           {reviewVerdict ? (
             <div style={{ textAlign: 'center' }}>
@@ -445,17 +487,13 @@ function EndView({ title, canReview, reviewNotes, onNotesChange, reviewing, onAp
                 onChange={e => onNotesChange(e.target.value)}
                 placeholder="Notes (optional)..."
                 rows={3}
-                style={{
-                  width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 10, padding: '10px 12px', color: 'rgba(255,255,255,0.75)', fontSize: '0.82rem',
-                  fontFamily: 'var(--font-body)', resize: 'vertical', minHeight: 60, outline: 'none',
-                }}
+                className="sr-review-textarea"
               />
               <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-                <button onClick={onApprove} disabled={reviewing} style={S.approveBtn}>
+                <button onClick={onApprove} disabled={reviewing} className="sr-approve-btn">
                   {reviewing ? '...' : 'Approve'}
                 </button>
-                <button onClick={onReject} disabled={reviewing} style={S.rejectBtn}>
+                <button onClick={onReject} disabled={reviewing} className="sr-reject-btn">
                   {reviewing ? '...' : 'Reject'}
                 </button>
               </div>
@@ -478,9 +516,9 @@ function EndView({ title, canReview, reviewNotes, onNotesChange, reviewing, onAp
 function ChapterFallback({ book, title, onClose }: { book: LibraryBook; title: string; onClose: () => void }) {
   const pages = book.story?.pages || [];
   return (
-    <div style={{ ...S.root, overflow: 'auto' }}>
+    <div className="sr-root" style={{ overflow: 'auto' }}>
       <style>{READER_CSS}</style>
-      <button onClick={onClose} style={S.closeBtn} aria-label="Close reader">
+      <button onClick={onClose} className="sr-close" aria-label="Close reader">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '60px 24px 80px' }}>
@@ -517,9 +555,271 @@ function ChapterFallback({ book, title, onClose }: { book: LibraryBook; title: s
   );
 }
 
-/* ── CSS ── */
+/* ═══════════════════════════════════════════════════════════════
+   CSS — all styling lives here
+   ═══════════════════════════════════════════════════════════════ */
 const READER_CSS = `
-  /* ══ Transitions ══ */
+  /* ══ Root & loading ══ */
+  .sr-root {
+    position: fixed; inset: 0; z-index: 100;
+    background: radial-gradient(ellipse at 50% 45%, #151020 0%, #0b0912 55%, #060510 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-family: var(--font-body);
+  }
+  .sr-loading {
+    position: fixed; inset: 0; z-index: 100;
+    background: #0a0815;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.3); font-size: 0.9rem;
+  }
+
+  /* ══ Close button ══ */
+  .sr-close {
+    position: fixed; top: 16px; right: 16px; z-index: 110;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.55);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+
+  /* ══ Book case — the dark hardcover shell ══ */
+  .sr-book-case {
+    width: min(92vw, 980px);
+    height: min(72vh, 600px);
+    position: relative;
+    background: linear-gradient(170deg, #2a2a2e 0%, #1c1c20 40%, #141416 100%);
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow:
+      0 40px 100px rgba(0,0,0,0.6),
+      0 15px 40px rgba(0,0,0,0.45),
+      0 4px 12px rgba(0,0,0,0.35),
+      inset 0 1px 0 rgba(255,255,255,0.04),
+      inset 0 -1px 0 rgba(0,0,0,0.3);
+  }
+  /* Subtle leather/cloth grain on the case */
+  .sr-book-case::before {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: 12px;
+    pointer-events: none;
+    opacity: 0.12;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 3px),
+      repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(255,255,255,0.02) 3px, rgba(255,255,255,0.02) 4px);
+  }
+
+  /* ══ Spine crease — down the center gutter ══ */
+  .sr-spine {
+    position: absolute;
+    top: 10px; bottom: 10px;
+    left: 50%; width: 24px; margin-left: -12px;
+    z-index: 10; pointer-events: none;
+    background:
+      linear-gradient(90deg,
+        transparent 0%,
+        rgba(0,0,0,0.06) 20%,
+        rgba(0,0,0,0.15) 42%,
+        rgba(0,0,0,0.22) 50%,
+        rgba(0,0,0,0.15) 58%,
+        rgba(0,0,0,0.06) 80%,
+        transparent 100%
+      );
+  }
+
+  /* ══ Page content area ══ */
+  .sr-page-content {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    position: relative;
+    border-radius: 6px;
+  }
+
+  /* ══ Spread layout ══ */
+  .sr-spread {
+    display: flex;
+    width: 100%; height: 100%;
+  }
+  .sr-page {
+    flex: 1; min-width: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  /* Left page inner radius */
+  .sr-page-left { border-radius: 6px 0 0 6px; }
+  /* Right page inner radius + outer corner of case */
+  .sr-page-right { border-radius: 0 6px 6px 0; }
+
+  /* ══ Paper — clean warm ivory with delicate grain ══ */
+  .sr-paper {
+    background-color: #f5eeda;
+    background-image:
+      /* Very fine fiber — barely visible */
+      repeating-linear-gradient(
+        0deg, transparent, transparent 40px,
+        rgba(170,145,90,0.015) 40px, rgba(170,145,90,0.015) 41px
+      ),
+      repeating-linear-gradient(
+        90deg, transparent, transparent 55px,
+        rgba(170,145,90,0.01) 55px, rgba(170,145,90,0.01) 56px
+      ),
+      /* Smooth warm fill */
+      linear-gradient(175deg, #f7f0de 0%, #f5ecd6 50%, #f2e8cf 100%);
+  }
+
+  /* Gutter shadow on left page (toward spine) */
+  .sr-page-left::after {
+    content: "";
+    position: absolute; inset: 0;
+    pointer-events: none; z-index: 3;
+    border-radius: 6px 0 0 6px;
+    background:
+      linear-gradient(to left,
+        rgba(90,65,25,0.09) 0%, rgba(90,65,25,0.03) 6%, transparent 16%);
+  }
+
+  /* Gutter shadow on right page (toward spine) */
+  .sr-page-right::after {
+    content: "";
+    position: absolute; inset: 0;
+    pointer-events: none; z-index: 4;
+    border-radius: 0 6px 6px 0;
+    background:
+      linear-gradient(to right,
+        rgba(0,0,0,0.16) 0%, rgba(0,0,0,0.05) 4%, transparent 14%);
+  }
+
+  /* ══ Gold keyline border ══ */
+  .sr-keyline {
+    position: absolute;
+    inset: 18px;
+    border: 1px solid rgba(185,155,80,0.18);
+    border-radius: 3px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ══ Text composition — centered typographic block ══ */
+  .sr-text-compose {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px 20px;
+    max-width: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+  }
+  .sr-text-body {
+    margin: 16px 0;
+    max-width: 340px;
+  }
+
+  /* ══ Story text — large, elegant, centered ══ */
+  .sr-story-text {
+    font-family: 'Lora', Georgia, 'Times New Roman', serif;
+    font-size: clamp(1.05rem, 2.4vw, 1.5rem);
+    line-height: 1.75;
+    color: rgba(42,30,10,0.82);
+    margin: 0;
+    text-align: center;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: 0.008em;
+    hyphens: none;
+  }
+
+  /* ══ Image page ══ */
+  .sr-page-img {
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+    position: relative; z-index: 1;
+  }
+  .sr-img-placeholder {
+    width: 100%; height: 100%;
+    background: linear-gradient(145deg, rgba(30,25,50,0.95), rgba(20,18,35,0.95));
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px;
+  }
+
+  /* ══ Review page (right side on end view) ══ */
+  .sr-review-page {
+    background: linear-gradient(170deg, #141028, #0d0a1e) !important;
+    border-radius: 0 6px 6px 0;
+  }
+  .sr-review-page::after { display: none !important; }
+  .sr-review-textarea {
+    width: 100%; box-sizing: border-box;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px; padding: 10px 12px;
+    color: rgba(255,255,255,0.75); font-size: 0.82rem;
+    font-family: var(--font-body);
+    resize: vertical; min-height: 60px; outline: none;
+  }
+  .sr-approve-btn {
+    flex: 1; padding: 10px 16px;
+    font-size: 0.82rem; font-weight: 600;
+    font-family: var(--font-body); color: #fff;
+    background: linear-gradient(135deg, rgba(100,220,140,0.6), rgba(80,180,120,0.5));
+    border: none; border-radius: 999px; cursor: pointer; min-height: 44px;
+  }
+  .sr-reject-btn {
+    flex: 1; padding: 10px 16px;
+    font-size: 0.82rem; font-weight: 600;
+    font-family: var(--font-body);
+    color: rgba(255,100,80,0.85);
+    background: rgba(255,100,80,0.08);
+    border: 1px solid rgba(255,100,80,0.2);
+    border-radius: 999px; cursor: pointer; min-height: 44px;
+  }
+
+  /* ══ Controls bar ══ */
+  .sr-controls {
+    position: fixed;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    left: 50%; transform: translateX(-50%);
+    z-index: 105;
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 18px;
+    background: rgba(12,10,22,0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 999px;
+  }
+  .sr-nav-btn {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.7);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .sr-auto-btn {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.55);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .sr-dots {
+    display: flex; align-items: center; gap: 5px;
+    padding: 0 4px; max-width: 200px; overflow-x: auto;
+  }
+  .sr-dot {
+    height: 6px; border-radius: 999px; border: none;
+    cursor: pointer; padding: 0; flex-shrink: 0;
+    transition: width 0.2s, background 0.2s;
+  }
+
+  /* ══ Page-turn transitions ══ */
   @keyframes sr-fade-next {
     0%   { opacity: 1; transform: translateX(0); }
     40%  { opacity: 0; transform: translateX(-30px); }
@@ -538,372 +838,39 @@ const READER_CSS = `
     .sr-turn-next, .sr-turn-prev { animation: none; }
   }
 
-  .sr-page-content {
-    width: 100%; height: 100%;
-    overflow: hidden;
-    position: relative;
-  }
-
-  /* ══ Spread layout ══ */
-  .sr-spread {
-    display: flex;
-    width: 100%; height: 100%;
-  }
-  .sr-page {
-    flex: 1; min-width: 0;
-    overflow: hidden;
-    position: relative;
-  }
-
-  /* ══ Paper texture — warm aged cream with grain ══ */
-  .sr-paper {
-    background-color: #f0e4cb;
-    background-image:
-      /* Subtle horizontal fiber lines */
-      repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 23px,
-        rgba(160,130,80,0.025) 23px,
-        rgba(160,130,80,0.025) 24px
-      ),
-      /* Crosshatch grain */
-      repeating-linear-gradient(
-        90deg,
-        transparent,
-        transparent 31px,
-        rgba(160,130,80,0.015) 31px,
-        rgba(160,130,80,0.015) 32px
-      ),
-      /* Warm parchment gradient */
-      linear-gradient(168deg,
-        #f5ecd8 0%,
-        #f2e7cf 20%,
-        #eedfbf 50%,
-        #ebd9b5 80%,
-        #e8d4ae 100%
-      );
-  }
-
-  /* Inner shadow on left page — darker toward spine + outer edge */
-  .sr-page-left.sr-paper::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 2;
-    background:
-      /* Spine-side shadow (right edge of left page) */
-      linear-gradient(to left,
-        rgba(100,70,30,0.12) 0%,
-        rgba(100,70,30,0.04) 8%,
-        transparent 20%
-      ),
-      /* Outer-edge shadow (left edge) */
-      linear-gradient(to right,
-        rgba(100,70,30,0.06) 0%,
-        transparent 12%
-      ),
-      /* Top edge */
-      linear-gradient(to bottom,
-        rgba(100,70,30,0.04) 0%,
-        transparent 6%
-      ),
-      /* Bottom edge */
-      linear-gradient(to top,
-        rgba(100,70,30,0.05) 0%,
-        transparent 6%
-      );
-  }
-
-  /* Inner shadow on right page (image) — spine side gutter shadow */
-  .sr-page-right::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 4;
-    background:
-      /* Spine-side shadow (left edge of right page) */
-      linear-gradient(to right,
-        rgba(0,0,0,0.18) 0%,
-        rgba(0,0,0,0.06) 4%,
-        transparent 15%
-      ),
-      /* Outer-edge shadow (right edge) */
-      linear-gradient(to left,
-        rgba(0,0,0,0.04) 0%,
-        transparent 8%
-      ),
-      /* Top edge */
-      linear-gradient(to bottom,
-        rgba(0,0,0,0.03) 0%,
-        transparent 4%
-      ),
-      /* Bottom edge */
-      linear-gradient(to top,
-        rgba(0,0,0,0.04) 0%,
-        transparent 4%
-      );
-  }
-
-  /* ══ Story text ══ */
-  .sr-story-text {
-    font-family: 'Lora', Georgia, 'Times New Roman', serif;
-    font-size: clamp(0.92rem, 2vw, 1.15rem);
-    line-height: 1.72;
-    color: rgba(45,32,12,0.85);
-    margin: 0;
-    hyphens: auto;
-    overflow-wrap: break-word;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    letter-spacing: 0.005em;
-  }
-
-  /* ══ Mobile: single-page stack ══ */
+  /* ══ Mobile ══ */
   @media (max-width: 767px) {
+    .sr-book-case {
+      width: 94vw;
+      height: calc(78vh - env(safe-area-inset-bottom, 0px));
+      padding: 6px;
+      border-radius: 10px;
+    }
     .sr-spread {
       flex-direction: column-reverse;
     }
-    .sr-page {
-      flex: none;
-    }
+    .sr-page { flex: none; }
     .sr-page-right {
       height: 48%;
+      border-radius: 6px 6px 0 0;
     }
     .sr-page-left {
       height: 52%;
+      border-radius: 0 0 6px 6px;
     }
-    /* On mobile, lighten the spine-side shadows since there's no spine */
-    .sr-page-left.sr-paper::after {
-      background:
-        linear-gradient(to right,
-          rgba(100,70,30,0.05) 0%,
-          transparent 10%
-        ),
-        linear-gradient(to left,
-          rgba(100,70,30,0.05) 0%,
-          transparent 10%
-        ),
-        linear-gradient(to bottom,
-          rgba(100,70,30,0.04) 0%,
-          transparent 5%
-        ),
-        linear-gradient(to top,
-          rgba(100,70,30,0.05) 0%,
-          transparent 5%
-        );
+    .sr-page-left::after {
+      border-radius: 0 0 6px 6px;
+      background: none;
     }
     .sr-page-right::after {
-      background:
-        linear-gradient(to bottom,
-          rgba(0,0,0,0.04) 0%,
-          transparent 5%
-        ),
-        linear-gradient(to top,
-          rgba(0,0,0,0.05) 0%,
-          transparent 5%
-        );
+      border-radius: 6px 6px 0 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.06) 0%, transparent 8%);
     }
+    .sr-spine { display: none; }
+    .sr-keyline { inset: 12px; }
     .sr-story-text {
-      font-size: 0.95rem;
+      font-size: clamp(0.95rem, 4vw, 1.2rem);
     }
-  }
-
-  /* ══ Book object ══ */
-  .studio-reader-book {
-    transition: box-shadow 0.3s ease;
-  }
-
-  /* Mobile bookWrapper override */
-  @media (max-width: 767px) {
-    .sr-book-wrapper {
-      width: 94vw !important;
-      height: calc(78vh - env(safe-area-inset-bottom, 0px)) !important;
-    }
-    .sr-spine { display: none !important; }
+    .sr-text-body { max-width: 90%; }
   }
 `;
-
-/* ── Inline styles ── */
-const S: Record<string, React.CSSProperties> = {
-  root: {
-    position: 'fixed',
-    inset: 0,
-    zIndex: 100,
-    background: 'radial-gradient(ellipse at 50% 40%, #151025 0%, #0a0815 50%, #060510 100%)',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontFamily: 'var(--font-body)',
-  },
-  loadingScreen: {
-    position: 'fixed',
-    inset: 0,
-    zIndex: 100,
-    background: '#0a0815',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: 'rgba(255,255,255,0.3)',
-    fontSize: '0.9rem',
-  },
-  closeBtn: {
-    position: 'fixed',
-    top: 16,
-    right: 16,
-    zIndex: 110,
-    width: 40,
-    height: 40,
-    borderRadius: '50%',
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    color: 'rgba(255,255,255,0.55)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-  },
-  bookWrapper: {
-    width: 'min(92vw, 960px)',
-    height: 'min(72vh, 600px)',
-    position: 'relative',
-    filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
-  },
-  book: {
-    width: '100%',
-    height: '100%',
-    position: 'relative',
-    borderRadius: 4,
-    boxShadow: [
-      '0 30px 80px rgba(0,0,0,0.6)',
-      '0 12px 30px rgba(0,0,0,0.4)',
-      '0 4px 10px rgba(0,0,0,0.3)',
-      'inset 0 0 0 1px rgba(120,100,60,0.08)',
-    ].join(', '),
-    overflow: 'hidden',
-  },
-  spine: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: '50%',
-    width: 30,
-    marginLeft: -15,
-    zIndex: 10,
-    pointerEvents: 'none' as const,
-    background: [
-      'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.08) 15%, rgba(0,0,0,0.16) 40%, rgba(0,0,0,0.22) 50%, rgba(0,0,0,0.16) 60%, rgba(0,0,0,0.08) 85%, transparent 100%)',
-    ].join(', '),
-  },
-  pageEdgeLeft: {
-    position: 'absolute',
-    top: 3,
-    bottom: 3,
-    left: -6,
-    width: 7,
-    borderRadius: '3px 0 0 3px',
-    zIndex: 5,
-    pointerEvents: 'none' as const,
-    background: 'linear-gradient(90deg, rgba(180,165,130,0.15) 0%, rgba(210,195,165,0.35) 30%, rgba(225,215,190,0.5) 60%, rgba(235,225,200,0.25) 100%)',
-    boxShadow: '-2px 0 4px rgba(0,0,0,0.08)',
-  },
-  pageEdgeRight: {
-    position: 'absolute',
-    top: 3,
-    bottom: 3,
-    right: -6,
-    width: 7,
-    borderRadius: '0 3px 3px 0',
-    zIndex: 5,
-    pointerEvents: 'none' as const,
-    background: 'linear-gradient(270deg, rgba(180,165,130,0.15) 0%, rgba(210,195,165,0.35) 30%, rgba(225,215,190,0.5) 60%, rgba(235,225,200,0.25) 100%)',
-    boxShadow: '2px 0 4px rgba(0,0,0,0.08)',
-  },
-  controlBar: {
-    position: 'fixed' as const,
-    bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    zIndex: 105,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    padding: '10px 18px',
-    background: 'rgba(12,10,22,0.75)',
-    backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
-    border: '1px solid rgba(255,255,255,0.06)',
-    borderRadius: 999,
-  },
-  navBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: '50%',
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    color: 'rgba(255,255,255,0.7)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    flexShrink: 0,
-  },
-  autoBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: '50%',
-    border: '1px solid rgba(255,255,255,0.08)',
-    color: 'rgba(255,255,255,0.55)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    flexShrink: 0,
-  },
-  dotsRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 5,
-    padding: '0 4px',
-    maxWidth: 200,
-    overflowX: 'auto',
-  },
-  dot: {
-    height: 6,
-    borderRadius: 999,
-    border: 'none',
-    cursor: 'pointer',
-    padding: 0,
-    flexShrink: 0,
-    transition: 'width 0.2s, background 0.2s',
-  },
-  approveBtn: {
-    flex: 1,
-    padding: '10px 16px',
-    fontSize: '0.82rem',
-    fontWeight: 600,
-    fontFamily: 'var(--font-body)',
-    color: '#fff',
-    background: 'linear-gradient(135deg, rgba(100,220,140,0.6), rgba(80,180,120,0.5))',
-    border: 'none',
-    borderRadius: 999,
-    cursor: 'pointer',
-    minHeight: 44,
-  },
-  rejectBtn: {
-    flex: 1,
-    padding: '10px 16px',
-    fontSize: '0.82rem',
-    fontWeight: 600,
-    fontFamily: 'var(--font-body)',
-    color: 'rgba(255,100,80,0.85)',
-    background: 'rgba(255,100,80,0.08)',
-    border: '1px solid rgba(255,100,80,0.2)',
-    borderRadius: 999,
-    cursor: 'pointer',
-    minHeight: 44,
-  },
-};
