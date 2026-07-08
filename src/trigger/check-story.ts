@@ -5,13 +5,41 @@ import type { writeStory } from "./write-story";
 
 const MAX_REVISIONS = 3;
 
-const SKELETON_BANDS = new Set(['2-4']);
+const SKELETON_BANDS = new Set<string>();
 
 function buildRubricPrompt(ageBand: string): string {
   if (ageBand === '6-8') return RUBRIC_6_8;
   if (ageBand === '4-6') return RUBRIC_4_6;
+  if (ageBand === '2-4') return RUBRIC_2_4;
   return '';
 }
+
+const RUBRIC_2_4 = `
+## Rubric: §11R — 2–4 Board/Rhyme Book
+
+**Hard Gates (⛔ — must pass):**
+1. **Length** — ~50–350 words; very few words per spread (10–16 spreads).
+2. **Form integrity** — fully rhymed OR clean repetitive prose; never mixed, never half-rhymed.
+3. **METER & RHYME GATE (strictest gate)** — if rhymed: every rhyme is a true rhyme (matching final stressed sounds, not near-rhyme); meter is consistent across the whole book (scan every line — stress pattern must hold); no line padded or inverted to force a rhyme; reads aloud with an unbroken bounce. A single forced rhyme or metrical stumble fails this gate. When uncertain, fail and flag for human ear.
+4. **Refrain / repetition** — there is a repeated, finishable line or pattern the child can join.
+5. **Value/feeling shown, not stated** — no moral tag; at this age the "value" is usually a feeling or comfort, carried by the moment, not explained.
+6. **Age & safety** — tiny vocabulary; concrete nameable things; nothing frightening; landing is safe and soothed.
+7. **Coherence** — the moment/routine holds together start to finish; 10–16 spreads; each spread has text + illustration note.
+8. **Character sheet completeness** — locked features + palette.
+9. **Concrete language** — nameable, sensory, physical; no abstraction.
+
+**Scored Dimensions (0–5 each):**
+1. **Read-aloud music (weighted highest)** — bounce, rhythm, joy in the mouth. This is the whole game for 2–4.
+2. **Comfort / warmth** — does the landing soothe? Is it a good bedtime book?
+3. **Participation** — does the refrain invite the child to join and finish lines?
+4. **Delight** — a giggle, a surprise, a sound to make together.
+5. **Specificity & freshness** — its own book, not a generic template.
+6. **Dual-audience layer** — does the adult enjoy the hundredth reading?
+7. **Illustration partnership** — clear, warm, single-focus images a toddler can read.
+
+**Threshold:** all hard gates pass (the meter gate especially), average ≥ 3.5, no single score below 3.
+
+**Human-ear note:** 2–4 is the band where the Checker is least reliable — grading meter and true rhyme by model is genuinely hard. Treat a 2–4 "ready" as provisionally ready; the human review step should always read it aloud before approving. When uncertain about meter, escalate rather than pass.`;
 
 const RUBRIC_4_6 = `
 ## Rubric: §10R — 4–6 Picture Book
@@ -120,7 +148,7 @@ ${rubricPrompt}
 Return ONLY this JSON object:
 
 {
-  "rubric_applied": "${ageBand === '4-6' ? '§10R (4–6 picture book)' : '§12R (6–8 chapter book)'}",
+  "rubric_applied": "${ageBand === '2-4' ? '§11R (2–4 board/rhyme book)' : ageBand === '4-6' ? '§10R (4–6 picture book)' : '§12R (6–8 chapter book)'}",
   "hard_gates": [
     { "gate": "Length", "pass": true, "note": "..." },
     ...for ALL gates in the rubric above

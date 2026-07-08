@@ -16,13 +16,13 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 async function main() {
   const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  const biblePath = path.join(__dirname, '..', 'docs', 'library-bible-v3.md');
+  const biblePath = path.join(__dirname, '..', 'docs', 'library-bible-v4.md');
   if (!fs.existsSync(biblePath)) {
     console.error(`Bible file not found: ${biblePath}`);
     process.exit(1);
   }
   const content = fs.readFileSync(biblePath, 'utf-8');
-  console.log(`Read bible v3: ${content.length} chars, ${content.split('\n').length} lines`);
+  console.log(`Read bible v4: ${content.length} chars, ${content.split('\n').length} lines`);
 
   // Check for existing active bible row
   const { data: existing } = await db
@@ -36,7 +36,7 @@ async function main() {
     console.log(`Updating existing bible row ${existing[0].id}...`);
     const { error } = await db
       .from('library_knowledge')
-      .update({ content, title: 'Writing Bible v3' })
+      .update({ content, title: 'Writing Bible v4' })
       .eq('id', existing[0].id);
     if (error) throw error;
     console.log('Updated.');
@@ -47,7 +47,7 @@ async function main() {
       .insert({
         type: 'bible',
         age_band: 'all',
-        title: 'Writing Bible v3',
+        title: 'Writing Bible v4',
         content,
         active: true,
       });
