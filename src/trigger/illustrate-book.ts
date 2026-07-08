@@ -3,7 +3,9 @@ import { fal } from "@fal-ai/client";
 import { getBook, updateBookStatus } from "@/lib/studio/db";
 import { uploadImage } from "@/lib/supabase/storage";
 
-fal.config({ credentials: process.env.FAL_KEY });
+function initFal() {
+  fal.config({ credentials: process.env.FAL_KEY });
+}
 
 const PRIMARY_T2I = 'fal-ai/nano-banana-pro';
 const PRIMARY_I2I = 'fal-ai/nano-banana-pro/edit';
@@ -177,7 +179,9 @@ export const illustrateBook = task({
   maxDuration: 900,
   run: async (payload: { bookId: string }) => {
     console.log(`[trigger:illustrate-book] ========== TASK STARTED for ${payload.bookId} ==========`);
-    console.log(`[trigger:illustrate-book] Env: FAL_KEY=${process.env.FAL_KEY ? 'set' : 'MISSING'}, SUPABASE_URL=${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'MISSING'}, SERVICE_KEY=${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'MISSING'}`);
+    console.log(`[trigger:illustrate-book] Env: FAL_KEY=${process.env.FAL_KEY ? 'set (' + process.env.FAL_KEY.slice(0, 8) + '...)' : 'MISSING'}, SUPABASE_URL=${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'MISSING'}, SERVICE_KEY=${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'MISSING'}`);
+
+    initFal();
 
     const book = await getBook(payload.bookId);
     if (!book) throw new Error(`Book ${payload.bookId} not found`);
