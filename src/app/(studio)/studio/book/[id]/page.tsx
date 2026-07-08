@@ -808,6 +808,27 @@ export default function BookDetailPage() {
         </div>
       </div>
 
+      {/* Read Book button */}
+      {book.story && (book.story as Story).pages && (book.story as Story).pages!.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <button
+            onClick={() => router.push(`/studio/book/${id}/read`)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '11px 24px', fontSize: '0.9rem', fontWeight: 600,
+              fontFamily: 'var(--font-body)',
+              color: '#1a1330',
+              background: 'linear-gradient(135deg, #f0d480, #e9b949)',
+              border: 'none', borderRadius: 9999, cursor: 'pointer',
+              boxShadow: '0 4px 18px rgba(233,185,73,0.3)',
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            Read Book
+          </button>
+        </div>
+      )}
+
       {/* Pipeline */}
       <PipelineTimeline currentStatus={book.status} history={book.stage_history || []} />
 
