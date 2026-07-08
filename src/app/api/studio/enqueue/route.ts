@@ -8,6 +8,7 @@ import { getBook } from '@/lib/studio/db';
 import type { developIdea } from '@/trigger/develop-idea';
 import type { writeStory } from '@/trigger/write-story';
 import type { checkStory } from '@/trigger/check-story';
+import type { illustrateBook } from '@/trigger/illustrate-book';
 
 const IN_PROGRESS_STATUSES = new Set(['developing_idea', 'writing', 'checking', 'illustrating']);
 
@@ -47,6 +48,11 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: `Cannot check story: book is '${book.status}', expected 'checking'` }, { status: 400 });
       }
       handle = await tasks.trigger<typeof checkStory>('check-story', { bookId });
+    } else if (stage === 'illustrate-book') {
+      if (book.status !== 'ready') {
+        return NextResponse.json({ error: `Cannot illustrate: book is '${book.status}', expected 'ready'` }, { status: 400 });
+      }
+      handle = await tasks.trigger<typeof illustrateBook>('illustrate-book', { bookId });
     } else {
       return NextResponse.json({ error: `Unknown stage: ${stage}` }, { status: 400 });
     }

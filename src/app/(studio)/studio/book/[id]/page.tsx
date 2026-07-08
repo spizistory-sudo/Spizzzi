@@ -62,6 +62,24 @@ interface CheckerReport {
   summary?: string;
 }
 
+interface ImageEntry {
+  page_or_chapter_n: number;
+  type: 'spread' | 'chapter_anchor' | 'cover';
+  prompt_used: string;
+  model_used: string;
+  url: string;
+  status: 'complete' | 'failed';
+  error?: string;
+}
+
+interface ImagesData {
+  entries: ImageEntry[];
+  anchor_url: string | null;
+  total_expected: number;
+  failed_count: number;
+  cost_estimate: string;
+}
+
 interface LibraryBook {
   id: string;
   created_at: string;
@@ -80,7 +98,7 @@ interface LibraryBook {
   story: Story | null;
   checker_report: CheckerReport | null;
   revision_count: number;
-  images: Record<string, unknown> | null;
+  images: ImagesData | null;
   review_verdict: string | null;
   review_notes: string | null;
   last_error: string | null;
@@ -498,6 +516,125 @@ function CheckerReportSection({ report, revisionCount }: { report: CheckerReport
   );
 }
 
+/* ── Illustrations Gallery ── */
+function IllustrationsGallery({ images, story, bookId, onRegenerate }: {
+  images: ImagesData | null;
+  story: Story | null;
+  bookId: string;
+  onRegenerate: (index: number) => void;
+}) {
+  if (!images || !images.entries || images.entries.length === 0) {
+    return null;
+  }
+
+  const pages = story?.pages || [];
+  const pageMap = new Map(pages.map(p => [p.n, p]));
+
+  return (
+    <div>
+      {/* Stats bar */}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14, fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>
+        <span>{images.entries.filter(e => e.status === 'complete').length}/{images.total_expected} complete</span>
+        {images.failed_count > 0 && <span style={{ color: 'rgba(255,100,80,0.75)' }}>{images.failed_count} failed</span>}
+        {images.cost_estimate && <span>Est. cost: {images.cost_estimate}</span>}
+      </div>
+
+      {/* Image grid */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {images.entries.map((entry, i) => {
+          const page = pageMap.get(entry.page_or_chapter_n);
+          const isFailed = entry.status === 'failed';
+
+          return (
+            <div key={i} className="glass" style={{
+              padding: '14px 16px', borderRadius: 14,
+              borderColor: isFailed ? 'rgba(255,100,80,0.25)' : undefined,
+              display: 'flex', gap: 14, alignItems: 'flex-start',
+              flexWrap: 'wrap',
+            }}>
+              {/* Image */}
+              <div style={{ width: 200, flexShrink: 0 }}>
+                {isFailed ? (
+                  <div style={{
+                    width: 200, height: 133, borderRadius: 10,
+                    background: 'rgba(255,100,80,0.08)', border: '1px dashed rgba(255,100,80,0.3)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.78rem', color: 'rgba(255,100,80,0.7)',
+                  }}>
+                    Failed
+                  </div>
+                ) : (
+                  <img
+                    src={entry.url}
+                    alt={`${entry.type} ${entry.page_or_chapter_n}`}
+                    style={{ width: 200, height: 'auto', borderRadius: 10, display: 'block' }}
+                  />
+                )}
+              </div>
+
+              {/* Info */}
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                  <span style={{
+                    fontSize: '0.72rem', fontWeight: 700,
+                    color: 'rgba(126,200,227,0.7)', background: 'rgba(126,200,227,0.08)',
+                    padding: '2px 8px', borderRadius: 5,
+                  }}>
+                    {entry.type === 'cover' ? 'Cover' : entry.type === 'chapter_anchor' ? `Ch ${entry.page_or_chapter_n}` : `Spread ${entry.page_or_chapter_n}`}
+                  </span>
+                  <span style={{
+                    fontSize: '0.65rem', fontWeight: 500, padding: '2px 6px', borderRadius: 4,
+                    background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.35)',
+                  }}>
+                    {entry.model_used === 'none' ? 'failed' : entry.model_used.split('/').pop()}
+                  </span>
+                  {i === 0 && entry.status === 'complete' && (
+                    <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'rgba(245,200,66,0.7)' }}>ANCHOR</span>
+                  )}
+                </div>
+
+                {page && (
+                  <>
+                    <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5, marginBottom: 6 }}>
+                      {page.text.length > 150 ? page.text.slice(0, 147) + '...' : page.text}
+                    </div>
+                    {page.illustration_note && (
+                      <div style={{ fontSize: '0.75rem', color: 'rgba(155,125,212,0.6)', lineHeight: 1.3 }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.06em', marginRight: 4 }}>Note:</span>
+                        {page.illustration_note.length > 120 ? page.illustration_note.slice(0, 117) + '...' : page.illustration_note}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {isFailed && entry.error && (
+                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,100,80,0.7)', marginTop: 4 }}>
+                    {entry.error.length > 100 ? entry.error.slice(0, 97) + '...' : entry.error}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => onRegenerate(i)}
+                  style={{
+                    marginTop: 8, fontSize: '0.75rem', fontWeight: 600,
+                    color: isFailed ? 'rgba(255,160,60,0.85)' : 'rgba(155,125,212,0.7)',
+                    background: isFailed ? 'rgba(255,160,60,0.1)' : 'rgba(155,125,212,0.08)',
+                    border: `1px solid ${isFailed ? 'rgba(255,160,60,0.2)' : 'rgba(155,125,212,0.15)'}`,
+                    borderRadius: 6, padding: '5px 12px', cursor: 'pointer',
+                    fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  {isFailed ? 'Retry' : 'Regenerate'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ── JSON Fallback ── */
 function JsonSection({ title, data, emptyText }: { title: string; data: unknown; emptyText: string }) {
   if (!data) {
@@ -543,6 +680,7 @@ export default function BookDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [enqueuing, setEnqueuing] = useState(false);
   const [writerNotes, setWriterNotes] = useState('');
+  const [regenerating, setRegenerating] = useState<number | null>(null);
 
   const isInProgress = book ? IN_PROGRESS.has(book.status) : false;
   const pollInterval = isInProgress ? 5000 : 15000;
@@ -613,6 +751,25 @@ export default function BookDetailPage() {
       await fetch(`/api/studio/books/${id}`, { method: 'DELETE' });
       router.push('/studio');
     } catch { setDeleting(false); }
+  }
+
+  async function handleRegenerate(imageIndex: number) {
+    setRegenerating(imageIndex);
+    try {
+      const res = await fetch('/api/studio/regenerate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookId: id, imageIndex }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || 'Regeneration failed');
+      }
+      await fetchBook();
+    } catch {
+      alert('Network error');
+    }
+    setRegenerating(null);
   }
 
   if (loading) return <div style={{ textAlign: 'center', padding: '80px 0', color: 'rgba(255,255,255,0.4)' }}>Loading...</div>;
@@ -718,6 +875,19 @@ export default function BookDetailPage() {
         </div>
       )}
 
+      {book.status === 'illustrating' && (
+        <div className="glass" style={{ padding: '20px', borderRadius: 14, marginBottom: 24, textAlign: 'center' }}>
+          <Spinner />
+          <span style={{ fontSize: '0.92rem', color: 'rgba(155,125,212,0.85)' }}>
+            Illustrating...
+            {book.images && (book.images as ImagesData).total_expected > 0 && (
+              <> ({(book.images as ImagesData).entries.filter(e => e.status === 'complete').length}/{(book.images as ImagesData).total_expected} done)</>
+            )}
+          </span>
+          <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>Polling every 5s</div>
+        </div>
+      )}
+
       {/* ── Brief ── */}
       <div style={{ marginBottom: 24 }}>
         <h3 style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.8)', marginBottom: 10 }}>Brief</h3>
@@ -763,7 +933,60 @@ export default function BookDetailPage() {
       <CheckerReportSection report={book.checker_report} revisionCount={book.revision_count} />
 
       {/* ── Illustrations ── */}
-      <JsonSection title="Illustrations" data={book.images} emptyText="Waiting for illustration stage..." />
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <h3 style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.8)', margin: 0 }}>Illustrations</h3>
+          {regenerating !== null && (
+            <span style={{ fontSize: '0.72rem', color: 'rgba(155,125,212,0.7)' }}><Spinner />Regenerating #{regenerating}...</span>
+          )}
+        </div>
+        {book.images && (book.images as ImagesData).entries?.length > 0 ? (
+          <IllustrationsGallery
+            images={book.images as ImagesData}
+            story={book.story as Story}
+            bookId={book.id}
+            onRegenerate={handleRegenerate}
+          />
+        ) : (
+          <div className="glass" style={{ padding: '24px 20px', borderRadius: 14, textAlign: 'center' }}>
+            {book.status === 'ready' && book.story ? (
+              <div>
+                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.85rem', marginBottom: 14 }}>
+                  No illustrations yet. Story has {(book.story as Story).pages?.length || 0} pages.
+                </div>
+                <button
+                  onClick={() => enqueueStage('illustrate-book')}
+                  disabled={enqueuing}
+                  className="btn-primary"
+                  style={{ padding: '10px 24px', fontSize: '0.88rem' }}
+                >
+                  {enqueuing ? <><Spinner /> Enqueuing...</> : 'Illustrate'}
+                </button>
+              </div>
+            ) : (
+              <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                Waiting for illustration stage...
+              </div>
+            )}
+          </div>
+        )}
+        {book.images && (book.images as ImagesData).entries?.length > 0 && book.status === 'ready' && (
+          <div style={{ marginTop: 10 }}>
+            <button
+              onClick={() => enqueueStage('illustrate-book')}
+              disabled={enqueuing}
+              style={{
+                fontSize: '0.78rem', fontWeight: 600,
+                color: 'rgba(155,125,212,0.7)', background: 'rgba(155,125,212,0.08)',
+                border: '1px solid rgba(155,125,212,0.15)', borderRadius: 6,
+                padding: '6px 14px', cursor: 'pointer', fontFamily: 'var(--font-body)',
+              }}
+            >
+              {enqueuing ? <><Spinner /> Enqueuing...</> : 'Re-illustrate All'}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* ── Review ── */}
       <div style={{ marginBottom: 24 }}>
