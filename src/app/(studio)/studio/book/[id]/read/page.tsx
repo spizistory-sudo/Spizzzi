@@ -279,16 +279,26 @@ function CoverView({ title, coverUrl, ageBand }: { title: string; coverUrl: stri
     <div className="sr-spread">
       {/* Left page: title page */}
       <div className="sr-page sr-page-left sr-paper">
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '40px 32px', textAlign: 'center' }}>
-          <div style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(120,100,70,0.5)', marginBottom: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 'clamp(32px, 8%, 56px) clamp(28px, 8%, 52px)', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <div style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.25em', textTransform: 'uppercase', color: 'rgba(130,105,55,0.5)', marginBottom: 10 }}>
             A Spizzzy Book
           </div>
-          <div style={{ width: 40, height: 1, background: 'rgba(120,100,70,0.18)', marginBottom: 24 }} />
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.4rem, 3.5vw, 2.2rem)', fontWeight: 600, color: 'rgba(60,45,25,0.88)', lineHeight: 1.15, margin: '0 0 16px', maxWidth: 320 }}>
+          {/* Flourish divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'clamp(20px, 5%, 36px)' }}>
+            <div style={{ width: 20, height: 1, background: 'linear-gradient(90deg, transparent, rgba(160,130,70,0.25))' }} />
+            <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(160,130,70,0.2)' }} />
+            <div style={{ width: 20, height: 1, background: 'linear-gradient(270deg, transparent, rgba(160,130,70,0.25))' }} />
+          </div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.3rem, 3.5vw, 2.2rem)', fontWeight: 600, color: 'rgba(50,35,15,0.88)', lineHeight: 1.18, margin: '0 0 12px', maxWidth: 300 }}>
             {title}
           </h1>
-          <div style={{ width: 40, height: 1, background: 'rgba(120,100,70,0.18)', marginTop: 8, marginBottom: 16 }} />
-          <div style={{ fontSize: '0.72rem', color: 'rgba(120,100,70,0.45)', letterSpacing: '0.08em' }}>
+          {/* Bottom flourish */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'clamp(12px, 3%, 24px)', marginBottom: 16 }}>
+            <div style={{ width: 20, height: 1, background: 'linear-gradient(90deg, transparent, rgba(160,130,70,0.25))' }} />
+            <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(160,130,70,0.2)' }} />
+            <div style={{ width: 20, height: 1, background: 'linear-gradient(270deg, transparent, rgba(160,130,70,0.25))' }} />
+          </div>
+          <div style={{ fontSize: '0.66rem', color: 'rgba(130,105,55,0.4)', letterSpacing: '0.1em', fontFamily: "'Lora', Georgia, serif", fontStyle: 'italic' }}>
             Ages {ageBand}
           </div>
         </div>
@@ -296,7 +306,7 @@ function CoverView({ title, coverUrl, ageBand }: { title: string; coverUrl: stri
       {/* Right page: cover image */}
       <div className="sr-page sr-page-right">
         {coverUrl ? (
-          <img src={coverUrl} alt="Cover illustration" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <img src={coverUrl} alt="Cover illustration" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'relative', zIndex: 1 }} />
         ) : (
           <div style={{ width: '100%', height: '100%', background: 'linear-gradient(145deg, #2a2040, #1a1530)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ fontSize: '3rem', opacity: 0.3 }}>📖</span>
@@ -318,34 +328,34 @@ function SpreadView({ page, imageUrl, pageNumber, totalPages }: {
     <div className="sr-spread">
       {/* Left page: text */}
       <div className="sr-page sr-page-left sr-paper">
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '32px 28px 24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 'clamp(24px, 5%, 44px) clamp(24px, 7%, 48px) clamp(18px, 3.5%, 28px)', position: 'relative', zIndex: 1 }}>
           {/* Small page header on first spread */}
           {pageNumber === 1 && (
-            <div style={{ textAlign: 'center', marginBottom: 16, flexShrink: 0 }}>
-              <div style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(120,100,70,0.4)' }}>
+            <div style={{ textAlign: 'center', marginBottom: 'clamp(12px, 3%, 24px)', flexShrink: 0 }}>
+              <div style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(110,85,45,0.45)' }}>
                 {page.title || 'Chapter One'}
               </div>
-              <div style={{ width: 24, height: 1, background: 'rgba(120,100,70,0.15)', margin: '8px auto 0' }} />
+              <div style={{ width: 28, height: 1, background: 'rgba(140,110,60,0.18)', margin: '10px auto 0' }} />
             </div>
           )}
-          {/* Story text */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+          {/* Story text — vertically centered-to-upper */}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', paddingTop: pageNumber === 1 ? 0 : 'clamp(8px, 4%, 28px)', overflow: 'auto' }}>
             <p className="sr-story-text">
               {page.text}
             </p>
           </div>
           {/* Page number */}
-          <div style={{ textAlign: 'center', flexShrink: 0, paddingTop: 8 }}>
-            <span style={{ fontSize: '0.68rem', color: 'rgba(120,100,70,0.35)', fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
+          <div style={{ textAlign: 'center', flexShrink: 0, paddingTop: 'clamp(6px, 2%, 14px)' }}>
+            <span style={{ fontSize: '0.66rem', color: 'rgba(130,105,55,0.35)', fontFamily: "'Lora', Georgia, serif", fontStyle: 'italic' }}>
               {pageNumber}
             </span>
           </div>
         </div>
       </div>
-      {/* Right page: illustration */}
+      {/* Right page: illustration — fills edge-to-edge inside binding */}
       <div className="sr-page sr-page-right">
         {imageUrl ? (
-          <img src={imageUrl} alt={`Illustration for page ${pageNumber}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <img src={imageUrl} alt={`Illustration for page ${pageNumber}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'relative', zIndex: 1 }} />
         ) : (
           <ImagePlaceholder pageNumber={pageNumber} totalPages={totalPages} />
         )}
@@ -388,16 +398,24 @@ function EndView({ title, canReview, reviewNotes, onNotesChange, reviewing, onAp
   return (
     <div className="sr-spread">
       <div className="sr-page sr-page-left sr-paper">
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '40px 28px', textAlign: 'center' }}>
-          <div style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(120,100,70,0.4)', marginBottom: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 'clamp(32px, 8%, 56px) clamp(28px, 8%, 52px)', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <div style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.25em', textTransform: 'uppercase', color: 'rgba(130,105,55,0.45)', marginBottom: 12 }}>
             The End
           </div>
-          <div style={{ width: 24, height: 1, background: 'rgba(120,100,70,0.15)', marginBottom: 20 }} />
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 600, color: 'rgba(60,45,25,0.75)', lineHeight: 1.2, maxWidth: 280 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
+            <div style={{ width: 20, height: 1, background: 'linear-gradient(90deg, transparent, rgba(160,130,70,0.25))' }} />
+            <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(160,130,70,0.2)' }} />
+            <div style={{ width: 20, height: 1, background: 'linear-gradient(270deg, transparent, rgba(160,130,70,0.25))' }} />
+          </div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 600, color: 'rgba(50,35,15,0.72)', lineHeight: 1.2, maxWidth: 280 }}>
             {title}
           </div>
-          <div style={{ width: 24, height: 1, background: 'rgba(120,100,70,0.15)', marginTop: 20 }} />
-          <div style={{ fontSize: '0.62rem', color: 'rgba(120,100,70,0.35)', marginTop: 12, letterSpacing: '0.12em' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 24 }}>
+            <div style={{ width: 20, height: 1, background: 'linear-gradient(90deg, transparent, rgba(160,130,70,0.25))' }} />
+            <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(160,130,70,0.2)' }} />
+            <div style={{ width: 20, height: 1, background: 'linear-gradient(270deg, transparent, rgba(160,130,70,0.25))' }} />
+          </div>
+          <div style={{ fontSize: '0.6rem', color: 'rgba(130,105,55,0.35)', marginTop: 14, letterSpacing: '0.15em', fontFamily: "'Lora', Georgia, serif", fontStyle: 'italic' }}>
             A Spizzzy Book
           </div>
         </div>
@@ -501,6 +519,7 @@ function ChapterFallback({ book, title, onClose }: { book: LibraryBook; title: s
 
 /* ── CSS ── */
 const READER_CSS = `
+  /* ══ Transitions ══ */
   @keyframes sr-fade-next {
     0%   { opacity: 1; transform: translateX(0); }
     40%  { opacity: 0; transform: translateX(-30px); }
@@ -521,11 +540,11 @@ const READER_CSS = `
 
   .sr-page-content {
     width: 100%; height: 100%;
-    border-radius: 6px;
     overflow: hidden;
+    position: relative;
   }
 
-  /* -- Spread layout -- */
+  /* ══ Spread layout ══ */
   .sr-spread {
     display: flex;
     width: 100%; height: 100%;
@@ -535,38 +554,114 @@ const READER_CSS = `
     overflow: hidden;
     position: relative;
   }
-  .sr-page-left { border-right: 1px solid rgba(120,100,70,0.08); }
 
-  /* Paper texture */
+  /* ══ Paper texture — warm aged cream with grain ══ */
   .sr-paper {
-    background:
+    background-color: #f0e4cb;
+    background-image:
+      /* Subtle horizontal fiber lines */
       repeating-linear-gradient(
         0deg,
         transparent,
-        transparent 28px,
-        rgba(120,100,70,0.018) 28px,
-        rgba(120,100,70,0.018) 29px
+        transparent 23px,
+        rgba(160,130,80,0.025) 23px,
+        rgba(160,130,80,0.025) 24px
       ),
+      /* Crosshatch grain */
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 31px,
+        rgba(160,130,80,0.015) 31px,
+        rgba(160,130,80,0.015) 32px
+      ),
+      /* Warm parchment gradient */
       linear-gradient(168deg,
-        #faf6ee 0%,
-        #f7f2e8 30%,
-        #f4edd9 70%,
-        #f0e9d2 100%
+        #f5ecd8 0%,
+        #f2e7cf 20%,
+        #eedfbf 50%,
+        #ebd9b5 80%,
+        #e8d4ae 100%
       );
   }
 
-  /* Story text */
+  /* Inner shadow on left page — darker toward spine + outer edge */
+  .sr-page-left.sr-paper::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    background:
+      /* Spine-side shadow (right edge of left page) */
+      linear-gradient(to left,
+        rgba(100,70,30,0.12) 0%,
+        rgba(100,70,30,0.04) 8%,
+        transparent 20%
+      ),
+      /* Outer-edge shadow (left edge) */
+      linear-gradient(to right,
+        rgba(100,70,30,0.06) 0%,
+        transparent 12%
+      ),
+      /* Top edge */
+      linear-gradient(to bottom,
+        rgba(100,70,30,0.04) 0%,
+        transparent 6%
+      ),
+      /* Bottom edge */
+      linear-gradient(to top,
+        rgba(100,70,30,0.05) 0%,
+        transparent 6%
+      );
+  }
+
+  /* Inner shadow on right page (image) — spine side gutter shadow */
+  .sr-page-right::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+    background:
+      /* Spine-side shadow (left edge of right page) */
+      linear-gradient(to right,
+        rgba(0,0,0,0.18) 0%,
+        rgba(0,0,0,0.06) 4%,
+        transparent 15%
+      ),
+      /* Outer-edge shadow (right edge) */
+      linear-gradient(to left,
+        rgba(0,0,0,0.04) 0%,
+        transparent 8%
+      ),
+      /* Top edge */
+      linear-gradient(to bottom,
+        rgba(0,0,0,0.03) 0%,
+        transparent 4%
+      ),
+      /* Bottom edge */
+      linear-gradient(to top,
+        rgba(0,0,0,0.04) 0%,
+        transparent 4%
+      );
+  }
+
+  /* ══ Story text ══ */
   .sr-story-text {
-    font-family: 'Lora', Georgia, serif;
-    font-size: clamp(0.82rem, 1.8vw, 1.05rem);
+    font-family: 'Lora', Georgia, 'Times New Roman', serif;
+    font-size: clamp(0.92rem, 2vw, 1.15rem);
     line-height: 1.72;
-    color: rgba(50,38,20,0.82);
+    color: rgba(45,32,12,0.85);
     margin: 0;
     hyphens: auto;
     overflow-wrap: break-word;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: 0.005em;
   }
 
-  /* -- Mobile: single-page stack -- */
+  /* ══ Mobile: single-page stack ══ */
   @media (max-width: 767px) {
     .sr-spread {
       flex-direction: column-reverse;
@@ -575,18 +670,48 @@ const READER_CSS = `
       flex: none;
     }
     .sr-page-right {
-      height: 45%;
+      height: 48%;
     }
     .sr-page-left {
-      height: 55%;
-      border-right: none;
-      border-top: 1px solid rgba(120,100,70,0.08);
+      height: 52%;
+    }
+    /* On mobile, lighten the spine-side shadows since there's no spine */
+    .sr-page-left.sr-paper::after {
+      background:
+        linear-gradient(to right,
+          rgba(100,70,30,0.05) 0%,
+          transparent 10%
+        ),
+        linear-gradient(to left,
+          rgba(100,70,30,0.05) 0%,
+          transparent 10%
+        ),
+        linear-gradient(to bottom,
+          rgba(100,70,30,0.04) 0%,
+          transparent 5%
+        ),
+        linear-gradient(to top,
+          rgba(100,70,30,0.05) 0%,
+          transparent 5%
+        );
+    }
+    .sr-page-right::after {
+      background:
+        linear-gradient(to bottom,
+          rgba(0,0,0,0.04) 0%,
+          transparent 5%
+        ),
+        linear-gradient(to top,
+          rgba(0,0,0,0.05) 0%,
+          transparent 5%
+        );
     }
     .sr-story-text {
-      font-size: 0.92rem;
+      font-size: 0.95rem;
     }
   }
 
+  /* ══ Book object ══ */
   .studio-reader-book {
     transition: box-shadow 0.3s ease;
   }
@@ -595,10 +720,9 @@ const READER_CSS = `
   @media (max-width: 767px) {
     .sr-book-wrapper {
       width: 94vw !important;
-      height: calc(80vh - env(safe-area-inset-bottom, 0px)) !important;
+      height: calc(78vh - env(safe-area-inset-bottom, 0px)) !important;
     }
     .sr-spine { display: none !important; }
-    .sr-edge-l, .sr-edge-r { display: none !important; }
   }
 `;
 
@@ -646,13 +770,19 @@ const S: Record<string, React.CSSProperties> = {
     width: 'min(92vw, 960px)',
     height: 'min(72vh, 600px)',
     position: 'relative',
+    filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
   },
   book: {
     width: '100%',
     height: '100%',
     position: 'relative',
-    borderRadius: 6,
-    boxShadow: '0 20px 60px rgba(0,0,0,0.55), 0 6px 20px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.03)',
+    borderRadius: 4,
+    boxShadow: [
+      '0 30px 80px rgba(0,0,0,0.6)',
+      '0 12px 30px rgba(0,0,0,0.4)',
+      '0 4px 10px rgba(0,0,0,0.3)',
+      'inset 0 0 0 1px rgba(120,100,60,0.08)',
+    ].join(', '),
     overflow: 'hidden',
   },
   spine: {
@@ -660,33 +790,37 @@ const S: Record<string, React.CSSProperties> = {
     top: 0,
     bottom: 0,
     left: '50%',
-    width: 20,
-    marginLeft: -10,
+    width: 30,
+    marginLeft: -15,
     zIndex: 10,
     pointerEvents: 'none' as const,
-    background: 'linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.12) 35%, rgba(0,0,0,0.18) 50%, rgba(0,0,0,0.12) 65%, rgba(0,0,0,0) 100%)',
+    background: [
+      'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.08) 15%, rgba(0,0,0,0.16) 40%, rgba(0,0,0,0.22) 50%, rgba(0,0,0,0.16) 60%, rgba(0,0,0,0.08) 85%, transparent 100%)',
+    ].join(', '),
   },
   pageEdgeLeft: {
     position: 'absolute',
-    top: 4,
-    bottom: 4,
-    left: -3,
-    width: 4,
-    borderRadius: '2px 0 0 2px',
-    background: 'linear-gradient(90deg, rgba(200,190,170,0.12), rgba(200,190,170,0.04))',
+    top: 3,
+    bottom: 3,
+    left: -6,
+    width: 7,
+    borderRadius: '3px 0 0 3px',
     zIndex: 5,
     pointerEvents: 'none' as const,
+    background: 'linear-gradient(90deg, rgba(180,165,130,0.15) 0%, rgba(210,195,165,0.35) 30%, rgba(225,215,190,0.5) 60%, rgba(235,225,200,0.25) 100%)',
+    boxShadow: '-2px 0 4px rgba(0,0,0,0.08)',
   },
   pageEdgeRight: {
     position: 'absolute',
-    top: 4,
-    bottom: 4,
-    right: -3,
-    width: 4,
-    borderRadius: '0 2px 2px 0',
-    background: 'linear-gradient(270deg, rgba(200,190,170,0.12), rgba(200,190,170,0.04))',
+    top: 3,
+    bottom: 3,
+    right: -6,
+    width: 7,
+    borderRadius: '0 3px 3px 0',
     zIndex: 5,
     pointerEvents: 'none' as const,
+    background: 'linear-gradient(270deg, rgba(180,165,130,0.15) 0%, rgba(210,195,165,0.35) 30%, rgba(225,215,190,0.5) 60%, rgba(235,225,200,0.25) 100%)',
+    boxShadow: '2px 0 4px rgba(0,0,0,0.08)',
   },
   controlBar: {
     position: 'fixed' as const,
