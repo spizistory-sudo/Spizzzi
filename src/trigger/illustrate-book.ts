@@ -108,18 +108,29 @@ async function callFal(
 
   if (modelId === FALLBACK_MODEL) {
     input.size = '1536x1024';
+    if (referenceUrl) {
+      input.image = [{ url: referenceUrl, type: 'reference' }];
+    }
+  } else if (referenceUrl) {
+    input.image_urls = [referenceUrl];
+    input.aspect_ratio = '4:3';
   } else {
-    input.image_size = 'landscape_4_3';
+    input.aspect_ratio = '4:3';
   }
 
-  if (referenceUrl && modelId !== FALLBACK_MODEL) {
-    input.image_url = referenceUrl;
-    input.strength = 0.65;
-  }
+  console.log(`[illustrate:callFal] ${modelId} input keys: ${Object.keys(input).join(', ')}`);
 
-  const result = await fal.run(modelId as string, { input } as never) as unknown as FalImageResult;
-  const url = result?.data?.images?.[0]?.url;
-  if (!url) throw new Error(`${modelId} returned no image`);
+  let result: unknown;
+  try {
+    result = await fal.run(modelId as string, { input } as never);
+  } catch (err: unknown) {
+    const falErr = err as { status?: number; body?: unknown; message?: string };
+    console.error(`[illustrate:callFal] ${modelId} error ${falErr.status || 'unknown'}:`, JSON.stringify(falErr.body ?? falErr.message ?? err));
+    throw err;
+  }
+  const typed = result as FalImageResult;
+  const url = typed?.data?.images?.[0]?.url;
+  if (!url) throw new Error(`${modelId} returned no image. Response: ${JSON.stringify(result)}`);
   return { tempUrl: url, modelUsed: modelId };
 }
 
@@ -130,24 +141,24 @@ async function generateWithFallback(
 ): Promise<{ buffer: Buffer; modelUsed: string }> {
   const primaryModel = isAnchor ? PRIMARY_T2I : PRIMARY_I2I;
 
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const { tempUrl, modelUsed } = await callFal(
-        primaryModel,
-        prompt,
-        isAnchor ? undefined : referenceUrl,
-      );
-      const res = await fetch(tempUrl);
-      if (!res.ok) throw new Error(`Download failed: ${res.status}`);
-      return { buffer: Buffer.from(await res.arrayBuffer()), modelUsed };
-    } catch (err) {
-      console.warn(`[illustrate] ${primaryModel} attempt ${attempt + 1} failed: ${err instanceof Error ? err.message : err}`);
-    }
+  try {
+    const { tempUrl, modelUsed } = await callFal(
+      primaryModel,
+      prompt,
+      isAnchor ? undefined : referenceUrl,
+    );
+    const res = await fetch(tempUrl);
+    if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+    return { buffer: Buffer.from(await res.arrayBuffer()), modelUsed };
+  } catch (err) {
+    const status = (err as { status?: number }).status;
+    const isValidationError = status === 422;
+    console.warn(`[illustrate] ${primaryModel} failed (${isValidationError ? '422 — skipping retry' : 'will fallback'}): ${err instanceof Error ? err.message : err}`);
   }
 
   try {
     console.log(`[illustrate] Trying fallback ${FALLBACK_MODEL}...`);
-    const { tempUrl, modelUsed } = await callFal(FALLBACK_MODEL, prompt);
+    const { tempUrl, modelUsed } = await callFal(FALLBACK_MODEL, prompt, referenceUrl);
     const res = await fetch(tempUrl);
     if (!res.ok) throw new Error(`Download failed: ${res.status}`);
     return { buffer: Buffer.from(await res.arrayBuffer()), modelUsed };
@@ -176,7 +187,7 @@ async function saveProgress(bookId: string, entries: ImageEntry[], anchorUrl: st
 
 export const illustrateBook = task({
   id: "illustrate-book",
-  maxDuration: 900,
+  maxDuration: 3600,
   run: async (payload: { bookId: string }) => {
     console.log(`[trigger:illustrate-book] ========== TASK STARTED for ${payload.bookId} ==========`);
     console.log(`[trigger:illustrate-book] Env: FAL_KEY=${process.env.FAL_KEY ? 'set (' + process.env.FAL_KEY.slice(0, 8) + '...)' : 'MISSING'}, SUPABASE_URL=${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'MISSING'}, SERVICE_KEY=${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'MISSING'}`);
@@ -231,59 +242,90 @@ export const illustrateBook = task({
       return { success: false, reason: 'exceeds cap' };
     }
 
-    const estimatedCost = totalImages * COST_PER_PRIMARY;
-    console.log(`[trigger:illustrate-book] Estimated cost: $${estimatedCost.toFixed(2)}`);
+    // --- Resume: load existing images, skip completed ones ---
+    const existingImages = book.images as unknown as ImagesData | null;
+    const existingEntries = existingImages?.entries || [];
+    const existingByKey = new Map<string, ImageEntry>();
+    for (const e of existingEntries) {
+      if (e.status === 'complete' && e.url) {
+        existingByKey.set(`${e.type}-${e.page_or_chapter_n}`, e);
+      }
+    }
+    const skipped = existingByKey.size;
+    const toGenerate = imageJobs.filter(j => !existingByKey.has(`${j.type}-${j.n}`));
+
+    if (skipped > 0) {
+      console.log(`[trigger:illustrate-book] RESUME: ${skipped} images already stored, ${toGenerate.length} to generate`);
+    }
+
+    const estimatedCost = toGenerate.length * COST_PER_PRIMARY;
+    console.log(`[trigger:illustrate-book] Estimated cost: $${estimatedCost.toFixed(2)} (${toGenerate.length} new images)`);
+
+    if (toGenerate.length === 0) {
+      console.log(`[trigger:illustrate-book] All ${totalImages} images already exist — nothing to generate`);
+      await updateBookStatus(payload.bookId, 'ready', {
+        images: existingImages as unknown as Record<string, unknown>,
+        last_error: null,
+      });
+      return { success: true, bookId: payload.bookId, total: totalImages, failed: 0, skipped, cost: '$0.00' };
+    }
 
     await updateBookStatus(payload.bookId, 'illustrating');
     console.log(`[trigger:illustrate-book] Status → 'illustrating'`);
 
     const preamble = buildPreamble(story);
-    const entries: ImageEntry[] = [];
-    let anchorUrl: string | null = null;
+    const entries: ImageEntry[] = [...existingEntries];
+    let anchorUrl: string | null = existingImages?.anchor_url || null;
 
     try {
-      // --- Anchor image (first job) ---
+      // --- Anchor image (if not already stored) ---
       const anchorJob = imageJobs[0];
-      const anchorPrompt = `${preamble}\n\nSCENE: ${anchorJob.scene}`;
-      console.log(`[trigger:illustrate-book] Generating anchor (${anchorJob.type} #${anchorJob.n})...`);
+      const anchorKey = `${anchorJob.type}-${anchorJob.n}`;
 
-      try {
-        const { buffer, modelUsed } = await generateWithFallback(anchorPrompt, undefined, true);
-        const storagePath = `library/${payload.bookId}/${anchorJob.type}-${anchorJob.n}.png`;
-        const publicUrl = await uploadImage(STORAGE_BUCKET, storagePath, buffer);
-        anchorUrl = publicUrl;
+      if (!existingByKey.has(anchorKey)) {
+        const anchorPrompt = `${preamble}\n\nSCENE: ${anchorJob.scene}`;
+        console.log(`[trigger:illustrate-book] Generating anchor (${anchorJob.type} #${anchorJob.n})...`);
 
-        entries.push({
-          page_or_chapter_n: anchorJob.n,
-          type: anchorJob.type,
-          prompt_used: anchorPrompt,
-          model_used: modelUsed,
-          url: publicUrl,
-          status: 'complete',
-        });
-        console.log(`[trigger:illustrate-book] Anchor done: ${modelUsed}, stored at ${storagePath}`);
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        console.error(`[trigger:illustrate-book] Anchor FAILED: ${errorMsg}`);
-        entries.push({
-          page_or_chapter_n: anchorJob.n,
-          type: anchorJob.type,
-          prompt_used: anchorPrompt,
-          model_used: 'none',
-          url: '',
-          status: 'failed',
-          error: errorMsg,
-        });
+        try {
+          const { buffer, modelUsed } = await generateWithFallback(anchorPrompt, undefined, true);
+          const storagePath = `library/${payload.bookId}/${anchorJob.type}-${anchorJob.n}.png`;
+          const publicUrl = await uploadImage(STORAGE_BUCKET, storagePath, buffer);
+          anchorUrl = publicUrl;
+
+          entries.push({
+            page_or_chapter_n: anchorJob.n,
+            type: anchorJob.type,
+            prompt_used: anchorPrompt,
+            model_used: modelUsed,
+            url: publicUrl,
+            status: 'complete',
+          });
+          console.log(`[trigger:illustrate-book] Anchor done: ${modelUsed}, stored at ${storagePath}`);
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          console.error(`[trigger:illustrate-book] Anchor FAILED: ${errorMsg}`);
+          entries.push({
+            page_or_chapter_n: anchorJob.n,
+            type: anchorJob.type,
+            prompt_used: `${preamble}\n\nSCENE: ${anchorJob.scene}`,
+            model_used: 'none',
+            url: '',
+            status: 'failed',
+            error: errorMsg,
+          });
+        }
+
+        await saveProgress(payload.bookId, entries, anchorUrl, totalImages);
+      } else {
+        console.log(`[trigger:illustrate-book] Anchor already stored, skipping`);
       }
 
-      await saveProgress(payload.bookId, entries, anchorUrl, totalImages);
+      // --- Remaining images in chunks (only those not already stored) ---
+      const remainingToGenerate = toGenerate.filter(j => !(j === anchorJob && !existingByKey.has(anchorKey)));
 
-      // --- Remaining images in chunks ---
-      const remainingJobs = imageJobs.slice(1);
-
-      for (let i = 0; i < remainingJobs.length; i += CONCURRENCY) {
-        const chunk = remainingJobs.slice(i, i + CONCURRENCY);
-        console.log(`[trigger:illustrate-book] Chunk ${Math.floor(i / CONCURRENCY) + 1}: images ${i + 2}–${Math.min(i + CONCURRENCY + 1, remainingJobs.length + 1)} of ${totalImages}`);
+      for (let i = 0; i < remainingToGenerate.length; i += CONCURRENCY) {
+        const chunk = remainingToGenerate.slice(i, i + CONCURRENCY);
+        console.log(`[trigger:illustrate-book] Chunk ${Math.floor(i / CONCURRENCY) + 1}: generating ${chunk.length} images (${entries.filter(e => e.status === 'complete').length}/${totalImages} complete so far)`);
 
         const chunkResults = await Promise.all(
           chunk.map(async (job) => {

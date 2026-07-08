@@ -64,18 +64,26 @@ export async function POST(req: Request) {
 
     const input: Record<string, unknown> = {
       prompt: entry.prompt_used,
-      image_size: 'landscape_4_3',
+      aspect_ratio: '4:3',
       num_images: 1,
       output_format: 'png',
     };
 
     if (!isAnchor && imagesData.anchor_url) {
-      input.image_url = imagesData.anchor_url;
-      input.strength = 0.65;
+      input.image_urls = [imagesData.anchor_url];
     }
 
-    const result = await fal.run(modelId as string, { input } as never) as unknown as FalImageResult;
-    const tempUrl = result?.data?.images?.[0]?.url;
+    console.log(`[studio/regenerate] fal input keys: ${Object.keys(input).join(', ')}`);
+
+    let result: unknown;
+    try {
+      result = await fal.run(modelId as string, { input } as never);
+    } catch (err: unknown) {
+      const falErr = err as { status?: number; body?: unknown; message?: string };
+      console.error(`[studio/regenerate] fal error ${falErr.status || 'unknown'}:`, JSON.stringify(falErr.body ?? falErr.message ?? err));
+      throw err;
+    }
+    const tempUrl = (result as FalImageResult)?.data?.images?.[0]?.url;
     if (!tempUrl) throw new Error(`${modelId} returned no image`);
 
     const res = await fetch(tempUrl);
